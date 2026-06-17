@@ -12,6 +12,7 @@
     <title>OptiCost – Lens Raw Material Cost Estimator</title>
     <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet" />
     <style>
+        /* ─── same styles as before ─── */
         :root {
             --bg: #060e18;
             --topbar: #020a12;
@@ -1102,7 +1103,6 @@
             background: #e8f0fa;
             text-align: center
         }
-        /* Pinch-zoom support */
         #report-snap {
             touch-action: pan-y pinch-zoom
         }
@@ -1164,24 +1164,95 @@
             }
         }
 
-        /* ── NEW SHARE BADGE ── */
-        .share-badge {
-            display: inline-block;
+        /* ── NEW SAVE/EXPORT UI ── */
+        .save-action-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+            margin-top: 10px;
+        }
+        .save-action-grid button {
+            padding: 12px 6px;
+            border: none;
+            border-radius: 8px;
+            font-family: 'Nunito', sans-serif;
+            font-size: .78rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all .15s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+        }
+        .save-action-grid button:active {
+            transform: scale(0.94);
+        }
+        .save-action-grid .s-primary {
             background: #16a34a;
             color: #fff;
-            font-size: .55rem;
-            font-weight: 700;
-            padding: 1px 8px;
-            border-radius: 20px;
-            margin-left: 6px;
-            vertical-align: middle;
         }
-        .share-badge.green {
-            background: #1d6f42;
+        .save-action-grid .s-primary:hover {
+            background: #15803d;
         }
-        .share-badge.blue {
+        .save-action-grid .s-share {
+            background: #7c3aed;
+            color: #fff;
+        }
+        .save-action-grid .s-share:hover {
+            background: #6d28d9;
+        }
+        .save-action-grid .s-download {
             background: #1d4ed8;
+            color: #fff;
         }
+        .save-action-grid .s-download:hover {
+            background: #1e40af;
+        }
+        .save-action-grid .s-copy {
+            background: #0e7490;
+            color: #fff;
+        }
+        .save-action-grid .s-copy:hover {
+            background: #0d5f7a;
+        }
+
+        .toast-msg {
+            position: fixed;
+            bottom: 90px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #0c1d30;
+            color: #e8f4ff;
+            padding: 12px 20px;
+            border-radius: 10px;
+            font-size: .82rem;
+            font-weight: 600;
+            border: 1px solid var(--border);
+            z-index: 9998;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.7);
+            max-width: 90%;
+            text-align: center;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity .3s ease;
+        }
+        .toast-msg.show {
+            opacity: 1;
+        }
+        .toast-msg.success {
+            border-color: var(--green);
+            color: var(--green);
+        }
+        .toast-msg.error {
+            border-color: var(--red);
+            color: var(--red);
+        }
+        .toast-msg.info {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
         .file-item-actions {
             display: flex;
             gap: 6px;
@@ -1220,48 +1291,22 @@
         .file-item-actions button:active {
             transform: scale(0.94);
         }
-
-        /* Toast */
-        .toast-msg {
-            position: fixed;
-            bottom: 90px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #0c1d30;
-            color: #e8f4ff;
-            padding: 12px 20px;
-            border-radius: 10px;
-            font-size: .82rem;
-            font-weight: 600;
-            border: 1px solid var(--border);
-            z-index: 9998;
-            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.7);
-            max-width: 90%;
-            text-align: center;
-            pointer-events: none;
-            opacity: 0;
-            transition: opacity .3s ease;
-        }
-        .toast-msg.show {
-            opacity: 1;
-        }
-        .toast-msg.success {
-            border-color: var(--green);
-            color: var(--green);
-        }
-        .toast-msg.error {
-            border-color: var(--red);
-            color: var(--red);
-        }
-        .toast-msg.info {
-            border-color: var(--accent);
-            color: var(--accent);
+        .share-badge {
+            display: inline-block;
+            background: #16a34a;
+            color: #fff;
+            font-size: .55rem;
+            font-weight: 700;
+            padding: 1px 8px;
+            border-radius: 20px;
+            margin-left: 6px;
+            vertical-align: middle;
         }
     </style>
 </head>
 <body>
 
-    <!-- ─── TOAST ─── -->
+    <!-- TOAST -->
     <div id="toast" class="toast-msg"></div>
 
     <!-- SCREEN 1 — LOGIN -->
@@ -1595,7 +1640,6 @@
                         </div>
                     </div>
 
-                    <!-- ★ SIDE-BY-SIDE LAYOUT ★ -->
                     <div id="res-split-wrap" style="display:flex;flex-direction:row">
                         <div id="res-canvas-col" style="display:none;flex:0 0 44%;max-width:44%;background:#f0f5ff;border-right:1px solid #c8d8e8;flex-direction:column;align-items:center;justify-content:center;min-height:300px">
                             <span class="cs-lbl">👁 CROSS-SECTION</span>
@@ -1612,26 +1656,39 @@
                     </div>
                 </div>
 
+                <!-- ★ NEW EXPORT GRID WITH CLEAR SAVE/SHARE BUTTONS ★ -->
                 <div class="export-panel">
-                    <div class="export-panel-title">💾 EXPORT / SAVE REPORT</div>
-                    <div class="export-grid">
-                        <button class="export-btn ebtn-png" onclick="saveReportImage('png')">
-                            <span class="eico">📷</span><span>PNG Image</span><span class="elbl">View &amp; long-press to save</span>
+                    <div class="export-panel-title">💾 SAVE &amp; EXPORT</div>
+                    <div class="save-action-grid">
+                        <button class="s-primary" onclick="saveReportToStorage('excel')">
+                            <span>📊 Save Excel</span>
+                            <span style="font-size:.55rem;opacity:.8">.xlsx in Downloads</span>
                         </button>
-                        <button class="export-btn ebtn-doc" onclick="saveReportWord()">
-                            <span class="eico">📝</span><span>Word .doc</span><span class="elbl">Microsoft Word document</span>
+                        <button class="s-primary" onclick="saveReportToStorage('csv')">
+                            <span>📊 Save CSV</span>
+                            <span style="font-size:.55rem;opacity:.8">.csv in Downloads</span>
                         </button>
-                        <button class="export-btn ebtn-csv" onclick="doSaveXLSX()" style="background:#0e7490;color:#fff">
-                            <span class="eico">📊</span><span>Excel / CSV</span><span class="elbl">Save &amp; share</span>
+                        <button class="s-primary" onclick="saveReportToStorage('png')">
+                            <span>🖼 Save PNG</span>
+                            <span style="font-size:.55rem;opacity:.8">image in Downloads</span>
                         </button>
-                        <button class="export-btn ebtn-share" onclick="shareCurrentReport()" style="background:#7c3aed;color:#fff">
-                            <span class="eico">↗</span><span>Share Report</span><span class="elbl">WhatsApp / Gmail</span>
+                        <button class="s-primary" onclick="saveReportToStorage('doc')">
+                            <span>📝 Save Word</span>
+                            <span style="font-size:.55rem;opacity:.8">.doc in Downloads</span>
+                        </button>
+                        <button class="s-share" onclick="shareCurrentReport()" style="grid-column:1/2;">
+                            <span>↗ Share Report Text</span>
+                            <span style="font-size:.55rem;opacity:.8">WhatsApp / Gmail</span>
+                        </button>
+                        <button class="s-copy" onclick="copyReportToClipboard()" style="grid-column:2/3;">
+                            <span>📋 Copy Report</span>
+                            <span style="font-size:.55rem;opacity:.8">paste anywhere</span>
                         </button>
                     </div>
                     <div style="margin-top:8px;background:var(--inp);border-radius:8px;padding:8px 10px;font-size:.63rem;color:var(--muted);line-height:1.8">
-                        <div>📷 <b>PNG</b> → tap view → <b>long-press image → Save to Gallery</b></div>
-                        <div>📊 <b>CSV</b> → tap <b>Share Report</b> → choose WhatsApp / Gmail</div>
-                        <div>↗ <b>Share</b> → copies report text → paste in <b>WhatsApp / Gmail</b></div>
+                        <div>✅ <b>Save</b> → file goes to <b>Downloads</b> folder (visible in Files tab)</div>
+                        <div>📤 <b>Share</b> → copies report text → paste in WhatsApp / Gmail</div>
+                        <div>📋 <b>Copy</b> → copies full report to clipboard</div>
                     </div>
                 </div>
             </div>
@@ -1677,11 +1734,10 @@
                 <div class="card">
                     <div class="sec-hdr">🗂 SAVED FILES LIBRARY</div>
                     <div style="background:var(--surf2);border-radius:8px;padding:9px 11px;margin-bottom:10px;font-size:.72rem;color:var(--muted);line-height:1.85;">
-                        <div style="color:var(--accent);font-weight:700;margin-bottom:5px;">💾 Files are saved in your device memory (Downloads folder) &amp; in-app library.</div>
-                        <div>📊 <b>Excel / CSV</b> → tap <b>Share</b> → choose <b>WhatsApp / Gmail</b></div>
-                        <div>🖼 <b>PNG</b> → tap <b>View</b> → <b>long-press image → Save to Gallery</b></div>
-                        <div>📄 <b>Report / DOC</b> → tap <b>Share</b> → open in Word / Google Docs</div>
-                        <div style="margin-top:4px;color:var(--amber);font-size:.68rem">✅ <b>New:</b> Tap <b>Share</b> on any file to send via WhatsApp / Gmail directly!</div>
+                        <div style="color:var(--accent);font-weight:700;margin-bottom:5px;">💾 Files are saved in <b>Downloads</b> folder and in-app library.</div>
+                        <div>📊 <b>Excel / CSV</b> → tap <b>Share</b> → choose WhatsApp / Gmail</div>
+                        <div>🖼 <b>PNG</b> → tap <b>View</b> → long‑press → Save to Gallery</div>
+                        <div>📄 <b>Word</b> → tap <b>Share</b> → open in Word / Google Docs</div>
                     </div>
                     <div id="_files-list"><div style="color:var(--muted);font-size:.8rem;padding:16px;text-align:center">Loading…</div></div>
                     <button onclick="renderFilesLib()" style="width:100%;margin-top:10px;padding:10px;background:var(--surf2);border:1px solid var(--border);border-radius:8px;color:var(--accent);font-weight:700;font-family:'Nunito',sans-serif;font-size:.82rem;cursor:pointer">🔄 Refresh List</button>
@@ -1691,7 +1747,7 @@
 
         <div class="actbar" id="global-actbar">
             <button class="btn-calc" onclick="doCalc()">⚡ Calculate</button>
-            <button class="btn-save" onclick="doSaveXLSX()">💾 Save Excel</button>
+            <button class="btn-save" onclick="saveReportToStorage('excel')">💾 Save Excel</button>
             <button class="btn-reset" onclick="doReset()">↺ Reset</button>
         </div>
         <div class="app-footer">Optics &amp; Allied Engg. Pvt. Ltd. (OPTICA) &nbsp;|&nbsp; +91-9886654729 &nbsp;|&nbsp; www.opticsindia.com</div>
@@ -1729,7 +1785,7 @@
     <script>
         'use strict';
 
-        // ── TOAST ──
+        // ─── TOAST ──────────────────────────────────────────────────────
         let _toastTimer = null;
 
         function showToast(msg, type, duration) {
@@ -1743,7 +1799,7 @@
             _toastTimer = setTimeout(() => { el.className = 'toast-msg'; }, duration);
         }
 
-        // ── MATERIAL DATABASE ──
+        // ─── MATERIAL DATABASE ──────────────────────────────────────────
         const DEFAULT_MATERIALS = [
             { name: "Germanium", dens: 5.323, ppg: 0 }, { name: "Silicon", dens: 2.33, ppg: 0 },
             { name: "AMTIR-1", dens: 4.41, ppg: 0 }, { name: "AMTIR-2", dens: 4.50, ppg: 0 }, { name: "AMTIR-5", dens: 4.62,
@@ -1790,7 +1846,7 @@
 
         function fmtPPG(val) { return parseFloat((Math.round(val * 10000) / 10000).toFixed(4)).toString(); }
 
-        // ── AUTH (IndexedDB) ──
+        // ─── AUTH (IndexedDB) ──────────────────────────────────────────
         const ADMIN_USER = "Optica",
             ADMIN_PASS = "shreeganesha";
         let _db = null;
@@ -2068,7 +2124,7 @@
         function sf(s, d = 0) { const val = parseFloat(String(s).replace(",", ""));
             return isNaN(val) ? d : val; }
 
-        // ── MATERIAL LIBRARY EDITOR ──
+        // ─── MATERIAL LIBRARY EDITOR ──────────────────────────────────
         function renderMatTable() {
             const tb = document.getElementById("mat-tbody");
             tb.innerHTML = "";
@@ -2175,7 +2231,7 @@
             if (isNaN(R) || R <= 0) throw new Error("ROC must be a positive number.");
             if (isNaN(h) || h <= 0) throw new Error("CA must be > 0.");
             if (R < h) throw new Error("ROC " + R.toFixed(3) + "mm < half-aperture " + h.toFixed(3) +
-            "mm — invalid geometry.");
+                "mm — invalid geometry.");
             return R - Math.sqrt(R * R - h * h);
         }
 
@@ -2212,9 +2268,6 @@
             return { Vrb, Vc, Vt: Math.max(Vc + V1 + V2, 0) };
         }
 
-        // ══════════════════════════════════════════
-        //  MIRROR CANVAS TO RESULTS TAB
-        // ══════════════════════════════════════════
         function mirrorCanvasToResults(srcId) {
             const src = document.getElementById(srcId);
             const dst = document.getElementById("res-canvas");
@@ -2240,7 +2293,6 @@
             });
         }
 
-        // ─── CALCULATE ──────────────────────────────────────────────────
         function doCalc() {
             try {
                 const srcTab = currentTab;
@@ -2535,8 +2587,97 @@
             try { return decodeURIComponent(escape(stripped)); } catch (e) { return stripped; }
         }
 
-        // ─── ROBUST DOWNLOAD ──────────────────────────────────────────
-        function _downloadBlob(blob, fname) {
+        // ════════════════════════════════════════════════════════════════
+        // ★ ★ ★  NEW: ROBUST EXPORT ENGINE (mirrors import behaviour)  ★ ★ ★
+        // ════════════════════════════════════════════════════════════════
+
+        // ─── SAVE REPORT TO STORAGE (primary) ──────────────────────────
+        function saveReportToStorage(type) {
+            if (!recs.length) { showModal('No Data', 'Calculate items first.'); return; }
+
+            let blob, fname;
+            const ts = new Date().toISOString().slice(0, 10);
+
+            try {
+                switch (type) {
+                    case 'excel':
+                        blob = _buildExcelBlob();
+                        fname = 'OptiCost_' + ts + '.xlsx';
+                        break;
+                    case 'csv':
+                        blob = _buildCSVBlob();
+                        fname = 'OptiCost_' + ts + '.csv';
+                        break;
+                    case 'png':
+                        _savePNGReport();
+                        return;
+                    case 'doc':
+                        _saveWordReport();
+                        return;
+                    default:
+                        showModal('Error', 'Unknown export type.');
+                        return;
+                }
+            } catch (e) {
+                showModal('Error', 'Failed to build file: ' + e.message);
+                return;
+            }
+
+            if (!blob) { showModal('Error', 'Could not build file.'); return; }
+
+            // ★ PRIMARY: Use WebintoApp bridge (same as import) ★
+            if (typeof window.WebintoApp !== 'undefined') {
+                const wa = window.WebintoApp;
+                // Try saveFile first (most direct)
+                if (typeof wa.saveFile === 'function') {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const dataUri = e.target.result;
+                        try {
+                            wa.saveFile(dataUri, fname, blob.type || 'application/octet-stream');
+                            showToast('✅ Saved to Downloads: ' + fname, 'success', 3500);
+                            // Store in IDB for Files tab
+                            _storeFile(fname, blob, () => {});
+                            // Also refresh files list if visible
+                            if (document.getElementById('_files-list')) renderFilesLib();
+                            return;
+                        } catch (err) {
+                            // fall through
+                        }
+                    };
+                    reader.readAsDataURL(blob);
+                    return;
+                }
+                // Try download
+                if (typeof wa.download === 'function') {
+                    const url = URL.createObjectURL(blob);
+                    try {
+                        wa.download(url, fname);
+                        showToast('✅ Download started: ' + fname, 'success', 3500);
+                        _storeFile(fname, blob, () => {});
+                        if (document.getElementById('_files-list')) renderFilesLib();
+                        setTimeout(() => URL.revokeObjectURL(url), 15000);
+                        return;
+                    } catch (e) {}
+                }
+                // Try shareFile
+                if (typeof wa.shareFile === 'function') {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        try {
+                            wa.shareFile(e.target.result, fname);
+                            showToast('✅ Shared/saved: ' + fname, 'success', 3500);
+                            _storeFile(fname, blob, () => {});
+                            if (document.getElementById('_files-list')) renderFilesLib();
+                            return;
+                        } catch (err) {}
+                    };
+                    reader.readAsDataURL(blob);
+                    return;
+                }
+            }
+
+            // ─── FALLBACK 1: Anchor download ──────────────────────────
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
@@ -2546,550 +2687,22 @@
             a.click();
             document.body.removeChild(a);
             setTimeout(() => URL.revokeObjectURL(url), 20000);
-            setTimeout(() => _showManualSaveOverlay(blob, fname), 400);
-        }
 
-        function _showManualSaveOverlay(blob, fname) {
-            _rmOv('_oc-manual');
-            const ov = _mkOv('_oc-manual', '#020a12');
-            ov.appendChild(_mkHdr('📥 Save / Share: ' + fname, () => ov.remove()));
-            const tip = _mkEl('div',
-                'padding:10px 14px;background:#071a0e;flex-shrink:0;font-size:.8rem;color:#4ade80;line-height:1.8;border-bottom:1px solid #0e2e4e;'
-                );
-            tip.innerHTML =
-                '✅ File ready. Tap <b>Share</b> to send via WhatsApp / Gmail, or <b>Download</b> to save to device.';
-            ov.appendChild(tip);
-
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const dataUri = e.target.result;
-                const isImg = blob.type.startsWith('image/');
-                const isCSV = fname.endsWith('.csv');
-                const isDoc = fname.endsWith('.doc') || fname.endsWith('.docx') || fname.endsWith('.html');
-
-                const btnArea = _mkEl('div',
-                    'padding:10px 12px;display:flex;flex-direction:column;gap:9px;flex-shrink:0;background:#030d18;border-bottom:1px solid #0e2e4e;'
-                    );
-
-                // ── SHARE (primary) ──
-                const btnShare = _mkBtn('📤 Share via WhatsApp / Gmail', '#1d6f42', '#fff', () => {
-                    _shareFileViaIntent(blob, fname);
-                });
-                btnArea.appendChild(btnShare);
-
-                // ── Download again ──
-                const btnDl = _mkBtn('⬇ Download to Device', '#22d3ee', '#060e18', () => {
-                    const url2 = URL.createObjectURL(blob);
-                    const a2 = document.createElement('a');
-                    a2.href = url2;
-                    a2.download = fname;
-                    a2.click();
-                    setTimeout(() => URL.revokeObjectURL(url2), 15000);
-                });
-                btnArea.appendChild(btnDl);
-
-                // ── Copy CSV text ──
-                if (isCSV) {
-                    const text = _dataUriToText(dataUri);
-                    const btnCopy = _mkBtn('📋 Copy CSV Text', '#7c3aed', '#fff', () => {
-                        if (_copyText(text)) {
-                            btnCopy.textContent = '✅ Copied!';
-                            setTimeout(() => btnCopy.textContent = '📋 Copy CSV Text', 2500);
-                        } else {
-                            const ta = document.createElement('textarea');
-                            ta.value = text;
-                            ta.style.cssText =
-                                'position:fixed;left:0;top:0;width:100%;height:80%;z-index:999999;font-size:14px;padding:10px;background:#fff;color:#000;';
-                            document.body.appendChild(ta);
-                            ta.select();
-                            const closeBtn = document.createElement('button');
-                            closeBtn.textContent = 'Close';
-                            closeBtn.style.cssText =
-                                'position:fixed;bottom:10px;right:10px;z-index:999999;padding:12px 24px;background:#22d3ee;border:none;border-radius:8px;font-weight:700;font-size:16px;';
-                            closeBtn.onclick = () => { ta.remove();
-                                closeBtn.remove(); };
-                            document.body.appendChild(closeBtn);
-                            showModal('Manual Copy',
-                                'The CSV text is selected. Long-press and choose "Copy" or "Select All" then copy.'
-                                );
-                        }
-                    });
-                    btnArea.appendChild(btnCopy);
-                }
-
-                // ── View image ──
-                if (isImg) {
-                    const btnView = _mkBtn('🖼 View Image', '#0e7490', '#fff', () => {
-                        ov.remove();
-                        _showImageViewer(dataUri, fname);
-                    });
-                    btnArea.appendChild(btnView);
-                }
-
-                // ── View document ──
-                if (isDoc) {
-                    const btnViewDoc = _mkBtn('📄 View Document', '#0e7490', '#fff', () => {
-                        ov.remove();
-                        _showDocViewer(dataUri, fname);
-                    });
-                    btnArea.appendChild(btnViewDoc);
-                }
-
-                const btnClose = _mkBtn('✓ Done', '#1a3a5c', '#e2e8f0', () => ov.remove());
-                btnArea.appendChild(btnClose);
-                ov.appendChild(btnArea);
-
-                // ── Preview ──
-                if (isImg) {
-                    const imgWrap = _mkEl('div',
-                        'flex:1;display:flex;align-items:center;justify-content:center;padding:8px;background:#111;'
-                        );
-                    const img = document.createElement('img');
-                    img.src = dataUri;
-                    img.style.cssText = 'max-width:100%;max-height:300px;border-radius:6px;';
-                    imgWrap.appendChild(img);
-                    ov.appendChild(imgWrap);
-                } else if (isCSV) {
-                    const text = _dataUriToText(dataUri);
-                    const pre = _mkEl('pre',
-                        'flex:1;overflow:auto;padding:12px;background:#040f1c;color:#e8f4ff;font-family:"Share Tech Mono",monospace;font-size:.7rem;margin:0;border-top:1px solid #0e2e4e;'
-                        );
-                    pre.textContent = text.length > 800 ? text.slice(0, 800) + '\n... (truncated)' : text;
-                    ov.appendChild(pre);
-                } else {
-                    const info = _mkEl('div',
-                        'flex:1;padding:20px;text-align:center;color:#7db0cc;font-size:.85rem;line-height:2;'
-                        );
-                    info.innerHTML =
-                        `File type: <b>${blob.type}</b><br/>Size: ${(blob.size/1024).toFixed(1)} KB<br/><br/>Tap <b>Share</b> to send via WhatsApp / Gmail.`;
-                    ov.appendChild(info);
-                }
-                document.body.appendChild(ov);
-            };
-            reader.readAsDataURL(blob);
-        }
-
-        // ─── SHARE ENGINE: MULTIPLE FALLBACKS ──────────────────────────
-        function _shareFileViaIntent(blob, fname) {
-            // Try 1: navigator.share with File
-            try {
-                const file = new File([blob], fname, { type: blob.type || 'application/octet-stream' });
-                if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-                    navigator.share({ files: [file], title: 'OptiCost: ' + fname })
-                        .then(() => { showToast('✅ Shared successfully!', 'success'); })
-                        .catch(() => { /* user cancelled or error */ });
-                    return;
-                }
-            } catch (e) {}
-
-            // Try 2: navigator.share with text (fallback)
-            try {
-                if (navigator.share) {
-                    const text = '📐 OptiCost Report: ' + fname +
-                        '\n\nPlease find the attached file.\nGenerated by OptiCost LRMCE.';
-                    navigator.share({ title: 'OptiCost: ' + fname, text: text })
-                        .then(() => { showToast('✅ Shared!', 'success'); })
-                        .catch(() => {});
-                    return;
-                }
-            } catch (e) {}
-
-            // Try 3: WebintoApp bridge (if available)
-            try {
-                if (window.WebintoApp && typeof window.WebintoApp.shareFile === 'function') {
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        const dataUri = e.target.result;
-                        try {
-                            window.WebintoApp.shareFile(dataUri, fname);
-                            showToast('✅ Shared via WebintoApp!', 'success');
-                        } catch (err) {
-                            _fallbackShareDownload(blob, fname);
-                        }
-                    };
-                    reader.readAsDataURL(blob);
-                    return;
-                }
-                if (window.WebintoApp && typeof window.WebintoApp.share === 'function') {
-                    window.WebintoApp.share('OptiCost file: ' + fname);
-                    showToast('✅ Shared!', 'success');
-                    return;
-                }
-            } catch (e) {}
-
-            // Try 4: Android intent via window.open
-            try {
-                const url = URL.createObjectURL(blob);
-                const intentUrl =
-                    'intent://' + encodeURIComponent(url) + '#Intent;type=' + encodeURIComponent(blob.type || 'application/octet-stream') +
-                    ';action=android.intent.action.VIEW;end';
-                window.open(intentUrl, '_blank');
-                showToast('📤 Share sheet opened (intent)', 'info');
-                return;
-            } catch (e) {}
-
-            // Try 5: Download and guide user
-            _fallbackShareDownload(blob, fname);
-        }
-
-        function _fallbackShareDownload(blob, fname) {
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = fname;
-            a.style.display = 'none';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            setTimeout(() => URL.revokeObjectURL(url), 15000);
-            showModal('📤 Share via Manual',
-                'File downloaded to your device.\n\n' +
-                'Open your file manager → Downloads folder → tap the file.\n' +
-                'Then tap the Share icon and choose WhatsApp / Gmail.\n\n' +
-                '✅ File: ' + fname
-            );
-        }
-
-        // ─── SHARE CURRENT REPORT ──────────────────────────────────────
-        function shareCurrentReport() {
-            if (!recs.length) { showModal('No Data', 'Calculate items first.'); return; }
-            // Build a text summary
-            let txt = '📐 OptiCost Report\n';
-            txt += '━━━━━━━━━━━━━━━━━━━━━━\n';
-            const mfr = document.getElementById('rpt-mfr').value.trim() || 'Optics & Allied Engg. Pvt. Ltd.';
-            txt += 'From: ' + mfr + '\n';
-            const vendor = document.getElementById('rpt-vendor').value.trim();
-            if (vendor) txt += 'To: ' + vendor + '\n';
-            const title = document.getElementById('rpt-title').value.trim();
-            if (title) txt += 'Title: ' + title + '\n';
-            const partno = document.getElementById('rpt-partno').value.trim();
-            if (partno) txt += 'Part No.: ' + partno + '\n';
-            const date = document.getElementById('rpt-date').value.trim() || new Date().toLocaleDateString();
-            txt += 'Date: ' + date + '\n';
-            txt += '━━━━━━━━━━━━━━━━━━━━━━\n';
-            recs.forEach((r, i) => {
-                txt += '\n📌 Record ' + (i + 1) + '\n';
-                Object.keys(r).forEach(k => {
-                    if (r[k] !== undefined && r[k] !== null && r[k] !== '') {
-                        txt += '  ' + k + ': ' + r[k] + '\n';
-                    }
-                });
-                txt += '────────────────────\n';
+            // Store in IDB
+            _storeFile(fname, blob, (dataUri, err) => {
+                if (!err && document.getElementById('_files-list')) renderFilesLib();
             });
-            txt += '\nGenerated by OptiCost LRMCE v2.0\n';
-            txt += 'www.opticsindia.com | +91-9886654729';
 
-            try {
-                if (navigator.share) {
-                    navigator.share({ title: 'OptiCost Report', text: txt })
-                        .then(() => { showToast('✅ Report shared!', 'success'); })
-                        .catch(() => {});
-                    return;
-                }
-            } catch (e) {}
+            // ─── FALLBACK 2: Manual save modal ────────────────────────
+            setTimeout(() => {
+                _showManualSaveModal(blob, fname);
+            }, 600);
 
-            // Fallback: copy to clipboard
-            if (_copyText(txt)) {
-                showToast('📋 Report copied to clipboard! Paste in WhatsApp / Gmail.', 'success', 3500);
-                showModal('✅ Copied!',
-                    'The report text has been copied to your clipboard.\n\n' +
-                    'Open WhatsApp or Gmail → paste the text and send.');
-            } else {
-                showModal('📤 Share Report',
-                    'Copy the text below and paste in WhatsApp / Gmail:\n\n' + txt);
-            }
+            showToast('⬇ Download started: ' + fname, 'info', 3000);
         }
 
-        // ─── VIEWERS ────────────────────────────────────────────────────
-        function _showImageViewer(dataUri, fname) {
-            _rmOv('_oc-img');
-            const ov = _mkOv('_oc-img', '#111');
-            ov.style.overflowY = 'hidden';
-            ov.style.display = 'flex';
-            ov.style.flexDirection = 'column';
-            ov.appendChild(_mkHdr('📷 ' + fname, () => ov.remove()));
-            const tip = _mkEl('div',
-                'padding:8px 14px;background:#071a0e;flex-shrink:0;text-align:center;font-size:.73rem;color:#4ade80;line-height:1.8;'
-                );
-            tip.innerHTML =
-                '✅ Image ready — tap <b>⬇ Save</b> to share/save<br><span style="color:#fbbf24;font-size:.72rem;">Long‑press the image to save to Gallery</span>';
-            ov.appendChild(tip);
-            const zbar = _mkEl('div',
-                'display:flex;align-items:center;justify-content:center;gap:12px;padding:6px;background:#0c1d30;flex-shrink:0;'
-                );
-            let scale = 1,
-                tx = 0,
-                ty = 0,
-                lastD = 0,
-                lastTx = 0,
-                lastTy = 0,
-                dragging = false,
-                dragX = 0,
-                dragY = 0;
-            const wrap = _mkEl('div',
-                'flex:1;overflow:hidden;display:flex;align-items:center;justify-content:center;touch-action:none;cursor:grab;background:#111;'
-                );
-            const img = document.createElement('img');
-            img.src = dataUri;
-            img.style.cssText =
-                'max-width:100%;display:block;transform-origin:center center;user-select:none;pointer-events:none;';
-            img.oncontextmenu = e => e.stopPropagation();
-            wrap.appendChild(img);
-
-            function applyT() { img.style.transform = 'scale(' + scale + ') translate(' + tx + 'px,' + ty + 'px)'; }
-            [
-                ['⬇ Save', () => { _triggerDownload(dataUri, fname, 'image/png'); }],
-                ['➕', () => { scale = Math.min(scale * 1.4, 8);
-                    applyT(); }],
-                ['1:1', () => { scale = 1;
-                    tx = 0;
-                    ty = 0;
-                    applyT(); }],
-                ['➖', () => { scale = Math.max(scale / 1.4, 0.5);
-                    applyT(); }]
-            ].forEach(([lbl, fn]) => {
-                const b = _mkEl('button',
-                    'padding:4px 16px;border-radius:6px;background:#1a3a5c;color:#e2e8f0;border:none;font-size:1rem;cursor:pointer;'
-                    );
-                b.style.background = lbl.includes('Save') ? '#16a34a' : '#1a3a5c';
-                b.textContent = lbl;
-                b.onclick = fn;
-                zbar.appendChild(b);
-            });
-            wrap.addEventListener('touchstart', e => {
-                if (e.touches.length === 2) lastD = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e
-                    .touches[0].clientY - e.touches[1].clientY);
-                else if (e.touches.length === 1) { dragging = true;
-                    dragX = e.touches[0].clientX;
-                    dragY = e.touches[0].clientY;
-                    lastTx = tx;
-                    lastTy = ty; }
-            }, { passive: true });
-            wrap.addEventListener('touchmove', e => {
-                e.preventDefault();
-                if (e.touches.length === 2) { const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e
-                        .touches[0].clientY - e.touches[1].clientY); if (lastD) scale = Math.min(Math.max(scale * (
-                        d / lastD), 0.5), 8);
-                    lastD = d;
-                    applyT(); } else if (e.touches.length === 1 && dragging) { tx = lastTx + (e.touches[0].clientX -
-                        dragX) / scale;
-                    ty = lastTy + (e.touches[0].clientY - dragY) / scale;
-                    applyT(); }
-            }, { passive: false });
-            wrap.addEventListener('touchend', () => { dragging = false;
-                lastD = 0; });
-            wrap.addEventListener('wheel', e => { e.preventDefault();
-                scale = Math.min(Math.max(scale * (e.deltaY < 0 ? 1.2 : 0.85), 0.5), 8);
-                applyT(); }, { passive: false });
-            ov.appendChild(zbar);
-            ov.appendChild(wrap);
-            const foot = _mkEl('div',
-                'padding:7px 14px;background:#0c1d30;flex-shrink:0;text-align:center;font-size:.71rem;color:#7db0cc;'
-                );
-            foot.textContent = 'Tap Files tab to view this image again anytime';
-            ov.appendChild(foot);
-            document.body.appendChild(ov);
-        }
-
-        function _showDocViewer(dataUri, fname) {
-            _rmOv('_oc-doc');
-            const ov = _mkOv('_oc-doc', '#fff');
-            const hdr = _mkHdr('📄 ' + fname, () => ov.remove());
-            hdr.style.background = '#1a2e44';
-            ov.appendChild(hdr);
-            const tip = _mkEl('div',
-                'padding:7px 14px;background:#071a0e;flex-shrink:0;text-align:center;font-size:.72rem;color:#4ade80;line-height:1.6;'
-                );
-            tip.innerHTML =
-                '✅ <b>Saved to Files tab.</b> <span style="color:#fbbf24;">Long-press any text to select &amp; copy.</span>';
-            ov.appendChild(tip);
-            const iframe = document.createElement('iframe');
-            iframe.src = dataUri;
-            iframe.style.cssText = 'flex:1;border:none;width:100%;background:#fff;';
-            iframe.setAttribute('sandbox', 'allow-same-origin');
-            ov.appendChild(iframe);
-            document.body.appendChild(ov);
-        }
-
-        function _rmOv(id) { const el = document.getElementById(id); if (el) el.remove(); }
-
-        function _mkOv(id, bg) { const ov = document.createElement('div');
-            ov.id = id;
-            ov.style.cssText =
-                'position:fixed;inset:0;background:' + bg + ';z-index:99999;display:flex;flex-direction:column;font-family:Nunito,sans-serif;';
-            return ov; }
-
-        function _mkHdr(title, onClose) {
-            const hdr = document.createElement('div');
-            hdr.style.cssText =
-                'display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#0c1d30;flex-shrink:0;gap:8px;';
-            const t = document.createElement('span');
-            t.style.cssText =
-                'font-family:Rajdhani,sans-serif;font-size:.85rem;font-weight:700;color:#22d3ee;letter-spacing:1px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
-            t.textContent = title;
-            const b = document.createElement('button');
-            b.textContent = '✕ Close';
-            b.style.cssText =
-                'flex-shrink:0;background:#f87171;border:none;color:#fff;font-weight:700;padding:7px 13px;border-radius:6px;font-size:.8rem;cursor:pointer;';
-            b.onclick = onClose;
-            hdr.appendChild(t);
-            hdr.appendChild(b);
-            return hdr;
-        }
-
-        function _mkEl(tag, css) { const el = document.createElement(tag);
-            el.style.cssText = css; return el; }
-
-        function _mkBtn(label, bg, color, onclick) { const b = document.createElement('button');
-            b.textContent = label;
-            b.onclick = onclick;
-            b.style.cssText =
-                'padding:13px 6px;background:' + bg + ';color:' + color + ';font-weight:700;border:none;border-radius:8px;font-size:.82rem;cursor:pointer;';
-            return b; }
-
-        function _triggerDownload(dataUri, fname, mimeType) { const blob = _blobFromDataUri(dataUri, mimeType); if (blob)
-                _downloadBlob(blob, fname); }
-
-        function _blobFromDataUri(dataUri, mimeType) {
-            try {
-                const b64 = dataUri.split(',')[1];
-                const bin = atob(b64);
-                const arr = new Uint8Array(bin.length);
-                for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
-                return new Blob([arr], { type: mimeType || 'application/octet-stream' });
-            } catch (e) { return null; }
-        }
-
-        // ─── FILES TAB ──────────────────────────────────────────────────
-        function renderFilesLib() {
-            const el = document.getElementById('_files-list');
-            if (!el) return;
-            el.innerHTML = '<div style="color:var(--muted);font-size:.8rem;padding:12px;text-align:center;">Loading…</div>';
-            _listFiles((err, files) => {
-                if (!files || !files.length) {
-                    el.innerHTML =
-                        '<div style="color:var(--muted);font-size:.82rem;padding:20px 14px;text-align:center;line-height:1.9;">No files saved yet.<br><b style="color:var(--accent);">How to save:</b><br>→ Calculate → tap 💾 Save Excel<br>→ Results tab → 📷 PNG or 📄 Report</div>';
-                    return;
-                }
-                files.sort((a, b) => b.ts - a.ts);
-                let html = '';
-                files.forEach(f => {
-                    const d = new Date(f.ts).toLocaleString();
-                    const icon = f.mime.startsWith('image/') ? '🖼' : f.fname.endsWith('.csv') ? '📊' : f.fname
-                        .endsWith('.xlsx') ? '📊' : '📄';
-                    const sn = f.fname.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-                    const isImage = f.mime.startsWith('image/');
-                    const isCSV = f.fname.endsWith('.csv');
-                    const isDoc = f.fname.endsWith('.doc') || f.fname.endsWith('.docx') || f.fname.endsWith(
-                    '.html');
-                    html += `<div style="padding:11px 0;border-bottom:1px solid var(--border);">
-                <div style="display:flex;align-items:flex-start;gap:6px;margin-bottom:7px;">
-                  <div style="flex:1;min-width:0;">
-                    <div style="font-size:.8rem;font-weight:700;color:var(--text);word-break:break-all;">${icon} ${f.fname}</div>
-                    <div style="font-size:.64rem;color:var(--muted);margin-top:2px;">${d}</div>
-                  </div>
-                </div>
-                <div class="file-item-actions">
-                  <button class="vbtn" onclick="viewStoredFile('${sn}')">👁 View</button>
-                  <button class="sbtn" onclick="shareStoredFile('${sn}')">📤 Share</button>
-                  ${isCSV?`<button class="cbtn" onclick="copyCSVContent('${sn}')">📋 Copy</button>`:''}
-                  <button class="dbtn" onclick="deleteStoredFile('${sn}')">🗑 Del</button>
-                </div>
-              </div>`;
-                });
-                el.innerHTML = html;
-            });
-        }
-
-        function viewStoredFile(fname) {
-            _getStoredFile(fname, (err, rec) => {
-                if (err || !rec) { showModal('Error', err ? err.message : 'File not found.'); return; }
-                if (rec.mime.startsWith('image/')) { _showImageViewer(rec.data, rec.fname); } else if (rec.fname
-                    .toLowerCase().endsWith('.csv')) { try { _showCSVViewer(_dataUriToText(rec.data), rec.fname); }
-                    catch (e) { showModal('Error', 'Could not decode CSV: ' + e.message); } } else { _showDocViewer(
-                        rec.data, rec.fname); }
-            });
-        }
-
-        function shareStoredFile(fname) {
-            _getStoredFile(fname, (err, rec) => {
-                if (err || !rec) { showModal('Error', 'File not found.'); return; }
-                const blob = _blobFromDataUri(rec.data, rec.mime);
-                if (blob) {
-                    _shareFileViaIntent(blob, rec.fname);
-                } else {
-                    showModal('Error', 'Could not read file.');
-                }
-            });
-        }
-
-        function copyCSVContent(fname) {
-            _getStoredFile(fname, (err, rec) => {
-                if (err || !rec) { showModal('Error', 'File not found.'); return; }
-                try {
-                    const text = _dataUriToText(rec.data);
-                    if (_copyText(text)) {
-                        showToast('✅ CSV copied to clipboard!', 'success', 3000);
-                    } else {
-                        _showCSVViewer(text, rec.fname);
-                    }
-                } catch (e) { showModal('Error', 'Could not read CSV: ' + e.message); }
-            });
-        }
-
-        function deleteStoredFile(fname) {
-            showConfirm('Delete', "Remove '" + fname + "' from saved files?", () => {
-                _deleteFile(fname, () => renderFilesLib());
-            });
-        }
-
-        function _showCSVViewer(csvText, fname) {
-            _rmOv('_oc-csv');
-            const ov = _mkOv('_oc-csv', '#020a12');
-            ov.appendChild(_mkHdr('📊 ' + fname, () => ov.remove()));
-            const status = _mkEl('div',
-                'padding:8px 14px;background:#071a0e;flex-shrink:0;text-align:center;font-size:.73rem;color:#4ade80;line-height:1.7;'
-                );
-            status.innerHTML =
-                '✅ <b>Saved to Files tab</b> (permanent)<br><span style="color:#fbbf24;">Tap <b>📋 Copy All</b> → paste in Google Sheets</span>';
-            ov.appendChild(status);
-            const ta = document.createElement('textarea');
-            ta.readOnly = true;
-            ta.value = csvText;
-            ta.style.cssText =
-                'flex:1;width:100%;background:#040f1c;color:#e8f4ff;font-family:"Share Tech Mono",monospace;font-size:.67rem;padding:10px 12px;border:none;outline:none;resize:none;-webkit-user-select:text;user-select:text;';
-            ov.appendChild(ta);
-            const bar = _mkEl('div',
-                'padding:9px 10px;background:#0c1d30;flex-shrink:0;display:grid;grid-template-columns:1fr 1fr;gap:7px;'
-                );
-            const btnCopy = _mkBtn('📋 Copy All', '#22d3ee', '#060e18', () => {
-                ta.select();
-                const ok = _copyText(csvText);
-                btnCopy.textContent = ok ? '✅ Copied!' : '✅ Selected — Copy manually';
-                setTimeout(() => btnCopy.textContent = '📋 Copy All', 2500);
-            });
-            const btnShare = _mkBtn('📤 Share', '#1d6f42', '#fff', () => {
-                const blob = new Blob(['\ufeff' + csvText], { type: 'text/csv;charset=utf-8' });
-                _shareFileViaIntent(blob, fname);
-            });
-            const btnDone = _mkBtn('✓ Done', '#0e7490', '#fff', () => ov.remove());
-            bar.appendChild(btnCopy);
-            bar.appendChild(btnShare);
-            bar.appendChild(btnDone);
-            ov.appendChild(bar);
-            document.body.appendChild(ov);
-            setTimeout(() => { ta.select(); }, 200);
-        }
-
-        // ─── SAVE FUNCTIONS ─────────────────────────────────────────────
-        function doSave() { doSaveXLSX(); }
-
-        function doSaveXLSX() {
-            if (!recs.length) { showModal('No Data', 'Calculate items first.'); return; }
-            try { _buildAndSaveXLSX(); } catch (e) { _buildAndSaveCSV(); }
-        }
-
-        function _buildAndSaveXLSX() {
+        // ─── BUILD EXCEL BLOB ──────────────────────────────────────────
+        function _buildExcelBlob() {
             const allHdrs = [...new Set(recs.flatMap(r => Object.keys(r)))].sort((a, b) => a.localeCompare(b));
             const ws_data = [allHdrs, ...recs.map(r => allHdrs.map(h => r[h] == null ? '' : r[h]))];
             const ws = XLSX.utils.aoa_to_sheet(ws_data);
@@ -3097,50 +2710,32 @@
             ws['!cols'] = colW;
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, 'OptiCost Data');
-            const ts = new Date().toISOString().slice(0, 10);
-            const fname = 'OptiCost_' + ts + '.xlsx';
             const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-            const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-            _storeFile(fname, blob, (dataUri, err) => {
-                if (err) console.warn('IDB err:', err);
-                _downloadBlob(blob, fname);
-                showModal('✅ Excel Saved', fname + ' saved and download started.\n\n📤 Tap Share to send via WhatsApp / Gmail.');
-            });
+            return new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
         }
 
-        function _buildAndSaveCSV() {
+        // ─── BUILD CSV BLOB ────────────────────────────────────────────
+        function _buildCSVBlob() {
             const allHdrs = [...new Set(recs.flatMap(r => Object.keys(r)))];
             const esc = v => `"${String(v==null?'':v).replace(/"/g,'""')}"`;
             const csv = '﻿' + [allHdrs.map(esc).join(','), ...recs.map(r => allHdrs.map(h => esc(r[h] == null ? '' : r[h]))
                     .join(','))].join('\r\n');
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
-            const ts = new Date().toISOString().slice(0, 10);
-            const fname = 'OptiCost_' + ts + '.csv';
-            _storeFile(fname, blob, (dataUri, err) => {
-                if (dataUri) { _downloadBlob(blob, fname); }
-                showModal('✅ CSV Saved', fname + ' saved and download started.\n\n📤 Tap Share to send via WhatsApp / Gmail.');
-            });
+            return new Blob([csv], { type: 'text/csv;charset=utf-8' });
         }
 
-        function saveReportImage(fmt) {
-            if (fmt === 'doc') { _saveReportHTML(); return; }
-            if (!recs.length) { showModal('No Data', 'Run a calculation first.'); return; }
-            showModal('Building…', 'Generating PNG report…');
+        // ─── SAVE PNG ──────────────────────────────────────────────────
+        function _savePNGReport() {
+            showModal('Building…', 'Generating PNG…');
             setTimeout(() => {
                 try {
                     _buildReportCanvas(cv => {
                         cv.toBlob(blob => {
                             _closeModal();
-                            try { cv.width = 1;
-                                cv.height = 1; } catch {}
                             if (!blob) { showModal('Error', 'Could not generate image.'); return; }
                             const ts = new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-');
                             const fname = 'OptiCost_Report_' + ts + '.png';
-                            _storeFile(fname, blob, (dataUri, err) => {
-                                if (err) console.warn('IDB store err:', err);
-                                if (dataUri) { _downloadBlob(blob, fname); } else showModal(
-                                'Error', 'Could not save image.');
-                            });
+                            // Use the same save engine
+                            _saveBlobWithEngine(blob, fname);
                         }, 'image/png');
                     });
                 } catch (e) { _closeModal();
@@ -3148,11 +2743,8 @@
             }, 80);
         }
 
-        function _escHtml(s) { return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;'); }
-
-        function saveReportWord() {
-            if (!recs.length) { showModal('No Data', 'Calculate items first.'); return; }
+        // ─── SAVE WORD ──────────────────────────────────────────────────
+        function _saveWordReport() {
             refreshSnapHeader();
             const _dvx = document.getElementById('rpt-date').value.trim(),
                 dateVal = _dvx ? _dvx.split('-').reverse().join('/') : new Date().toLocaleDateString('en-GB');
@@ -3235,14 +2827,12 @@
               xmlns:w="urn:schemas-microsoft-com:office:word"
               xmlns="http://www.w3.org/TR/REC-html40">
         <head><meta charset="utf-8"><title>${_escHtml(titleTxt)}</title>
-        <!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>90</w:Zoom><w:DoNotOptimizeForBrowser/></w:WordDocument></xml><![endif]-->
         <style>
           @page WordSection1 { size:29.7cm 21cm; mso-page-orientation:landscape; margin:1.2cm 1.4cm; }
           @page { size: A4 landscape; margin:1.2cm 1.4cm; }
           div.WordSection1 { page:WordSection1; }
           body { font-family:Calibri,Arial,sans-serif; font-size:10pt; color:#1e293b; background:#fff; margin:0; padding:0; }
           table { border-collapse:collapse; }
-          .hdr-bar { background:#1a2e44; color:#fff; padding:6px 12px; }
           .footer { font-size:7.5pt; color:#94a3b8; text-align:center; border-top:1px solid #e2e8f0; padding-top:5px; margin-top:10px; }
         </style>
         </head>
@@ -3264,29 +2854,525 @@
             const blob = new Blob(['\ufeff' + html], { type: 'application/vnd.ms-word;charset=utf-8' });
             const ts = new Date().toISOString().slice(0, 10);
             const fname = 'OptiCost_' + ts + '.doc';
-            _storeFile(fname, blob, (dataUri, err) => {
-                if (err) console.warn('IDB err:', err);
-                _downloadBlob(blob, fname);
-            });
+            _saveBlobWithEngine(blob, fname);
         }
 
-        function _saveReportHTML() { /* kept for completeness */ }
+        // ─── SHARED SAVE ENGINE ───────────────────────────────────────
+        function _saveBlobWithEngine(blob, fname) {
+            // Store in IDB first
+            _storeFile(fname, blob, (dataUri, err) => {
+                if (!err && document.getElementById('_files-list')) renderFilesLib();
+            });
 
+            // ★ WebintoApp bridge ★
+            if (typeof window.WebintoApp !== 'undefined') {
+                const wa = window.WebintoApp;
+                if (typeof wa.saveFile === 'function') {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        try {
+                            wa.saveFile(e.target.result, fname, blob.type || 'application/octet-stream');
+                            showToast('✅ Saved: ' + fname, 'success', 3500);
+                            return;
+                        } catch (err) {}
+                    };
+                    reader.readAsDataURL(blob);
+                    return;
+                }
+                if (typeof wa.download === 'function') {
+                    const url = URL.createObjectURL(blob);
+                    try {
+                        wa.download(url, fname);
+                        showToast('✅ Download started: ' + fname, 'success', 3500);
+                        setTimeout(() => URL.revokeObjectURL(url), 15000);
+                        return;
+                    } catch (e) {}
+                }
+            }
+
+            // Anchor fallback
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fname;
+            a.style.display = 'none';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(url), 20000);
+
+            // Manual save modal
+            setTimeout(() => {
+                _showManualSaveModal(blob, fname);
+            }, 500);
+            showToast('⬇ Download: ' + fname, 'info', 3000);
+        }
+
+        // ─── MANUAL SAVE MODAL ────────────────────────────────────────
+        function _showManualSaveModal(blob, fname) {
+            _rmOv('_oc-manual');
+            const ov = _mkOv('_oc-manual', '#020a12');
+            ov.appendChild(_mkHdr('📥 Save: ' + fname, () => ov.remove()));
+
+            const tip = _mkEl('div',
+                'padding:10px 14px;background:#071a0e;flex-shrink:0;font-size:.8rem;color:#4ade80;line-height:1.8;border-bottom:1px solid #0e2e4e;'
+                );
+            tip.innerHTML = '✅ File ready. Tap <b>Download</b> to save to Downloads folder.';
+            ov.appendChild(tip);
+
+            const btnArea = _mkEl('div',
+                'padding:10px 12px;display:flex;flex-direction:column;gap:9px;flex-shrink:0;background:#030d18;border-bottom:1px solid #0e2e4e;'
+                );
+
+            const btnDl = _mkBtn('⬇ Download to Device', '#22d3ee', '#060e18', () => {
+                const url2 = URL.createObjectURL(blob);
+                const a2 = document.createElement('a');
+                a2.href = url2;
+                a2.download = fname;
+                a2.click();
+                setTimeout(() => URL.revokeObjectURL(url2), 15000);
+                showToast('⬇ Downloading: ' + fname, 'success', 3000);
+                ov.remove();
+            });
+            btnArea.appendChild(btnDl);
+
+            // Share via WebintoApp if available
+            if (typeof window.WebintoApp !== 'undefined' && typeof window.WebintoApp.shareFile === 'function') {
+                const btnShare = _mkBtn('📤 Share via WhatsApp / Gmail', '#1d6f42', '#fff', () => {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        try {
+                            window.WebintoApp.shareFile(e.target.result, fname);
+                            showToast('✅ Shared!', 'success', 3000);
+                            ov.remove();
+                        } catch (err) {
+                            showToast('Share failed, try download.', 'error', 2500);
+                        }
+                    };
+                    reader.readAsDataURL(blob);
+                });
+                btnArea.appendChild(btnShare);
+            }
+
+            // Copy as text if CSV
+            if (fname.endsWith('.csv')) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const text = _dataUriToText(e.target.result);
+                    const btnCopy = _mkBtn('📋 Copy CSV Text', '#7c3aed', '#fff', () => {
+                        if (_copyText(text)) {
+                            btnCopy.textContent = '✅ Copied!';
+                            setTimeout(() => btnCopy.textContent = '📋 Copy CSV Text', 2500);
+                            showToast('📋 Copied to clipboard!', 'success', 2500);
+                        } else {
+                            showModal('Manual Copy',
+                                'Select the text and copy manually:\n\n' + text.slice(0, 500) + '…');
+                        }
+                    });
+                    btnArea.appendChild(btnCopy);
+                };
+                reader.readAsDataURL(blob);
+            }
+
+            const btnClose = _mkBtn('✓ Done', '#1a3a5c', '#e2e8f0', () => ov.remove());
+            btnArea.appendChild(btnClose);
+            ov.appendChild(btnArea);
+
+            // Preview if image
+            if (blob.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const imgWrap = _mkEl('div',
+                        'flex:1;display:flex;align-items:center;justify-content:center;padding:8px;background:#111;'
+                        );
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.style.cssText = 'max-width:100%;max-height:300px;border-radius:6px;';
+                    imgWrap.appendChild(img);
+                    ov.appendChild(imgWrap);
+                };
+                reader.readAsDataURL(blob);
+            }
+
+            document.body.appendChild(ov);
+        }
+
+        // ─── BUILD REPORT CANVAS ──────────────────────────────────────
         function _buildReportCanvas(callback) {
             const snap = document.getElementById('report-snap');
-            if (!snap) { callback(null); return; }
+            if (!snap) { callback(document.createElement('canvas')); return; }
             try {
-                // Use html2canvas if available, else fallback to simple capture
                 if (typeof html2canvas !== 'undefined') {
                     html2canvas(snap, { scale: 2, useCORS: true, logging: false, backgroundColor: '#ffffff' })
                         .then(canvas => callback(canvas))
                         .catch(() => { callback(snap); });
                 } else {
-                    // Simple fallback: just return the element
                     callback(snap);
                 }
             } catch (e) { callback(snap); }
         }
+
+        // ─── SHARE REPORT TEXT ────────────────────────────────────────
+        function shareCurrentReport() {
+            if (!recs.length) { showModal('No Data', 'Calculate items first.'); return; }
+            const txt = _buildReportText();
+            if (navigator.share) {
+                try {
+                    navigator.share({ title: 'OptiCost Report', text: txt })
+                        .then(() => showToast('✅ Shared!', 'success', 2500))
+                        .catch(() => {});
+                    return;
+                } catch (e) {}
+            }
+            // WebintoApp share
+            if (typeof window.WebintoApp !== 'undefined' && typeof window.WebintoApp.share === 'function') {
+                try {
+                    window.WebintoApp.share(txt);
+                    showToast('✅ Shared!', 'success', 2500);
+                    return;
+                } catch (e) {}
+            }
+            // Fallback: copy
+            if (_copyText(txt)) {
+                showToast('📋 Copied to clipboard! Paste in WhatsApp / Gmail.', 'success', 3500);
+                showModal('✅ Copied!',
+                    'Report copied to clipboard.\n\nOpen WhatsApp or Gmail → paste and send.');
+            } else {
+                showModal('📤 Share Report', txt);
+            }
+        }
+
+        function copyReportToClipboard() {
+            if (!recs.length) { showModal('No Data', 'Calculate items first.'); return; }
+            const txt = _buildReportText();
+            if (_copyText(txt)) {
+                showToast('📋 Full report copied to clipboard!', 'success', 3000);
+            } else {
+                showModal('📋 Copy Report', txt);
+            }
+        }
+
+        function _buildReportText() {
+            let txt = '📐 OptiCost Report\n';
+            txt += '━━━━━━━━━━━━━━━━━━━━━━\n';
+            const mfr = document.getElementById('rpt-mfr').value.trim() || 'Optics & Allied Engg. Pvt. Ltd.';
+            txt += 'From: ' + mfr + '\n';
+            const vendor = document.getElementById('rpt-vendor').value.trim();
+            if (vendor) txt += 'To: ' + vendor + '\n';
+            const title = document.getElementById('rpt-title').value.trim();
+            if (title) txt += 'Title: ' + title + '\n';
+            const partno = document.getElementById('rpt-partno').value.trim();
+            if (partno) txt += 'Part No.: ' + partno + '\n';
+            const date = document.getElementById('rpt-date').value.trim() || new Date().toLocaleDateString();
+            txt += 'Date: ' + date + '\n';
+            txt += '━━━━━━━━━━━━━━━━━━━━━━\n';
+            recs.forEach((r, i) => {
+                txt += '\n📌 Record ' + (i + 1) + '\n';
+                Object.keys(r).forEach(k => {
+                    if (r[k] !== undefined && r[k] !== null && r[k] !== '') {
+                        txt += '  ' + k + ': ' + r[k] + '\n';
+                    }
+                });
+                txt += '────────────────────\n';
+            });
+            txt += '\nGenerated by OptiCost LRMCE v2.0\n';
+            txt += 'www.opticsindia.com | +91-9886654729';
+            return txt;
+        }
+
+        // ─── FILES TAB ──────────────────────────────────────────────────
+        function renderFilesLib() {
+            const el = document.getElementById('_files-list');
+            if (!el) return;
+            el.innerHTML = '<div style="color:var(--muted);font-size:.8rem;padding:12px;text-align:center;">Loading…</div>';
+            _listFiles((err, files) => {
+                if (!files || !files.length) {
+                    el.innerHTML =
+                        '<div style="color:var(--muted);font-size:.82rem;padding:20px 14px;text-align:center;line-height:1.9;">No files saved yet.<br><b style="color:var(--accent);">How to save:</b><br>→ Calculate → tap 💾 Save Excel<br>→ Results tab → 📷 PNG or 📄 Report</div>';
+                    return;
+                }
+                files.sort((a, b) => b.ts - a.ts);
+                let html = '';
+                files.forEach(f => {
+                    const d = new Date(f.ts).toLocaleString();
+                    const icon = f.mime.startsWith('image/') ? '🖼' : f.fname.endsWith('.csv') ? '📊' : f.fname
+                        .endsWith('.xlsx') ? '📊' : '📄';
+                    const sn = f.fname.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+                    const isCSV = f.fname.endsWith('.csv');
+                    html += `<div style="padding:11px 0;border-bottom:1px solid var(--border);">
+                <div style="display:flex;align-items:flex-start;gap:6px;margin-bottom:7px;">
+                  <div style="flex:1;min-width:0;">
+                    <div style="font-size:.8rem;font-weight:700;color:var(--text);word-break:break-all;">${icon} ${f.fname}</div>
+                    <div style="font-size:.64rem;color:var(--muted);margin-top:2px;">${d}</div>
+                  </div>
+                </div>
+                <div class="file-item-actions">
+                  <button class="vbtn" onclick="viewStoredFile('${sn}')">👁 View</button>
+                  <button class="sbtn" onclick="shareStoredFile('${sn}')">📤 Share</button>
+                  ${isCSV?`<button class="cbtn" onclick="copyCSVContent('${sn}')">📋 Copy</button>`:''}
+                  <button class="dbtn" onclick="deleteStoredFile('${sn}')">🗑 Del</button>
+                </div>
+              </div>`;
+                });
+                el.innerHTML = html;
+            });
+        }
+
+        function viewStoredFile(fname) {
+            _getStoredFile(fname, (err, rec) => {
+                if (err || !rec) { showModal('Error', err ? err.message : 'File not found.'); return; }
+                if (rec.mime.startsWith('image/')) { _showImageViewer(rec.data, rec.fname); } else if (rec.fname
+                    .toLowerCase().endsWith('.csv')) { try { _showCSVViewer(_dataUriToText(rec.data), rec.fname); }
+                    catch (e) { showModal('Error', 'Could not decode CSV: ' + e.message); } } else { _showDocViewer(
+                        rec.data, rec.fname); }
+            });
+        }
+
+        function shareStoredFile(fname) {
+            _getStoredFile(fname, (err, rec) => {
+                if (err || !rec) { showModal('Error', 'File not found.'); return; }
+                const blob = _blobFromDataUri(rec.data, rec.mime);
+                if (blob) {
+                    // Use the save engine to share
+                    if (typeof window.WebintoApp !== 'undefined' && typeof window.WebintoApp.shareFile ===
+                        'function') {
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            try {
+                                window.WebintoApp.shareFile(e.target.result, rec.fname);
+                                showToast('✅ Shared!', 'success', 3000);
+                                return;
+                            } catch (err) {}
+                        };
+                        reader.readAsDataURL(blob);
+                        return;
+                    }
+                    // fallback: download
+                    _saveBlobWithEngine(blob, rec.fname);
+                } else {
+                    showModal('Error', 'Could not read file.');
+                }
+            });
+        }
+
+        function copyCSVContent(fname) {
+            _getStoredFile(fname, (err, rec) => {
+                if (err || !rec) { showModal('Error', 'File not found.'); return; }
+                try {
+                    const text = _dataUriToText(rec.data);
+                    if (_copyText(text)) {
+                        showToast('✅ CSV copied to clipboard!', 'success', 3000);
+                    } else {
+                        _showCSVViewer(text, rec.fname);
+                    }
+                } catch (e) { showModal('Error', 'Could not read CSV: ' + e.message); }
+            });
+        }
+
+        function deleteStoredFile(fname) {
+            showConfirm('Delete', "Remove '" + fname + "' from saved files?", () => {
+                _deleteFile(fname, () => renderFilesLib());
+            });
+        }
+
+        function _showCSVViewer(csvText, fname) {
+            _rmOv('_oc-csv');
+            const ov = _mkOv('_oc-csv', '#020a12');
+            ov.appendChild(_mkHdr('📊 ' + fname, () => ov.remove()));
+            const status = _mkEl('div',
+                'padding:8px 14px;background:#071a0e;flex-shrink:0;text-align:center;font-size:.73rem;color:#4ade80;line-height:1.7;'
+                );
+            status.innerHTML = '✅ <b>Saved in Files tab</b> &nbsp;|&nbsp; <span style="color:#fbbf24;">Tap <b>📋 Copy All</b></span>';
+            ov.appendChild(status);
+            const ta = document.createElement('textarea');
+            ta.readOnly = true;
+            ta.value = csvText;
+            ta.style.cssText =
+                'flex:1;width:100%;background:#040f1c;color:#e8f4ff;font-family:"Share Tech Mono",monospace;font-size:.67rem;padding:10px 12px;border:none;outline:none;resize:none;-webkit-user-select:text;user-select:text;';
+            ov.appendChild(ta);
+            const bar = _mkEl('div',
+                'padding:9px 10px;background:#0c1d30;flex-shrink:0;display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;'
+                );
+            const btnCopy = _mkBtn('📋 Copy All', '#22d3ee', '#060e18', () => {
+                ta.select();
+                const ok = _copyText(csvText);
+                btnCopy.textContent = ok ? '✅ Copied!' : '✅ Selected';
+                setTimeout(() => btnCopy.textContent = '📋 Copy All', 2500);
+            });
+            const btnShare = _mkBtn('📤 Share', '#1d6f42', '#fff', () => {
+                const blob = new Blob(['\ufeff' + csvText], { type: 'text/csv;charset=utf-8' });
+                _saveBlobWithEngine(blob, fname);
+            });
+            const btnDone = _mkBtn('✓ Done', '#0e7490', '#fff', () => ov.remove());
+            bar.appendChild(btnCopy);
+            bar.appendChild(btnShare);
+            bar.appendChild(btnDone);
+            ov.appendChild(bar);
+            document.body.appendChild(ov);
+            setTimeout(() => { ta.select(); }, 200);
+        }
+
+        // ─── VIEWERS ────────────────────────────────────────────────────
+        function _showImageViewer(dataUri, fname) {
+            _rmOv('_oc-img');
+            const ov = _mkOv('_oc-img', '#111');
+            ov.style.overflowY = 'hidden';
+            ov.style.display = 'flex';
+            ov.style.flexDirection = 'column';
+            ov.appendChild(_mkHdr('📷 ' + fname, () => ov.remove()));
+            const tip = _mkEl('div',
+                'padding:8px 14px;background:#071a0e;flex-shrink:0;text-align:center;font-size:.73rem;color:#4ade80;line-height:1.8;'
+                );
+            tip.innerHTML =
+                '✅ Image ready — tap <b>⬇ Save</b> to share/save<br><span style="color:#fbbf24;">Long‑press the image to save to Gallery</span>';
+            ov.appendChild(tip);
+            const zbar = _mkEl('div',
+                'display:flex;align-items:center;justify-content:center;gap:12px;padding:6px;background:#0c1d30;flex-shrink:0;'
+                );
+            let scale = 1,
+                tx = 0,
+                ty = 0,
+                lastD = 0,
+                lastTx = 0,
+                lastTy = 0,
+                dragging = false,
+                dragX = 0,
+                dragY = 0;
+            const wrap = _mkEl('div',
+                'flex:1;overflow:hidden;display:flex;align-items:center;justify-content:center;touch-action:none;cursor:grab;background:#111;'
+                );
+            const img = document.createElement('img');
+            img.src = dataUri;
+            img.style.cssText =
+                'max-width:100%;display:block;transform-origin:center center;user-select:none;pointer-events:none;';
+            img.oncontextmenu = e => e.stopPropagation();
+            wrap.appendChild(img);
+
+            function applyT() { img.style.transform = 'scale(' + scale + ') translate(' + tx + 'px,' + ty + 'px)'; }
+            [
+                ['⬇ Save', () => {
+                    const blob = _blobFromDataUri(dataUri, 'image/png');
+                    if (blob) _saveBlobWithEngine(blob, fname);
+                }],
+                ['➕', () => { scale = Math.min(scale * 1.4, 8);
+                    applyT(); }],
+                ['1:1', () => { scale = 1;
+                    tx = 0;
+                    ty = 0;
+                    applyT(); }],
+                ['➖', () => { scale = Math.max(scale / 1.4, 0.5);
+                    applyT(); }]
+            ].forEach(([lbl, fn]) => {
+                const b = _mkEl('button',
+                    'padding:4px 16px;border-radius:6px;background:#1a3a5c;color:#e2e8f0;border:none;font-size:1rem;cursor:pointer;'
+                    );
+                b.style.background = lbl.includes('Save') ? '#16a34a' : '#1a3a5c';
+                b.textContent = lbl;
+                b.onclick = fn;
+                zbar.appendChild(b);
+            });
+            wrap.addEventListener('touchstart', e => {
+                if (e.touches.length === 2) lastD = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e
+                    .touches[0].clientY - e.touches[1].clientY);
+                else if (e.touches.length === 1) { dragging = true;
+                    dragX = e.touches[0].clientX;
+                    dragY = e.touches[0].clientY;
+                    lastTx = tx;
+                    lastTy = ty; }
+            }, { passive: true });
+            wrap.addEventListener('touchmove', e => {
+                e.preventDefault();
+                if (e.touches.length === 2) { const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e
+                        .touches[0].clientY - e.touches[1].clientY); if (lastD) scale = Math.min(Math.max(scale * (
+                        d / lastD), 0.5), 8);
+                    lastD = d;
+                    applyT(); } else if (e.touches.length === 1 && dragging) { tx = lastTx + (e.touches[0].clientX -
+                        dragX) / scale;
+                    ty = lastTy + (e.touches[0].clientY - dragY) / scale;
+                    applyT(); }
+            }, { passive: false });
+            wrap.addEventListener('touchend', () => { dragging = false;
+                lastD = 0; });
+            wrap.addEventListener('wheel', e => { e.preventDefault();
+                scale = Math.min(Math.max(scale * (e.deltaY < 0 ? 1.2 : 0.85), 0.5), 8);
+                applyT(); }, { passive: false });
+            ov.appendChild(zbar);
+            ov.appendChild(wrap);
+            const foot = _mkEl('div',
+                'padding:7px 14px;background:#0c1d30;flex-shrink:0;text-align:center;font-size:.71rem;color:#7db0cc;'
+                );
+            foot.textContent = 'Tap Files tab to view this image again anytime';
+            ov.appendChild(foot);
+            document.body.appendChild(ov);
+        }
+
+        function _showDocViewer(dataUri, fname) {
+            _rmOv('_oc-doc');
+            const ov = _mkOv('_oc-doc', '#fff');
+            const hdr = _mkHdr('📄 ' + fname, () => ov.remove());
+            hdr.style.background = '#1a2e44';
+            ov.appendChild(hdr);
+            const tip = _mkEl('div',
+                'padding:7px 14px;background:#071a0e;flex-shrink:0;text-align:center;font-size:.72rem;color:#4ade80;line-height:1.6;'
+                );
+            tip.innerHTML = '✅ <b>Saved in Files tab.</b> <span style="color:#fbbf24;">Long-press to select &amp; copy.</span>';
+            ov.appendChild(tip);
+            const iframe = document.createElement('iframe');
+            iframe.src = dataUri;
+            iframe.style.cssText = 'flex:1;border:none;width:100%;background:#fff;';
+            iframe.setAttribute('sandbox', 'allow-same-origin');
+            ov.appendChild(iframe);
+            document.body.appendChild(ov);
+        }
+
+        function _rmOv(id) { const el = document.getElementById(id); if (el) el.remove(); }
+
+        function _mkOv(id, bg) { const ov = document.createElement('div');
+            ov.id = id;
+            ov.style.cssText =
+                'position:fixed;inset:0;background:' + bg + ';z-index:99999;display:flex;flex-direction:column;font-family:Nunito,sans-serif;';
+            return ov; }
+
+        function _mkHdr(title, onClose) {
+            const hdr = document.createElement('div');
+            hdr.style.cssText =
+                'display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#0c1d30;flex-shrink:0;gap:8px;';
+            const t = document.createElement('span');
+            t.style.cssText =
+                'font-family:Rajdhani,sans-serif;font-size:.85rem;font-weight:700;color:#22d3ee;letter-spacing:1px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+            t.textContent = title;
+            const b = document.createElement('button');
+            b.textContent = '✕ Close';
+            b.style.cssText =
+                'flex-shrink:0;background:#f87171;border:none;color:#fff;font-weight:700;padding:7px 13px;border-radius:6px;font-size:.8rem;cursor:pointer;';
+            b.onclick = onClose;
+            hdr.appendChild(t);
+            hdr.appendChild(b);
+            return hdr;
+        }
+
+        function _mkEl(tag, css) { const el = document.createElement(tag);
+            el.style.cssText = css; return el; }
+
+        function _mkBtn(label, bg, color, onclick) { const b = document.createElement('button');
+            b.textContent = label;
+            b.onclick = onclick;
+            b.style.cssText =
+                'padding:13px 6px;background:' + bg + ';color:' + color + ';font-weight:700;border:none;border-radius:8px;font-size:.82rem;cursor:pointer;';
+            return b; }
+
+        function _blobFromDataUri(dataUri, mimeType) {
+            try {
+                const b64 = dataUri.split(',')[1];
+                const bin = atob(b64);
+                const arr = new Uint8Array(bin.length);
+                for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+                return new Blob([arr], { type: mimeType || 'application/octet-stream' });
+            } catch (e) { return null; }
+        }
+
+        function _escHtml(s) { return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;'); }
 
         // ─── RESET ──────────────────────────────────────────────────────
         function doReset() {

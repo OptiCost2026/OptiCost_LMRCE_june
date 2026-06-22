@@ -198,6 +198,12 @@
             #res-split-wrap{flex-direction:column}
             #res-canvas-col{flex:0 0 auto;max-width:100%;border-right:none;border-bottom:1px solid #c8d8e8}
         }
+        /* toast notification */
+        .toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:10px;padding:10px 20px;font-size:.85rem;font-weight:600;z-index:999;box-shadow:0 6px 24px rgba(0,0,0,0.6);max-width:90%;text-align:center;display:none;transition:opacity .25s}
+        .toast.show{display:block;animation:toastIn .22s ease}
+        .toast.success{border-color:var(--green);color:var(--green)}
+        .toast.error{border-color:var(--red);color:var(--red)}
+        @keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(16px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
     </style>
 </head>
 <body>
@@ -612,6 +618,9 @@
     </div>
 </div>
 
+<!-- TOAST -->
+<div id="toast" class="toast"></div>
+
 <!-- ═══ INLINE FILE VIEWER — pinch-to-zoom + pan ═══ -->
 <div id="file-viewer-overlay">
     <div id="file-viewer-bar">
@@ -1007,81 +1016,115 @@ function _getStoredFile(fname){return new Promise((res,rej)=>{_openFileDB().then
 function _blobFromDataUri(dataUri,mime){const b64=dataUri.split(',')[1];const bin=atob(b64);const arr=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);return new Blob([arr],{type:mime||'application/octet-stream'});}
 
 // ═══════════════════════════════════════════════════════════════
-// SAVE / EXPORT — no success popup, direct save
+// TOAST
+// ═══════════════════════════════════════════════════════════════
+let _toastTimer=null;
+function showToast(msg,type){
+    const el=document.getElementById('toast');
+    if(!el)return;
+    clearTimeout(_toastTimer);
+    el.textContent=msg;el.className='toast '+(type||'');
+    el.style.display='block';
+    _toastTimer=setTimeout(()=>{el.className='toast';el.style.display='none';},3600);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SAVE / EXPORT — robust with toast feedback
 // ═══════════════════════════════════════════════════════════════
 function _saveBlob(blob, defaultFname){
-    // 1) Store in IDB first
+    // 1) Store in IDB first (silent)
     _storeFile(defaultFname, blob).catch(()=>{});
 
-    // 2) Android APK bridge — direct base64 save
+    // 2) Try Android bridge (APK)
     if(window.Android && typeof window.Android.saveFile === 'function'){
         try{
             const reader = new FileReader();
             reader.onload = function(e){
                 const base64 = e.target.result.split(',')[1];
                 window.Android.saveFile(defaultFname, blob.type || 'application/octet-stream', base64);
+                showToast('✅ Saved: '+defaultFname,'success');
             };
+            reader.onerror = function(){ _fallbackDownload(blob, defaultFname); };
             reader.readAsDataURL(blob);
-            return; // Android handles it, no popup
+            return;
         }catch(e){ /* fall through */ }
     }
 
-    // 3) Web Share API (mobile browsers)
+    // 3) Try Web Share API (mobile browsers)
     if(navigator.share){
         try{
             const file = new File([blob], defaultFname, {type: blob.type});
             if(!navigator.canShare || navigator.canShare({files:[file]})){
-                navigator.share({files:[file], title: defaultFname}).catch(()=>{
-                    _downloadLink(blob, defaultFname);
-                });
+                navigator.share({files:[file], title: defaultFname})
+                    .then(()=>{ showToast('✅ Shared: '+defaultFname,'success'); })
+                    .catch((err)=>{
+                        if(err.name!=='AbortError') _fallbackDownload(blob, defaultFname);
+                        else showToast('⏹ Share cancelled','');
+                    });
                 return;
             }
         }catch(e){ /* fall through */ }
     }
 
-    // 4) Standard download link — no popup
-    _downloadLink(blob, defaultFname);
+    // 4) Fallback: standard download
+    _fallbackDownload(blob, defaultFname);
 }
 
-function _downloadLink(blob, fname){
+function _fallbackDownload(blob, fname){
     try{
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url; a.download = fname;
-        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        showToast('⬇ Downloading: '+fname,'success');
         setTimeout(()=>URL.revokeObjectURL(url), 8000);
-    }catch(e){ showModal("Error","Could not save file: "+e.message); }
+    }catch(e){
+        // Last resort: open in new tab
+        try{
+            const url = URL.createObjectURL(blob);
+            window.open(url, '_blank');
+            showToast('📂 File opened in new tab','');
+            setTimeout(()=>URL.revokeObjectURL(url), 8000);
+        }catch(e2){
+            showToast('❌ Could not save file. Try PNG or Word export.','error');
+        }
+    }
 }
 
 function doSaveXLSX(){
-    if(!recs.length){showModal('No Data','Calculate items first.');return;}
-    const allHdrs=[...new Set(recs.flatMap(r=>Object.keys(r)))];
-    const esc=v=>`"${String(v==null?'':v).replace(/"/g,'""')}"`;
-    const csv='\uFEFF'+[allHdrs.map(esc).join(','),...recs.map(r=>allHdrs.map(h=>esc(r[h]==null?'':r[h])).join(','))].join('\r\n');
-    const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
-    const ts=new Date().toISOString().slice(0,10);
-    _saveBlob(blob,'OptiCost_'+ts+'.csv');
+    if(!recs.length){showToast('⚠ No data — calculate first.','error');return;}
+    try{
+        const allHdrs=[...new Set(recs.flatMap(r=>Object.keys(r)))];
+        const esc=v=>`"${String(v==null?'':v).replace(/"/g,'""')}"`;
+        const csv='\uFEFF'+[allHdrs.map(esc).join(','),...recs.map(r=>allHdrs.map(h=>esc(r[h]==null?'':r[h])).join(','))].join('\r\n');
+        const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+        const ts=new Date().toISOString().slice(0,10);
+        _saveBlob(blob,'OptiCost_'+ts+'.csv');
+    }catch(e){showToast('❌ Export error: '+e.message,'error');}
 }
 
 function saveReportImage(){
-    if(!recs.length){showModal('No Data','Run a calculation first.');return;}
+    if(!recs.length){showToast('⚠ No data — calculate first.','error');return;}
+    showToast('🖼 Building image…','');
     setTimeout(()=>{
         try{
             _buildReportCanvas(cv=>{
                 cv.toBlob(blob=>{
-                    if(!blob){showModal('Error','Could not generate image.');return;}
+                    if(!blob){showToast('❌ Image generation failed.','error');return;}
                     const ts=new Date().toISOString().slice(0,19).replace(/[T:]/g,'-');
                     _saveBlob(blob,'OptiCost_'+ts+'.png');
                 },'image/png');
             });
-        }catch(e){showModal('Error','Image build failed: '+e.message);}
-    },80);
+        }catch(e){showToast('❌ Image build error: '+e.message,'error');}
+    },120);
 }
 
 function _escHtml(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
 function saveReportWord(){
-    if(!recs.length){showModal('No Data','Calculate items first.');return;}
+    if(!recs.length){showToast('⚠ No data — calculate first.','error');return;}
     refreshSnapHeader();
     const mfr=document.getElementById('rpt-mfr').value.trim()||'Optics & Allied Engg. Pvt. Ltd. (OPTICA)';
     const vendor=document.getElementById('rpt-vendor').value.trim()||'—';
@@ -1165,7 +1208,7 @@ function renderFilesLib(){
 // FILE VIEWER — pinch-to-zoom + pan (image), scroll (text/iframe)
 // ═══════════════════════════════════════════════════════════════
 let _fvScale = 1;
-let _fvOriginX = 0, _fvOriginY = 0;      // pan offset
+let _fvOriginX = 0, _fvOriginY = 0;
 let _fvPinchDist0 = 0, _fvPinchScale0 = 1;
 let _fvPanStart = null, _fvPanOffset0 = {x:0, y:0};
 let _fvIsImage = false;
@@ -1209,7 +1252,6 @@ function _initImageViewer(src, title){
     container.style.transform = 'translate(0,0) scale(1)';
     document.getElementById('zoom-level').textContent = '1.0×';
     overlay.style.display = 'flex';
-    // Attach touch handlers to viewport
     viewport.ontouchstart = _fvTouchStart;
     viewport.ontouchmove  = _fvTouchMove;
     viewport.ontouchend   = _fvTouchEnd;
@@ -1257,11 +1299,10 @@ function viewStoredFile(fname){
             return;
         }
 
-        // Text or iframe mode
         viewport.style.display = 'none';
         content.style.display  = 'flex';
         content.innerHTML = '';
-        zoomBar.style.display = 'none'; // no zoom buttons for text/doc
+        zoomBar.style.display = 'none';
         _fvIsImage = false;
 
         if(rec.mime.startsWith('text/') || rec.fname.endsWith('.csv')){
@@ -1295,7 +1336,7 @@ function viewStoredFile(fname){
 function _downloadFallback(rec){
     try{
         const blob = _blobFromDataUri(rec.data, rec.mime);
-        _downloadLink(blob, rec.fname);
+        _fallbackDownload(blob, rec.fname);
     }catch(e){ showModal('Error','Cannot open: '+e.message); }
 }
 
@@ -1312,13 +1353,15 @@ function closeFileViewer(){
 
 function shareStoredFile(fname){
     _getStoredFile(fname).then(rec=>{
-        if(!rec){showModal('Error','File not found.');return;}
+        if(!rec){showToast('❌ File not found.','error');return;}
         const blob = _blobFromDataUri(rec.data, rec.mime);
         if(navigator.share){
             try{
                 const file = new File([blob], rec.fname, {type: rec.mime});
                 if(!navigator.canShare || navigator.canShare({files:[file]})){
-                    navigator.share({files:[file], title: rec.fname}).catch(()=>_downloadFallback(rec));
+                    navigator.share({files:[file], title: rec.fname})
+                        .then(()=>showToast('✅ Shared: '+rec.fname,'success'))
+                        .catch(()=>_fallbackDownload(blob, rec.fname));
                     return;
                 }
             }catch(e){}
@@ -1326,13 +1369,13 @@ function shareStoredFile(fname){
         if(window.Android && typeof window.Android.saveFile === 'function'){
             try{
                 const reader = new FileReader();
-                reader.onload = e=>window.Android.saveFile(rec.fname, rec.mime, e.target.result.split(',')[1]);
+                reader.onload = e=>{ window.Android.saveFile(rec.fname, rec.mime, e.target.result.split(',')[1]); showToast('✅ Saved: '+rec.fname,'success'); };
                 reader.readAsDataURL(blob);
                 return;
             }catch(e){}
         }
-        _downloadFallback(rec);
-    }).catch(e=>showModal('Error',e.message));
+        _fallbackDownload(blob, rec.fname);
+    }).catch(e=>showToast('❌ '+e.message,'error'));
 }
 
 function deleteStoredFile(fname){showConfirm('Delete',"Remove '"+fname+"'?",()=>{_deleteFileDB(fname).then(()=>renderFilesLib()).catch(()=>renderFilesLib());});}
@@ -1355,7 +1398,7 @@ function doReset(){
         clearCanvas("c-canvas");clearCanvas("r-canvas");
         document.getElementById("live-summary").style.display="none";document.getElementById("r-live-summary").style.display="none";
         document.getElementById("res-canvas-col").style.display="none";
-        showModal("Reset","All inputs cleared.");
+        showToast('↺ Reset complete','');
     });
 }
 
@@ -1398,9 +1441,9 @@ function drawLensCanvas(id, p, preview=false){
     const xMin=Math.min(xs1v,xS1(hOD))-0.5, xMax=Math.max(xs2v,xS2(hOD))+0.5;
 
     // Layout zones (px):
-    //  CA1 label  |  lens body  |  CA2 label  |  OD label
-    //   56px          fill          56px          56px
-    const PAD_L=58, PAD_R=120; // PAD_R = CA2 zone (54) + OD zone (54) + gap (12)
+    //  CA1 label  |  lens body  |  CA2 + OD labels (compact)
+    //   56px          fill          88px (CA2 + OD together)
+    const PAD_L=58, PAD_R=92;
     const physW=xMax-xMin, physH=OD;
     const drawableW=CW-PAD_L-PAD_R;
     const sX=drawableW/Math.max(physW,0.1);
@@ -1413,10 +1456,8 @@ function drawLensCanvas(id, p, preview=false){
     canvas.width=CW; canvas.height=CH;
     const ctx=canvas.getContext("2d"); ctx.clearRect(0,0,CW,CH);
 
-    // Map physical mm → canvas px
-    // Centre the lens body within [PAD_L .. CW-PAD_R]
     const drawW=(xMax-xMin)*s;
-    const bodyLeft=PAD_L; // left edge of lens draw zone
+    const bodyLeft=PAD_L;
     const ox=bodyLeft-xMin*s+(drawableW-drawW)/2;
     const cy=CH/2;
     const px=xmm=>ox+xmm*s, py=ymm=>cy-ymm*s;
@@ -1426,20 +1467,17 @@ function drawLensCanvas(id, p, preview=false){
     const LP=ys.map(y=>[px(xS1(y)),py(y)]);
     const RP=ys.map(y=>[px(xS2(y)),py(y)]);
 
-    // Colours
     const lf1=preview?'rgba(30,58,138,0.85)':'rgba(40,44,52,0.88)';
     const lf2=preview?'rgba(99,102,241,0.70)':'rgba(160,168,180,0.78)';
     const cA=preview?'#b45309':'#1a1a1a';
     const cAmb=preview?'#b45309':'#7c5c00';
     const cCA2='#6366f1';
 
-    // Fill body
     ctx.beginPath();LP.forEach((pt,i)=>i?ctx.lineTo(...pt):ctx.moveTo(...pt));[...RP].reverse().forEach(pt=>ctx.lineTo(...pt));ctx.closePath();
     const grd=ctx.createLinearGradient(px(xs1v),0,px(xs2v),0);grd.addColorStop(0,lf1);grd.addColorStop(0.5,lf2);grd.addColorStop(1,lf1);ctx.fillStyle=grd;ctx.fill();
     ctx.save();ctx.beginPath();LP.forEach((pt,i)=>i?ctx.lineTo(...pt):ctx.moveTo(...pt));[...RP].reverse().forEach(pt=>ctx.lineTo(...pt));ctx.closePath();ctx.clip();
     const shim=ctx.createLinearGradient(0,py(hOD),0,py(-hOD));shim.addColorStop(0,"rgba(180,200,255,0.10)");shim.addColorStop(0.35,"rgba(220,230,255,0.48)");shim.addColorStop(0.65,"rgba(220,230,255,0.48)");shim.addColorStop(1,"rgba(180,200,255,0.10)");ctx.fillStyle=shim;ctx.fill();ctx.restore();
 
-    // Outlines
     ctx.lineJoin="round";ctx.lineCap="round";
     ctx.beginPath();LP.forEach((pt,i)=>i?ctx.lineTo(...pt):ctx.moveTo(...pt));ctx.strokeStyle=cA;ctx.lineWidth=2.2;ctx.stroke();
     ctx.beginPath();RP.forEach((pt,i)=>i?ctx.lineTo(...pt):ctx.moveTo(...pt));ctx.strokeStyle=cA;ctx.lineWidth=2.2;ctx.stroke();
@@ -1447,35 +1485,27 @@ function drawLensCanvas(id, p, preview=false){
     ctx.beginPath();ctx.moveTo(...LP[N]);ctx.lineTo(...RP[N]);ctx.strokeStyle=cA;ctx.lineWidth=1.8;ctx.stroke();
 
     // ── HELPER: draw a vertical double-arrow with rotated label ──
-    // arrowX: x position of the arrow line
-    // topY, botY: arrow extents in px
-    // labelText: text to show
-    // color: stroke/fill color
-    // side: 'left' (label to the LEFT of arrowX) | 'right' (label to the RIGHT)
     function drawVArrow(arrowX, topY, botY, labelText, color, side){
         const span=Math.abs(botY-topY);
         ctx.strokeStyle=color; ctx.lineWidth=1.4;
         ctx.beginPath(); ctx.moveTo(arrowX,topY); ctx.lineTo(arrowX,botY); ctx.stroke();
-        // arrowheads
         const ah=5;
         ctx.beginPath(); ctx.moveTo(arrowX-ah,topY+ah); ctx.lineTo(arrowX,topY); ctx.lineTo(arrowX+ah,topY+ah); ctx.stroke();
         ctx.beginPath(); ctx.moveTo(arrowX-ah,botY-ah); ctx.lineTo(arrowX,botY); ctx.lineTo(arrowX+ah,botY-ah); ctx.stroke();
-        // Rotated label — centred on the arrow
-        if(span < 10) return; // too small to label
+        if(span < 10) return;
         ctx.save();
         ctx.font="bold 11px 'Nunito',sans-serif";
         ctx.fillStyle=color;
         const labelX=side==='left'?(arrowX-13):(arrowX+13);
         const labelY=(topY+botY)/2;
         ctx.translate(labelX, labelY);
-        // left side: text reads bottom→top; right side: text reads top→bottom
         ctx.rotate(side==='left'?-Math.PI/2:Math.PI/2);
         ctx.textAlign="center";
         ctx.fillText(labelText, 0, 0);
         ctx.restore();
     }
 
-    // ── CT annotation (horizontal, below centre) ──
+    // ── CT annotation ──
     const ctX1=px(xS1(0)), ctX2=px(xS2(0));
     const ctArrY=cy+Math.min(22, CH/2-16);
     ctx.strokeStyle=cA; ctx.lineWidth=1.3;
@@ -1488,7 +1518,7 @@ function drawLensCanvas(id, p, preview=false){
     ctx.font="bold 11px 'Nunito',sans-serif"; ctx.fillStyle=cA; ctx.textAlign="center";
     ctx.fillText("CT="+CT.toFixed(2)+"mm",(ctX1+ctX2)/2,ctArrY+13); ctx.textAlign="left";
 
-    // ── ET@CA annotation (horizontal, slightly above top CA rim) ──
+    // ── ET@CA annotation ──
     const etCA=edgeThicknessAt(s1,s2,CT,g1,g2);
     if(!isNaN(etCA)&&etCA>0){
         const etYline=Math.min(py(hCA1 > 0 ? hCA1 : hOD), py(hCA2 > 0 ? hCA2 : hOD))-18;
@@ -1508,31 +1538,39 @@ function drawLensCanvas(id, p, preview=false){
     ctx.textAlign="right"; ctx.fillText("S1",LP[Math.round(N*0.12)][0]-5,LP[Math.round(N*0.12)][1]-7);
     ctx.textAlign="left";  ctx.fillText("S2",RP[Math.round(N*0.12)][0]+5,RP[Math.round(N*0.12)][1]-7);
 
-    // ROC labels
     ctx.font="bold 11px 'Nunito',sans-serif";
     if(s1!=="plano"&&roc1>0){ctx.fillStyle=cAmb;ctx.textAlign="right";ctx.fillText("R1="+roc1.toFixed(1),LP[Math.round(N*0.3)][0]-4,LP[Math.round(N*0.3)][1]+4);}
     if(s2!=="plano"&&roc2>0){ctx.fillStyle=cAmb;ctx.textAlign="left"; ctx.fillText("R2="+roc2.toFixed(1),RP[Math.round(N*0.3)][0]+4,RP[Math.round(N*0.3)][1]+4);}
     ctx.textAlign="left";
 
-    // ── CA1 arrow — in the LEFT zone ──
-    // Fixed position: left of lens, label reads upward (left side)
+    // ── CA1 arrow (left zone) ──
     const ca1ArrowX = PAD_L - 16;
     if(hCA1>0){
         drawVArrow(ca1ArrowX, py(hCA1), py(-hCA1), "⌀CA1="+CA1.toFixed(2)+"mm", '#4f46e5', 'left');
     }
 
-    // ── CA2 arrow — in the MIDDLE-RIGHT zone (just right of lens edge) ──
-    // Fixed X: right edge of lens + 10px
+    // ── CA2 arrow (right of lens) ──
     const lensRightEdge = Math.max(...RP.map(pt=>pt[0]));
     const ca2ArrowX = lensRightEdge + 10;
     if(hCA2>0 && Math.abs(hCA2-hOD)>0.5){
         drawVArrow(ca2ArrowX, py(hCA2), py(-hCA2), "⌀CA2="+CA2.toFixed(2)+"mm", cCA2, 'right');
     }
 
-    // ── OD arrow — in the FAR-RIGHT zone, after CA2 label ──
-    // Fixed X: ca2ArrowX + 30 + label width approx, or at least CW-18
-    const odArrowX = Math.max(ca2ArrowX + 30, CW - 18);
-    drawVArrow(odArrowX, py(hOD), py(-hOD), "⌀OD="+OD+" mm", cAmb, 'right');
+    // ── OD arrow — now placed CLOSER to CA2, with a compact gap ──
+    // Position: just to the right of CA2 arrow with 18px gap, capped at canvas right edge
+    const odArrowX = Math.min(ca2ArrowX + 20, CW - 14);
+    // But ensure it's at least 8px right of CA2 arrow
+    const odX = Math.max(odArrowX, ca2ArrowX + 12);
+    // Also ensure it doesn't overlap the CA2 label text (roughly 80px wide)
+    // So if CA2 + OD are too close, push OD slightly further
+    const gap = odX - ca2ArrowX;
+    if(gap < 30 && hCA2 > 0 && hOD > 0){
+        // Only push if there's space
+        const pushedX = Math.min(ca2ArrowX + 34, CW - 14);
+        drawVArrow(pushedX, py(hOD), py(-hOD), "⌀OD="+OD+" mm", cAmb, 'right');
+    } else {
+        drawVArrow(odX, py(hOD), py(-hOD), "⌀OD="+OD+" mm", cAmb, 'right');
+    }
 }
 
 function liveDrawLens(){

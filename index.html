@@ -169,15 +169,16 @@
         .file-actions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px}
         .file-actions button{padding:9px 2px;border:none;border-radius:7px;font-size:.70rem;font-weight:700;cursor:pointer;font-family:var(--font);text-align:center}
 
-        /* Inline file viewer overlay with zoom */
+        /* Inline file viewer overlay with zoom + touch support */
         #file-viewer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:9998;display:none;flex-direction:column}
         #file-viewer-bar{background:#0c1d30;border-bottom:1px solid #0e2e4e;padding:8px 12px;display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap}
         #file-viewer-title{color:#22d3ee;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:.95rem;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
         #file-viewer-zoom{display:flex;gap:6px;align-items:center}
-        #file-viewer-zoom button{background:var(--surf2);border:1px solid var(--border);color:var(--accent);border-radius:6px;padding:4px 10px;font-size:.9rem;font-weight:700;cursor:pointer}
+        #file-viewer-zoom button{background:var(--surf2);border:1px solid var(--border);color:var(--accent);border-radius:6px;padding:4px 10px;font-size:.9rem;font-weight:700;cursor:pointer;min-width:32px}
         #file-viewer-close{background:#f87171;border:none;color:#fff;border-radius:8px;padding:6px 14px;font-weight:700;cursor:pointer;font-size:.82rem;flex-shrink:0}
-        #file-viewer-content{flex:1;overflow:auto;display:flex;align-items:flex-start;justify-content:center;padding:12px}
-        #file-viewer-content img{max-width:100%;height:auto;border-radius:8px;display:block;transition:transform 0.1s}
+        #file-viewer-content{flex:1;overflow:auto;display:flex;align-items:flex-start;justify-content:center;padding:12px;touch-action:none}
+        #file-viewer-content .img-wrap{display:flex;align-items:center;justify-content:center;width:100%;height:100%}
+        #file-viewer-content img{max-width:100%;height:auto;border-radius:8px;display:block;transition:transform 0.05s;transform-origin:center center}
         #file-viewer-content iframe{width:100%;height:100%;border:none;background:#fff;border-radius:8px}
         #file-viewer-content pre{color:#e8f4ff;font-family:'Share Tech Mono',monospace;font-size:.78rem;white-space:pre-wrap;word-break:break-word;background:#091624;padding:14px;border-radius:8px;width:100%}
 
@@ -627,7 +628,7 @@
     </div>
 </div>
 
-<!-- INLINE FILE VIEWER with zoom -->
+<!-- INLINE FILE VIEWER with zoom + touch support -->
 <div id="file-viewer-overlay">
     <div id="file-viewer-bar">
         <span id="file-viewer-title">File Viewer</span>
@@ -1328,8 +1329,10 @@ function renderFilesLib(){
     }).catch(()=>{el.innerHTML='<div style="color:var(--red);font-size:.8rem;padding:12px">Error loading files.</div>';});
 }
 
-// ── INLINE FILE VIEWER with ZOOM ──
+// ── INLINE FILE VIEWER with ZOOM + TOUCH ──
 let _zoomLevel=1;
+let _touchDist=0, _touchZoom=1;
+
 function viewStoredFile(fname){
     _getStoredFile(fname).then(rec=>{
         if(!rec){showModal('Error','File not found.');return;}
@@ -1342,12 +1345,20 @@ function viewStoredFile(fname){
         document.getElementById('zoom-level').textContent='1.0×';
 
         if(rec.mime.startsWith('image/')){
+            const wrap=document.createElement('div');
+            wrap.className='img-wrap';
             const img=document.createElement('img');
             img.src=rec.data;
             img.alt=rec.fname;
             img.style.transform='scale(1)';
             img.style.transformOrigin='center center';
-            content.appendChild(img);
+            img.style.touchAction='none';
+            // Touch zoom
+            img.addEventListener('touchstart', onTouchStart, {passive:false});
+            img.addEventListener('touchmove', onTouchMove, {passive:false});
+            img.addEventListener('touchend', onTouchEnd, {passive:false});
+            wrap.appendChild(img);
+            content.appendChild(wrap);
             viewer.style.display='flex';
             return;
         }
@@ -1379,6 +1390,38 @@ function viewStoredFile(fname){
 
         _downloadFallback(rec);
     }).catch(e=>showModal('Error',e.message));
+}
+
+// ── Touch zoom handlers ──
+function onTouchStart(e){
+    if(e.touches.length===2){
+        const dx=e.touches[0].clientX-e.touches[1].clientX;
+        const dy=e.touches[0].clientY-e.touches[1].clientY;
+        _touchDist=Math.sqrt(dx*dx+dy*dy);
+        _touchZoom=_zoomLevel;
+        e.preventDefault();
+    }
+}
+
+function onTouchMove(e){
+    if(e.touches.length===2){
+        const dx=e.touches[0].clientX-e.touches[1].clientX;
+        const dy=e.touches[0].clientY-e.touches[1].clientY;
+        const newDist=Math.sqrt(dx*dx+dy*dy);
+        if(_touchDist>0){
+            const scale=newDist/_touchDist;
+            const newZoom=Math.max(0.3, Math.min(5, _touchZoom*scale));
+            _zoomLevel=newZoom;
+            const img=e.target;
+            img.style.transform=`scale(${_zoomLevel})`;
+            document.getElementById('zoom-level').textContent=_zoomLevel.toFixed(1)+'×';
+        }
+        e.preventDefault();
+    }
+}
+
+function onTouchEnd(e){
+    _touchDist=0;
 }
 
 function zoomImage(delta){
@@ -1519,13 +1562,13 @@ function drawLensCanvas(id,p,preview=false){
     ctx.beginPath();ctx.moveTo(...LP[N]);ctx.lineTo(...RP[N]);ctx.strokeStyle=cA;ctx.lineWidth=1.8;ctx.stroke();
 
     // ── OD arrow: far right, label in upper half ──
-    const odArrowX=px(xMax)+22;
+    const odArrowX=px(xMax)+24;
     const topY=py(hOD), botY=py(-hOD);
     ctx.strokeStyle=cAmb;ctx.lineWidth=1.5;
     ctx.beginPath();ctx.moveTo(odArrowX,topY);ctx.lineTo(odArrowX,botY);ctx.stroke();
     [[topY,+7],[botY,-7]].forEach(([y,d])=>{ctx.beginPath();ctx.moveTo(odArrowX-4,y+d);ctx.lineTo(odArrowX,y);ctx.lineTo(odArrowX+4,y+d);ctx.stroke();});
-    // OD label: upper third of arrow (avoids CA2 zone in lower half)
-    const odLabelY=(topY+botY)/2-Math.abs(botY-topY)*0.15;
+    // OD label: upper third of arrow
+    const odLabelY=(topY+botY)/2-Math.abs(botY-topY)*0.18;
     ctx.save();ctx.font="bold 12px 'Nunito',sans-serif";ctx.fillStyle=cAmb;
     ctx.translate(odArrowX+14,odLabelY);ctx.rotate(Math.PI/2);ctx.textAlign="center";
     ctx.fillText("⌀OD="+OD+" mm",0,0);ctx.restore();
@@ -1580,6 +1623,7 @@ function drawLensCanvas(id,p,preview=false){
     }
 
     // ── CA2 label: right side, between lens edge and OD arrow ──
+    // Move CA2 arrow closer to lens (xMax+5) and label above OD arrow
     const caArrowX2=px(xMax)+5;
     if(hCA2>0&&Math.abs(hCA2-hOD)>0.5){
         const ca2T=py(hCA2), ca2B=py(-hCA2);
@@ -1587,8 +1631,8 @@ function drawLensCanvas(id,p,preview=false){
         ctx.beginPath();ctx.moveTo(caArrowX2,ca2T);ctx.lineTo(caArrowX2,ca2B);ctx.stroke();
         ctx.beginPath();ctx.moveTo(caArrowX2-3,ca2T+6);ctx.lineTo(caArrowX2,ca2T);ctx.lineTo(caArrowX2+3,ca2T+6);ctx.stroke();
         ctx.beginPath();ctx.moveTo(caArrowX2-3,ca2B-6);ctx.lineTo(caArrowX2,ca2B);ctx.lineTo(caArrowX2+3,ca2B-6);ctx.stroke();
-        // CA2 label in lower half of its span (OD label is in upper half)
-        const ca2LabelY=(ca2T+ca2B)/2+Math.abs(ca2B-ca2T)*0.15;
+        // CA2 label in UPPER half of its span (OD label is in upper half too, but CA2 is closer to lens so no overlap)
+        const ca2LabelY=(ca2T+ca2B)/2-Math.abs(ca2B-ca2T)*0.12;
         ctx.save();ctx.font="bold 11px 'Nunito',sans-serif";ctx.fillStyle='#6366f1';
         ctx.translate(caArrowX2+11,ca2LabelY);ctx.rotate(Math.PI/2);ctx.textAlign="center";
         ctx.fillText("⌀CA2="+CA2.toFixed(2)+"mm",0,0);ctx.restore();

@@ -85,13 +85,15 @@
         .ct-eval{font-size:.73rem;color:var(--green);margin-top:3px;font-family:var(--font-mono);min-height:15px}
         canvas{width:100%;display:block;background:transparent}
 
-        /* ── RESULTS LAYOUT: always side-by-side ── */
+        /* ── RESULTS LAYOUT: side-by-side, canvas left centered ── */
         #report-snap{background:#ffffff;border-radius:10px;overflow:hidden;border:1.5px solid #d0dbe8;margin-bottom:4px}
         #res-split-wrap{background:#ffffff;display:flex;flex-direction:row;min-height:200px}
-        #res-canvas-col{display:none;flex:0 0 42%;max-width:42%;background:#f0f5ff;border-right:1px solid #c8d8e8;flex-direction:column;align-items:center;justify-content:flex-start;padding-bottom:8px}
+        #res-canvas-col{display:none;flex:0 0 44%;max-width:44%;background:#f0f5ff;border-right:1px solid #c8d8e8;flex-direction:column;align-items:center;justify-content:center;padding:8px 4px}
         #res-data-col{flex:1;overflow-y:auto;background:#ffffff;-webkit-overflow-scrolling:touch;min-width:0}
 
-        .cs-lbl{font-family:var(--font-head);font-size:.62rem;font-weight:700;color:#1d4ed8;letter-spacing:1px;padding:6px 8px 3px;display:block;border-bottom:1px solid #c8d8e8;background:#e8f0fa;text-align:center;width:100%}
+        .cs-lbl{font-family:var(--font-head);font-size:.62rem;font-weight:700;color:#1d4ed8;letter-spacing:1px;padding:4px 8px 2px;display:block;border-bottom:1px solid #c8d8e8;background:#e8f0fa;text-align:center;width:100%}
+        #res-canvas{width:100%;height:auto;display:block;background:transparent;max-height:320px;object-fit:contain}
+
         .result-block{background:var(--surface);border-radius:var(--radius);padding:4px 0 8px;min-height:160px;border:1px solid var(--border)}
         .res-title{font-family:var(--font-head);font-size:1.0rem;font-weight:700;color:#1a2e44;letter-spacing:1.5px;padding:10px 14px 6px;border-bottom:1px solid #d0dbe8;margin-bottom:2px;background:#f0f5fa}
         .res-section{padding:7px 14px 2px}
@@ -167,24 +169,17 @@
         .file-actions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px}
         .file-actions button{padding:9px 2px;border:none;border-radius:7px;font-size:.70rem;font-weight:700;cursor:pointer;font-family:var(--font);text-align:center}
 
-        /* Inline file viewer overlay */
+        /* Inline file viewer overlay with zoom */
         #file-viewer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:9998;display:none;flex-direction:column}
-        #file-viewer-bar{background:#0c1d30;border-bottom:1px solid #0e2e4e;padding:8px 12px;display:flex;align-items:center;gap:8px;flex-shrink:0}
+        #file-viewer-bar{background:#0c1d30;border-bottom:1px solid #0e2e4e;padding:8px 12px;display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap}
         #file-viewer-title{color:#22d3ee;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:.95rem;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+        #file-viewer-zoom{display:flex;gap:6px;align-items:center}
+        #file-viewer-zoom button{background:var(--surf2);border:1px solid var(--border);color:var(--accent);border-radius:6px;padding:4px 10px;font-size:.9rem;font-weight:700;cursor:pointer}
         #file-viewer-close{background:#f87171;border:none;color:#fff;border-radius:8px;padding:6px 14px;font-weight:700;cursor:pointer;font-size:.82rem;flex-shrink:0}
         #file-viewer-content{flex:1;overflow:auto;display:flex;align-items:flex-start;justify-content:center;padding:12px}
-        #file-viewer-content img{max-width:100%;height:auto;border-radius:8px;display:block}
+        #file-viewer-content img{max-width:100%;height:auto;border-radius:8px;display:block;transition:transform 0.1s}
         #file-viewer-content iframe{width:100%;height:100%;border:none;background:#fff;border-radius:8px}
         #file-viewer-content pre{color:#e8f4ff;font-family:'Share Tech Mono',monospace;font-size:.78rem;white-space:pre-wrap;word-break:break-word;background:#091624;padding:14px;border-radius:8px;width:100%}
-
-        /* Save dialog */
-        #save-dialog-overlay{position:fixed;inset:0;background:rgba(0,0,0,.80);z-index:10000;display:none;align-items:center;justify-content:center;padding:16px}
-        #save-dialog{background:var(--surface);border-radius:14px;padding:20px;max-width:380px;width:100%;border:1px solid var(--border);animation:popIn .16s ease}
-        #save-dialog h3{font-family:var(--font-head);color:var(--accent);font-size:1.1rem;letter-spacing:1px;margin-bottom:10px;border-bottom:1px solid var(--border);padding-bottom:8px}
-        #save-fname{width:100%;background:var(--inp);border:1.5px solid var(--inp-brd);border-radius:8px;color:var(--text);font-family:var(--font);font-size:.88rem;padding:9px 12px;outline:none;margin-bottom:12px}
-        #save-fname:focus{border-color:var(--accent)}
-        .save-dlg-btns{display:flex;gap:8px}
-        .save-dlg-btns button{flex:1;padding:10px;border:none;border-radius:8px;font-family:var(--font);font-weight:700;cursor:pointer;font-size:.84rem}
 
         @media(min-width:480px){body{max-width:480px;margin:0 auto}.theme-fab{right:calc(50% - 240px)}.theme-panel{right:calc(50% - 240px + 20px)}}
         @media(max-width:414px){
@@ -193,7 +188,6 @@
             .card{padding:11px}
             .actbar button{font-size:.79rem;padding:10px 3px}
             .meta-grid{grid-template-columns:1fr}
-            /* On very small screens, stack if truly tiny */
             #res-split-wrap{flex-direction:row}
             #res-canvas-col{flex:0 0 38%;max-width:38%}
             .export-grid{grid-template-columns:1fr}
@@ -537,11 +531,11 @@
                     </div>
                 </div>
 
-                <!-- SIDE-BY-SIDE: canvas left, data right — always row -->
+                <!-- SIDE-BY-SIDE: canvas left (centered), data right -->
                 <div id="res-split-wrap">
                     <div id="res-canvas-col">
                         <span class="cs-lbl">👁 CROSS-SECTION</span>
-                        <canvas id="res-canvas" style="width:100%;display:block;background:transparent"></canvas>
+                        <canvas id="res-canvas" style="width:100%;display:block;background:transparent;max-height:320px;object-fit:contain"></canvas>
                     </div>
                     <div id="res-data-col">
                         <div id="result-text" style="padding:4px 0 6px;min-height:80px">
@@ -633,23 +627,16 @@
     </div>
 </div>
 
-<!-- SAVE DIALOG with editable filename -->
-<div id="save-dialog-overlay" onclick="if(event.target===this)closeSaveDlg()">
-    <div id="save-dialog">
-        <h3 id="sdlg-title">💾 Save File</h3>
-        <div style="font-size:.78rem;color:var(--muted);margin-bottom:8px" id="sdlg-hint">You can edit the filename before saving.</div>
-        <input type="text" id="save-fname" placeholder="filename" />
-        <div class="save-dlg-btns">
-            <button style="background:var(--accent);color:var(--tag-txt)" onclick="executeSave()">💾 Save</button>
-            <button style="background:var(--surf2);color:var(--text);border:1px solid var(--border)" onclick="closeSaveDlg()">Cancel</button>
-        </div>
-    </div>
-</div>
-
-<!-- INLINE FILE VIEWER (no popup needed — works in APK WebView) -->
+<!-- INLINE FILE VIEWER with zoom -->
 <div id="file-viewer-overlay">
     <div id="file-viewer-bar">
         <span id="file-viewer-title">File Viewer</span>
+        <div id="file-viewer-zoom">
+            <button onclick="zoomImage(-0.2)">−</button>
+            <span style="color:#e8f4ff;font-size:.8rem;min-width:40px;text-align:center" id="zoom-level">1.0×</span>
+            <button onclick="zoomImage(0.2)">+</button>
+            <button onclick="resetZoom()" style="background:var(--surf2);border:1px solid var(--border);color:var(--accent);border-radius:6px;padding:4px 8px;font-size:.7rem;font-weight:700;cursor:pointer">⟲ Reset</button>
+        </div>
         <button id="file-viewer-close" onclick="closeFileViewer()">✕ Close</button>
     </div>
     <div id="file-viewer-content"></div>
@@ -998,7 +985,7 @@ function calcCirc(){
     // Sags at CA (for volume & display)
     const sag1ca = calcSag(s1, roc1, CA1);
     const sag2ca = calcSag(s2, roc2, CA2);
-    // Sags at OD (for blank thickness calculation only)
+    // Sags at OD (for blank thickness calculation)
     const sag1od = calcSag(s1, roc1, OD);
     const sag2od = calcSag(s2, roc2, OD);
 
@@ -1006,7 +993,7 @@ function calcCirc(){
     const ETca = edgeThicknessAt(s1, s2, CT, sag1ca, sag2ca);
     if(ETca < 0) throw new Error(`Edge thickness at CA = ${ETca.toFixed(4)}mm is negative — sags exceed CT. Increase CT or ROC.`);
 
-    // ── Edge thickness at OD rim ──
+    // ── Edge thickness at OD rim (for reference) ──
     const ETod = edgeThicknessAt(s1, s2, CT, sag1od, sag2od);
     if(ETod < 0) throw new Error(`Edge thickness at OD = ${ETod.toFixed(4)}mm is negative. Increase CT or ROC.`);
 
@@ -1022,9 +1009,11 @@ function calcCirc(){
     const lensWt=Vtcm3*dens, blankWt=Vbcm3*dens;
     const lensCost=lensWt*ppg, blankCost=blankWt*ppg;
 
-    // Signed sags for display (positive = adds axial length)
-    const sd1 = s1==="convex"?sag1ca:(s1==="concave"?-sag1ca:0);
-    const sd2 = s2==="convex"?sag2ca:(s2==="concave"?-sag2ca:0);
+    // Signed sags for display (positive = convex, negative = concave)
+    const signedSag1ca = s1==="convex"?sag1ca:(s1==="concave"?-sag1ca:0);
+    const signedSag2ca = s2==="convex"?sag2ca:(s2==="concave"?-sag2ca:0);
+    const signedSag1od = s1==="convex"?sag1od:(s1==="concave"?-sag1od:0);
+    const signedSag2od = s2==="convex"?sag2od:(s2==="concave"?-sag2od:0);
 
     window._lastLensParams={id:"c-canvas",p:{OD,CT,CA1,CA2,s1,s2,g1:Math.abs(sag1ca),g2:Math.abs(sag2ca)}};
     drawLensCanvas("c-canvas",window._lastLensParams.p,true);
@@ -1045,15 +1034,15 @@ function calcCirc(){
         row("Type",v("s1t"))+
         (s1!=="plano"?row("ROC (R1)",roc1.toFixed(3)+" mm"):"")+
         row("Clear Aperture (CA1)",CA1.toFixed(3)+" mm")+
-        row("Sag @ CA1",(sd1>=0?"+":" ")+sd1.toFixed(4)+" mm")+
-        row("Sag @ OD1",sag1od.toFixed(4)+" mm")+
+        row("Sag @ CA1",(signedSag1ca>=0?"+":" ")+signedSag1ca.toFixed(4)+" mm")+
+        row("Sag @ OD1",(signedSag1od>=0?"+":" ")+signedSag1od.toFixed(4)+" mm")+
         `</div><div class="res-divider"></div>`+
         `<div class="res-section">`+secHdr("Surface S2")+
         row("Type",v("s2t"))+
         (s2!=="plano"?row("ROC (R2)",roc2.toFixed(3)+" mm"):"")+
         row("Clear Aperture (CA2)",CA2.toFixed(3)+" mm")+
-        row("Sag @ CA2",(sd2>=0?"+":" ")+sd2.toFixed(4)+" mm")+
-        row("Sag @ OD2",sag2od.toFixed(4)+" mm")+
+        row("Sag @ CA2",(signedSag2ca>=0?"+":" ")+signedSag2ca.toFixed(4)+" mm")+
+        row("Sag @ OD2",(signedSag2od>=0?"+":" ")+signedSag2od.toFixed(4)+" mm")+
         `</div><div class="res-divider"></div>`+
         `<div class="res-section">`+secHdr("Finished Lens")+
         row("Volume",Vtcm3.toFixed(6)+" cm³")+
@@ -1075,8 +1064,8 @@ function calcCirc(){
         "BlankThk(mm)":blkTh.toFixed(4),
         "S1":v("s1t"),"ROC1(mm)":s1==="plano"?"Inf":roc1,"CA1(mm)":CA1,
         "S2":v("s2t"),"ROC2(mm)":s2==="plano"?"Inf":roc2,"CA2(mm)":CA2,
-        "Sag1_CA(mm)":sd1.toFixed(4),"Sag2_CA(mm)":sd2.toFixed(4),
-        "Sag1_OD(mm)":sag1od.toFixed(4),"Sag2_OD(mm)":sag2od.toFixed(4),
+        "Sag1_CA(mm)":signedSag1ca.toFixed(4),"Sag2_CA(mm)":signedSag2ca.toFixed(4),
+        "Sag1_OD(mm)":signedSag1od.toFixed(4),"Sag2_OD(mm)":signedSag2od.toFixed(4),
         "LensVol(cm3)":Vtcm3.toFixed(6),"LensWt(g)":lensWt.toFixed(4),"LensCost":cur+" "+lensCost.toFixed(2),
         "BlankVol(cm3)":Vbcm3.toFixed(6),"BlankWt(g)":blankWt.toFixed(4),"BlankCost":cur+" "+blankCost.toFixed(2)
     });
@@ -1132,7 +1121,7 @@ function mirrorCanvasToResults(srcId){
     requestAnimationFrame(()=>{requestAnimationFrame(()=>{
         const colW=col.clientWidth||140;
         const aspect=src.height/src.width;
-        const dstH=Math.round(colW*aspect);
+        const dstH=Math.min(Math.round(colW*aspect),320);
         dst.width=colW*2; dst.height=dstH*2;
         dst.style.width=colW+"px"; dst.style.height=dstH+"px";
         const ctx=dst.getContext("2d");
@@ -1176,57 +1165,52 @@ function _getStoredFile(fname){return new Promise((res,rej)=>{_openFileDB().then
 function _blobFromDataUri(dataUri,mime){const b64=dataUri.split(',')[1];const bin=atob(b64);const arr=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);return new Blob([arr],{type:mime||'application/octet-stream'});}
 
 // ═══════════════════════════════════════════════════════════════
-// SAVE DIALOG — with editable default filename
-// Android WebView compatible (no native file picker triggered)
+// SAVE / EXPORT (no extra popup – direct download/share)
 // ═══════════════════════════════════════════════════════════════
-let _pendingSaveBlob=null, _pendingSaveFname=null, _pendingSaveCb=null;
-
-function showSaveDialog(defaultFname, blob, afterSaveCb){
-    _pendingSaveBlob=blob; _pendingSaveFname=defaultFname; _pendingSaveCb=afterSaveCb||null;
-    document.getElementById("save-fname").value=defaultFname;
-    document.getElementById("save-dialog-overlay").style.display="flex";
-    setTimeout(()=>document.getElementById("save-fname").focus(),80);
-}
-function closeSaveDlg(){document.getElementById("save-dialog-overlay").style.display="none";_pendingSaveBlob=null;_pendingSaveFname=null;_pendingSaveCb=null;}
-
-function executeSave(){
-    const fname=(document.getElementById("save-fname").value.trim()||_pendingSaveFname||"OptiCost_file");
-    const blob=_pendingSaveBlob;
-    if(!blob){closeSaveDlg();return;}
-    document.getElementById("save-dialog-overlay").style.display="none";
-    // Store in IDB first
-    _storeFile(fname,blob).then(dataUri=>{
-        // Try Android JS bridge (for APK WebView with JavascriptInterface)
-        if(window.Android&&typeof window.Android.saveFile==='function'){
-            try{window.Android.saveFile(fname,blob.type,dataUri.split(',')[1]);if(_pendingSaveCb)_pendingSaveCb(fname);_pendingSaveCb=null;showModal("✅ Saved","'"+fname+"' saved.\nOpen Files tab to view or share.");return;}catch(e){}
-        }
-        // Try Web Share API (works on Android Chrome / WebView with share support)
+function _saveBlob(blob, defaultFname){
+    // Store in IDB, then attempt share or download.
+    _storeFile(defaultFname,blob).then(()=>{
+        // Try Web Share
         if(navigator.share){
             try{
-                const file=new File([blob],fname,{type:blob.type});
+                const file=new File([blob],defaultFname,{type:blob.type});
                 const canShare=!navigator.canShare||navigator.canShare({files:[file]});
-                if(canShare){navigator.share({files:[file],title:fname}).then(()=>{if(_pendingSaveCb)_pendingSaveCb(fname);_pendingSaveCb=null;}).catch(e=>{if(e&&e.name==='AbortError'){if(_pendingSaveCb)_pendingSaveCb(fname);_pendingSaveCb=null;}});return;}
+                if(canShare){navigator.share({files:[file],title:defaultFname}).catch(()=>{});return;}
             }catch(e){}
         }
-        // Fallback: trigger download via <a> (works in most WebViews)
+        // Android bridge
+        if(window.Android&&typeof window.Android.saveFile==='function'){
+            try{
+                const dataUri=URL.createObjectURL(blob);
+                const reader=new FileReader();
+                reader.onload=function(e){
+                    const base64=e.target.result.split(',')[1];
+                    window.Android.saveFile(defaultFname,blob.type,base64);
+                };
+                reader.readAsDataURL(blob);
+                return;
+            }catch(e){}
+        }
+        // Fallback: download via <a>
         try{
             const burl=URL.createObjectURL(blob);
-            const a=document.createElement('a');a.href=burl;a.download=fname;
+            const a=document.createElement('a');a.href=burl;a.download=defaultFname;
             document.body.appendChild(a);a.click();document.body.removeChild(a);
             setTimeout(()=>URL.revokeObjectURL(burl),8000);
+            showModal("💾 Saved","'"+defaultFname+"' saved to Files tab.\nTap Files tab to view or share it.");
         }catch(e){}
-        if(_pendingSaveCb)_pendingSaveCb(fname);
-        _pendingSaveCb=null;
-        showModal("✅ Saved","'"+fname+"' saved to Files tab.\nTap Files tab to view or share it.");
-    }).catch(e=>{
-        showModal("Error","Could not save file:\n"+(e.message||e));
-        _pendingSaveCb=null;
+    }).catch(()=>{
+        // If IDB fails, still try download
+        try{
+            const burl=URL.createObjectURL(blob);
+            const a=document.createElement('a');a.href=burl;a.download=defaultFname;
+            document.body.appendChild(a);a.click();document.body.removeChild(a);
+            setTimeout(()=>URL.revokeObjectURL(burl),8000);
+        }catch(e){showModal("Error","Could not save file.");}
     });
 }
 
-// ═══════════════════════════════════════════════════════════════
-// SAVE EXCEL / CSV
-// ═══════════════════════════════════════════════════════════════
+// ── SAVE EXCEL / CSV ──
 function doSaveXLSX(){
     if(!recs.length){showModal('No Data','Calculate items first.');return;}
     const allHdrs=[...new Set(recs.flatMap(r=>Object.keys(r)))];
@@ -1234,12 +1218,10 @@ function doSaveXLSX(){
     const csv='\uFEFF'+[allHdrs.map(esc).join(','),...recs.map(r=>allHdrs.map(h=>esc(r[h]==null?'':r[h])).join(','))].join('\r\n');
     const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
     const ts=new Date().toISOString().slice(0,10);
-    showSaveDialog('OptiCost_'+ts+'.csv',blob);
+    _saveBlob(blob,'OptiCost_'+ts+'.csv');
 }
 
-// ═══════════════════════════════════════════════════════════════
-// PNG REPORT
-// ═══════════════════════════════════════════════════════════════
+// ── PNG REPORT ──
 function saveReportImage(){
     if(!recs.length){showModal('No Data','Run a calculation first.');return;}
     showModal('Building…','Generating PNG report…');
@@ -1250,16 +1232,14 @@ function saveReportImage(){
                     _closeModal();
                     if(!blob){showModal('Error','Could not generate image.');return;}
                     const ts=new Date().toISOString().slice(0,19).replace(/[T:]/g,'-');
-                    showSaveDialog('OptiCost_'+ts+'.png',blob);
+                    _saveBlob(blob,'OptiCost_'+ts+'.png');
                 },'image/png');
             });
         }catch(e){_closeModal();showModal('Error','Image build failed: '+e.message);}
     },80);
 }
 
-// ═══════════════════════════════════════════════════════════════
-// WORD REPORT
-// ═══════════════════════════════════════════════════════════════
+// ── WORD REPORT ──
 function _escHtml(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
 function saveReportWord(){
@@ -1319,7 +1299,7 @@ ${trows}</table></td></tr></table>
 
     const blob=new Blob(['\uFEFF'+html],{type:'application/vnd.ms-word;charset=utf-8'});
     const ts=new Date().toISOString().slice(0,10);
-    showSaveDialog('OptiCost_'+ts+'.doc',blob);
+    _saveBlob(blob,'OptiCost_'+ts+'.doc');
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1348,7 +1328,8 @@ function renderFilesLib(){
     }).catch(()=>{el.innerHTML='<div style="color:var(--red);font-size:.8rem;padding:12px">Error loading files.</div>';});
 }
 
-// ── INLINE FILE VIEWER (APK/WebView safe — no popups) ──
+// ── INLINE FILE VIEWER with ZOOM ──
+let _zoomLevel=1;
 function viewStoredFile(fname){
     _getStoredFile(fname).then(rec=>{
         if(!rec){showModal('Error','File not found.');return;}
@@ -1357,19 +1338,21 @@ function viewStoredFile(fname){
         const title=document.getElementById('file-viewer-title');
         title.textContent=rec.fname;
         content.innerHTML='';
+        _zoomLevel=1;
+        document.getElementById('zoom-level').textContent='1.0×';
 
         if(rec.mime.startsWith('image/')){
-            // Images: show inline
             const img=document.createElement('img');
             img.src=rec.data;
             img.alt=rec.fname;
+            img.style.transform='scale(1)';
+            img.style.transformOrigin='center center';
             content.appendChild(img);
             viewer.style.display='flex';
             return;
         }
 
         if(rec.mime.startsWith('text/')||rec.fname.endsWith('.csv')){
-            // CSV / text: decode and show as preformatted text
             try{
                 const b64=rec.data.split(',')[1];
                 const txt=decodeURIComponent(escape(atob(b64)));
@@ -1382,7 +1365,6 @@ function viewStoredFile(fname){
         }
 
         if(rec.fname.endsWith('.doc')||rec.mime.includes('word')){
-            // Word doc: render HTML content in an iframe (data URI)
             try{
                 const iframe=document.createElement('iframe');
                 iframe.src=rec.data;
@@ -1395,10 +1377,17 @@ function viewStoredFile(fname){
             return;
         }
 
-        // Everything else: download
         _downloadFallback(rec);
     }).catch(e=>showModal('Error',e.message));
 }
+
+function zoomImage(delta){
+    _zoomLevel=Math.max(0.3, Math.min(5, _zoomLevel+delta));
+    const img=document.querySelector('#file-viewer-content img');
+    if(img){img.style.transform=`scale(${_zoomLevel})`;img.style.transformOrigin='center center';}
+    document.getElementById('zoom-level').textContent=_zoomLevel.toFixed(1)+'×';
+}
+function resetZoom(){_zoomLevel=1;const img=document.querySelector('#file-viewer-content img');if(img){img.style.transform='scale(1)';img.style.transformOrigin='center center';}document.getElementById('zoom-level').textContent='1.0×';}
 
 function _downloadFallback(rec){
     try{
@@ -1428,7 +1417,6 @@ function shareStoredFile(fname){
                 if(canShare){navigator.share({files:[file],title:rec.fname}).catch(()=>{});return;}
             }catch(e){}
         }
-        // Android bridge
         if(window.Android&&typeof window.Android.saveFile==='function'){
             try{window.Android.saveFile(rec.fname,rec.mime,rec.data.split(',')[1]);return;}catch(e){}
         }
@@ -1578,7 +1566,6 @@ function drawLensCanvas(id,p,preview=false){
     ctx.textAlign="left";
 
     // ── CA1 label: left side ──
-    // Place arrow at a fixed X column to the left of the lens, label above centre
     const caArrowX1=px(xMin)-20;
     if(hCA1>0){
         const ca1T=py(hCA1), ca1B=py(-hCA1);
@@ -1586,7 +1573,6 @@ function drawLensCanvas(id,p,preview=false){
         ctx.beginPath();ctx.moveTo(caArrowX1,ca1T);ctx.lineTo(caArrowX1,ca1B);ctx.stroke();
         ctx.beginPath();ctx.moveTo(caArrowX1+3,ca1T+6);ctx.lineTo(caArrowX1,ca1T);ctx.lineTo(caArrowX1-3,ca1T+6);ctx.stroke();
         ctx.beginPath();ctx.moveTo(caArrowX1+3,ca1B-6);ctx.lineTo(caArrowX1,ca1B);ctx.lineTo(caArrowX1-3,ca1B-6);ctx.stroke();
-        // Label centred on arrow
         const ca1LabelY=(ca1T+ca1B)/2;
         ctx.save();ctx.font="bold 11px 'Nunito',sans-serif";ctx.fillStyle=cA2;
         ctx.translate(caArrowX1-11,ca1LabelY);ctx.rotate(-Math.PI/2);ctx.textAlign="center";
@@ -1594,7 +1580,6 @@ function drawLensCanvas(id,p,preview=false){
     }
 
     // ── CA2 label: right side, between lens edge and OD arrow ──
-    // Use a column between lens xMax and odArrowX
     const caArrowX2=px(xMax)+5;
     if(hCA2>0&&Math.abs(hCA2-hOD)>0.5){
         const ca2T=py(hCA2), ca2B=py(-hCA2);

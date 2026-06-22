@@ -1705,7 +1705,7 @@
         function fmtPPG(val) { return parseFloat((Math.round(val * 10000) / 10000).toFixed(4)).toString(); }
 
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        // OPTICS MATH — CORRECTED FOR CA-BASED VOLUME
+        // OPTICS MATH — CA-based volume, OD sags for blank thickness
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
         function calcSag(surfType, roc, dia) {
@@ -1725,17 +1725,7 @@
             return (Math.PI * sag / 6) * (3 * r * r + sag * sag);
         }
 
-        // Edge thickness at OD rim (uses sags at OD)
-        function edgeThicknessAtOD(s1, s2, CT, sag1od, sag2od) {
-            let ET = CT;
-            if (s1 === 'convex') ET -= sag1od;
-            else if (s1 === 'concave') ET += sag1od;
-            if (s2 === 'convex') ET -= sag2od;
-            else if (s2 === 'concave') ET += sag2od;
-            return ET;
-        }
-
-        // Edge thickness at CA (uses sags at CA)
+        // Edge thickness at CA (for display & volume)
         function edgeThicknessAtCA(s1, s2, CT, sag1ca, sag2ca) {
             let ET = CT;
             if (s1 === 'convex') ET -= sag1ca;
@@ -1745,7 +1735,17 @@
             return ET;
         }
 
-        // Raw blank thickness (minimum cylinder that contains the lens, uses OD sags)
+        // Edge thickness at OD (for blank thickness)
+        function edgeThicknessAtOD(s1, s2, CT, sag1od, sag2od) {
+            let ET = CT;
+            if (s1 === 'convex') ET -= sag1od;
+            else if (s1 === 'concave') ET += sag1od;
+            if (s2 === 'convex') ET -= sag2od;
+            else if (s2 === 'concave') ET += sag2od;
+            return ET;
+        }
+
+        // Raw blank thickness (minimum cylinder that contains the lens)
         function blankThickness(s1, s2, CT, sag1od, sag2od) {
             let blk = CT;
             if (s1 === 'convex') blk += sag1od;
@@ -1754,9 +1754,8 @@
             return Math.max(blk, et);
         }
 
-        // Finished lens volume — USER METHOD:
+        // Finished lens volume — CA-based method:
         //   V = π*(OD/2)² * ET_ca  -  cap1(CA1, sag1_ca)  -  cap2(CA2, sag2_ca)
-        // where ET_ca = CT + sag1_ca + sag2_ca
         function lensVolumeCA(OD, CA1, CA2, s1, s2, CT, sag1ca, sag2ca) {
             const ETca = edgeThicknessAtCA(s1, s2, CT, sag1ca, sag2ca);
             const r = OD / 2;
@@ -2185,7 +2184,7 @@
             } catch (e) { showModal("Input Error", e.message); }
         }
 
-        // ─── CIRCULAR (FIXED: CA-based volume, ET at CA in results) ───
+        // ─── CIRCULAR (CA-based volume, ET@CA displayed, blank thickness from OD) ───
         function calcCirc() {
             const sel = v("c-mat"),
                 cur = v("c-curr"),
@@ -2214,7 +2213,7 @@
             // Sags at CA (for volume and display)
             const sag1ca = calcSag(s1, roc1, CA1);
             const sag2ca = calcSag(s2, roc2, CA2);
-            // Sags at OD (for blank thickness and edge thickness at OD)
+            // Sags at OD (for blank thickness)
             const sag1od = calcSag(s1, roc1, OD);
             const sag2od = calcSag(s2, roc2, OD);
 
@@ -2223,7 +2222,7 @@
             if (ETca < 0) throw new Error(
                 `Edge thickness at CA = ${ETca.toFixed(4)}mm is negative — sags exceed CT. Increase CT or ROC.`);
 
-            // Edge thickness at OD (for blank)
+            // Edge thickness at OD (for blank thickness, not displayed)
             const ETod = edgeThicknessAtOD(s1, s2, CT, sag1od, sag2od);
             if (ETod < 0) throw new Error(
                 `Edge thickness at OD = ${ETod.toFixed(4)}mm is negative — sags exceed CT. Increase CT or ROC.`);
@@ -2231,7 +2230,7 @@
             // Blank thickness (uses OD sags)
             const blkTh = blankThickness(s1, s2, CT, sag1od, sag2od);
 
-            // Finished lens volume — USER METHOD: uses CA sags & CA caps, OD cylinder
+            // Finished lens volume — CA-based method
             const Vt = lensVolumeCA(OD, CA1, CA2, s1, s2, CT, sag1ca, sag2ca);
             // Blank volume: cylinder OD × blank thickness
             const Vb = Math.PI * (OD / 2) * (OD / 2) * blkTh;
@@ -2261,7 +2260,6 @@
                 row("Outer Diameter (OD)", OD.toFixed(3) + " mm") +
                 row("Center Thickness (CT)", CT.toFixed(4) + " mm") +
                 row("Edge Thickness @ CA (ET)", ETca.toFixed(4) + " mm", ETca < 0 ? "amber" : "") +
-                row("Edge Thickness @ OD", ETod.toFixed(4) + " mm") +
                 row("Raw Blank Thickness", blkTh.toFixed(4) + " mm") +
                 `</div><div class="res-divider"></div>` +
                 `<div class="res-section">` + secHdr("Surface S1") +
@@ -2297,7 +2295,6 @@
                 "OD(mm)": OD,
                 "CT(mm)": CT.toFixed(4),
                 "ET@CA(mm)": ETca.toFixed(4),
-                "ET@OD(mm)": ETod.toFixed(4),
                 "BlankThk(mm)": blkTh.toFixed(4),
                 "S1": v("s1t"),
                 "ROC1(mm)": s1 === "plano" ? "Inf" : roc1,
@@ -2671,7 +2668,7 @@
         }
 
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        // FILES TAB — FIXED VIEW
+        // FILES TAB — FIXED VIEW (reliable)
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         function renderFilesLib() {
             const el = document.getElementById('_files-list');
@@ -2702,7 +2699,7 @@
                     '<div style="color:var(--red);font-size:.8rem;padding:12px">Error loading files.</div>'; });
         }
 
-        // ─── VIEW STORED FILE (RELIABLE FIX) ───
+        // ─── VIEW STORED FILE (RELIABLE) ───
         function viewStoredFile(fname) {
             _getStoredFile(fname).then(rec => {
                 if (!rec) { showModal('Error', 'File not found.'); return; }
@@ -2710,12 +2707,9 @@
                     const blob = _blobFromDataUri(rec.data, rec.mime);
                     const url = URL.createObjectURL(blob);
 
-                    // For image, PDF, text: open in new tab
-                    const isViewable = rec.mime.startsWith('image/') ||
-                        rec.mime === 'application/pdf' ||
-                        rec.mime.startsWith('text/');
-                    if (isViewable) {
-                        const win = window.open(url, '_blank');
+                    // For images: display in new tab using data URI directly (more reliable)
+                    if (rec.mime.startsWith('image/')) {
+                        const win = window.open(rec.data, '_blank');
                         if (!win) {
                             // Popup blocked — fallback to download
                             const a = document.createElement('a');
@@ -2727,17 +2721,34 @@
                             showModal('Info', 'Popup blocked — file downloaded instead.');
                         }
                         setTimeout(() => URL.revokeObjectURL(url), 30000);
-                    } else {
-                        // For .doc, .csv, etc. download directly
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = fname;
-                        document.body.appendChild(a);
-                        a.click();
-                        document.body.removeChild(a);
-                        setTimeout(() => URL.revokeObjectURL(url), 8000);
-                        showModal('Info', 'File downloaded: ' + fname);
+                        return;
                     }
+
+                    // For PDF and text: try to open in new tab
+                    if (rec.mime === 'application/pdf' || rec.mime.startsWith('text/')) {
+                        const win = window.open(url, '_blank');
+                        if (!win) {
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = fname;
+                            document.body.appendChild(a);
+                            a.click();
+                            document.body.removeChild(a);
+                            showModal('Info', 'Popup blocked — file downloaded instead.');
+                        }
+                        setTimeout(() => URL.revokeObjectURL(url), 30000);
+                        return;
+                    }
+
+                    // For .doc, .csv, and other files: download
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = fname;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    setTimeout(() => URL.revokeObjectURL(url), 8000);
+                    showModal('Info', 'File downloaded: ' + fname);
                 } catch (e) {
                     showModal('Error', 'Cannot open file: ' + e.message);
                 }
@@ -2792,7 +2803,7 @@
         }
 
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        // LENS CANVAS DRAWING — FIXED CA LABELS
+        // LENS CANVAS DRAWING — fixed CA labels (no overlap)
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         function drawLensCanvas(id, p, preview = false) {
             const canvas = document.getElementById(id);
@@ -2931,10 +2942,12 @@
             ctx.lineWidth = 1.8;
             ctx.stroke();
 
-            // OD arrow
-            const arrowX = Math.min(px(xS1(0)), px(xS1(hOD))) - 18,
-                topY = py(hOD),
+            // OD arrow (positioned on the left, but lower to avoid CA1)
+            const arrowX = Math.min(px(xS1(0)), px(xS1(hOD))) - 18;
+            const topY = py(hOD),
                 botY = py(-hOD);
+            // Shift OD arrow slightly downward so it doesn't overlap CA1
+            const odMidY = (topY + botY) / 2 + 16;
             ctx.strokeStyle = cAmb;
             ctx.lineWidth = 1.5;
             ctx.beginPath();
@@ -2952,7 +2965,7 @@
             ctx.save();
             ctx.font = "bold 13px 'Nunito',sans-serif";
             ctx.fillStyle = cAmb;
-            ctx.translate(arrowX - 13, (topY + botY) / 2);
+            ctx.translate(arrowX - 13, odMidY);
             ctx.rotate(-Math.PI / 2);
             ctx.textAlign = "center";
             ctx.fillText("⌀OD=" + OD + " mm", 0, 0);
@@ -2993,9 +3006,9 @@
             ctx.fillText("CT=" + CT.toFixed(2) + "mm", (ctX1 + ctX2) / 2, ctArrY + 12);
             ctx.textAlign = "left";
 
-            // ET annotation at OD (using g1,g2 which are sags at CA in this context)
-            const etOD = edgeThicknessAtCA(s1, s2, CT, g1, g2);
-            if (!isNaN(etOD)) {
+            // ET annotation at CA
+            const etCA = edgeThicknessAtCA(s1, s2, CT, g1, g2);
+            if (!isNaN(etCA) && etCA > 0) {
                 const etYpos = py(hOD) - 14,
                     etLeft = px(xS1(hOD)),
                     etRight = px(xS2(hOD));
@@ -3020,7 +3033,7 @@
                     ctx.font = "bold 11px 'Nunito',sans-serif";
                     ctx.fillStyle = preview ? "#92400e" : "#1a1a1a";
                     ctx.textAlign = "center";
-                    ctx.fillText("ET=" + etOD.toFixed(2) + "mm", (etLeft + etRight) / 2, etYpos - 4);
+                    ctx.fillText("ET@CA=" + etCA.toFixed(2) + "mm", (etLeft + etRight) / 2, etYpos - 4);
                     ctx.textAlign = "left";
                 }
             }
@@ -3040,14 +3053,14 @@
                 ctx.fillText("R2=" + roc2.toFixed(1), RP[Math.round(N * 0.25)][0] + 4, RP[Math.round(N * 0.25)][1] + 4); }
             ctx.textAlign = "left";
 
-            // ─── CA LABELS: CA1 near S1 (left), CA2 near S2 (right) ───
-            const caArrowX1 = px(xMin) - 16; // left side
-            const caArrowX2 = px(xMax) + 16; // right side
-
-            // CA1 label (near S1, left side)
+            // ─── CA LABELS: CA1 on left (above OD arrow), CA2 on right ───
+            // CA1 label (left side, positioned higher to avoid OD arrow)
+            const caArrowX1 = px(xMin) - 16;
             if (hCA1 < hOD - 0.5) {
                 const ca1T = py(hCA1),
                     ca1B = py(-hCA1);
+                // Shift CA1 label upward so it doesn't overlap OD arrow
+                const ca1MidY = (ca1T + ca1B) / 2 - 18;
                 ctx.strokeStyle = cA2;
                 ctx.lineWidth = 1.3;
                 ctx.beginPath();
@@ -3067,17 +3080,19 @@
                 ctx.save();
                 ctx.font = "bold 11px 'Nunito',sans-serif";
                 ctx.fillStyle = cA2;
-                ctx.translate(caArrowX1 - 10, (ca1T + ca1B) / 2);
+                ctx.translate(caArrowX1 - 10, ca1MidY);
                 ctx.rotate(-Math.PI / 2);
                 ctx.textAlign = "center";
                 ctx.fillText("⌀CA1=" + CA1.toFixed(2) + "mm", 0, 0);
                 ctx.restore();
             }
 
-            // CA2 label (near S2, right side)
+            // CA2 label (right side)
+            const caArrowX2 = px(xMax) + 16;
             if (hCA2 < hOD - 0.5 && Math.abs(hCA2 - hCA1) > 0.5) {
                 const ca2T = py(hCA2),
                     ca2B = py(-hCA2);
+                const ca2MidY = (ca2T + ca2B) / 2;
                 ctx.strokeStyle = cAmb;
                 ctx.lineWidth = 1.3;
                 ctx.beginPath();
@@ -3097,7 +3112,7 @@
                 ctx.save();
                 ctx.font = "bold 11px 'Nunito',sans-serif";
                 ctx.fillStyle = cAmb;
-                ctx.translate(caArrowX2 + 10, (ca2T + ca2B) / 2);
+                ctx.translate(caArrowX2 + 10, ca2MidY);
                 ctx.rotate(Math.PI / 2);
                 ctx.textAlign = "center";
                 ctx.fillText("⌀CA2=" + CA2.toFixed(2) + "mm", 0, 0);

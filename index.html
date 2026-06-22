@@ -2803,7 +2803,7 @@
         }
 
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        // LENS CANVAS DRAWING — fixed CA labels (no overlap)
+        // LENS CANVAS DRAWING — OD arrow on right, CA1 on left (no overlap)
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         function drawLensCanvas(id, p, preview = false) {
             const canvas = document.getElementById(id);
@@ -2942,36 +2942,36 @@
             ctx.lineWidth = 1.8;
             ctx.stroke();
 
-            // OD arrow (positioned on the left, with enough clearance)
-            const arrowX = Math.min(px(xS1(0)), px(xS1(hOD))) - 18;
+            // ─── OD ARROW ON THE RIGHT SIDE ───
+            const rightArrowX = px(xMax) + 18;
             const topY = py(hOD),
                 botY = py(-hOD);
-            // Shift OD arrow further downward to avoid CA1 label
-            const odMidY = (topY + botY) / 2 + 24;
+            // Place OD label in the lower half to avoid CA2
+            const odMidY = (topY + botY) / 2 + 30;
             ctx.strokeStyle = cAmb;
             ctx.lineWidth = 1.5;
             ctx.beginPath();
-            ctx.moveTo(arrowX, topY);
-            ctx.lineTo(arrowX, botY);
+            ctx.moveTo(rightArrowX, topY);
+            ctx.lineTo(rightArrowX, botY);
             ctx.stroke();
             [
                 [topY, +7],
                 [botY, -7]
             ].forEach(([y, d]) => { ctx.beginPath();
-                ctx.moveTo(arrowX - 4, y + d);
-                ctx.lineTo(arrowX, y);
-                ctx.lineTo(arrowX + 4, y + d);
+                ctx.moveTo(rightArrowX - 4, y + d);
+                ctx.lineTo(rightArrowX, y);
+                ctx.lineTo(rightArrowX + 4, y + d);
                 ctx.stroke(); });
             ctx.save();
             ctx.font = "bold 13px 'Nunito',sans-serif";
             ctx.fillStyle = cAmb;
-            ctx.translate(arrowX - 13, odMidY);
-            ctx.rotate(-Math.PI / 2);
+            ctx.translate(rightArrowX + 13, odMidY);
+            ctx.rotate(Math.PI / 2);
             ctx.textAlign = "center";
             ctx.fillText("⌀OD=" + OD + " mm", 0, 0);
             ctx.restore();
 
-            // CT annotation
+            // ─── CT annotation ───
             const ctX1 = px(xS1(0)),
                 ctX2 = px(xS2(0)),
                 ctArrY = cy + 20;
@@ -3006,7 +3006,7 @@
             ctx.fillText("CT=" + CT.toFixed(2) + "mm", (ctX1 + ctX2) / 2, ctArrY + 12);
             ctx.textAlign = "left";
 
-            // ET annotation at CA (using g1,g2 which are sags at CA)
+            // ─── ET annotation at CA ───
             const etCA = edgeThicknessAtCA(s1, s2, CT, g1, g2);
             if (!isNaN(etCA) && etCA > 0) {
                 const etYpos = py(hOD) - 14,
@@ -3038,6 +3038,7 @@
                 }
             }
 
+            // ─── Surface labels & ROC ───
             ctx.font = "bold 13px 'Nunito',sans-serif";
             ctx.fillStyle = cA;
             ctx.textAlign = "right";
@@ -3053,13 +3054,12 @@
                 ctx.fillText("R2=" + roc2.toFixed(1), RP[Math.round(N * 0.25)][0] + 4, RP[Math.round(N * 0.25)][1] + 4); }
             ctx.textAlign = "left";
 
-            // ─── CA LABELS: CA1 on left (shifted upward to avoid OD arrow) ───
+            // ─── CA1 label on the left (shifted upward to avoid anything) ───
             const caArrowX1 = px(xMin) - 16;
             if (hCA1 < hOD - 0.5) {
                 const ca1T = py(hCA1),
                     ca1B = py(-hCA1);
-                // Shift CA1 label upward significantly
-                const ca1MidY = (ca1T + ca1B) / 2 - 30;
+                const ca1MidY = (ca1T + ca1B) / 2 - 30; // shifted up
                 ctx.strokeStyle = cA2;
                 ctx.lineWidth = 1.3;
                 ctx.beginPath();
@@ -3086,12 +3086,12 @@
                 ctx.restore();
             }
 
-            // CA2 label (right side)
+            // ─── CA2 label on the right (above OD arrow) ───
             const caArrowX2 = px(xMax) + 16;
             if (hCA2 < hOD - 0.5 && Math.abs(hCA2 - hCA1) > 0.5) {
                 const ca2T = py(hCA2),
                     ca2B = py(-hCA2);
-                const ca2MidY = (ca2T + ca2B) / 2;
+                const ca2MidY = (ca2T + ca2B) / 2 - 20; // shift up slightly to avoid OD arrow
                 ctx.strokeStyle = cAmb;
                 ctx.lineWidth = 1.3;
                 ctx.beginPath();

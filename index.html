@@ -162,8 +162,6 @@
         .file-item-meta{font-size:.64rem;color:var(--muted);margin-bottom:6px}
         .file-actions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px}
         .file-actions button{padding:9px 2px;border:none;border-radius:7px;font-size:.70rem;font-weight:700;cursor:pointer;font-family:var(--font);text-align:center}
-
-        /* ── FILE VIEWER OVERLAY ── */
         #file-viewer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.95);z-index:9998;display:none;flex-direction:column}
         #file-viewer-bar{background:#0c1d30;border-bottom:1px solid #0e2e4e;padding:8px 12px;display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap}
         #file-viewer-title{color:#22d3ee;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:.95rem;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -171,14 +169,12 @@
         #file-viewer-zoom button{background:var(--surf2);border:1px solid var(--border);color:var(--accent);border-radius:6px;padding:6px 14px;font-size:1.1rem;font-weight:700;cursor:pointer;min-width:40px;touch-action:manipulation}
         #zoom-level{color:#e8f4ff;font-size:.85rem;min-width:44px;text-align:center;font-weight:700}
         #file-viewer-close{background:#f87171;border:none;color:#fff;border-radius:8px;padding:6px 14px;font-weight:700;cursor:pointer;font-size:.82rem;flex-shrink:0;touch-action:manipulation}
-        /* Scrollable viewport for the image */
         #file-viewer-viewport{flex:1;overflow:hidden;position:relative;touch-action:none;user-select:none;-webkit-user-select:none}
         #fv-img-container{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;overflow:visible;transform-origin:center center}
         #fv-img-container img{max-width:90%;max-height:90%;border-radius:8px;display:block;pointer-events:none;user-select:none;-webkit-user-select:none}
         #file-viewer-content{flex:1;overflow:auto;display:flex;align-items:flex-start;justify-content:center;padding:12px;touch-action:pan-y}
         #file-viewer-content iframe{width:100%;height:100%;border:none;background:#fff;border-radius:8px}
         #file-viewer-content pre{color:#e8f4ff;font-family:'Share Tech Mono',monospace;font-size:.78rem;white-space:pre-wrap;word-break:break-word;background:#091624;padding:14px;border-radius:8px;width:100%}
-
         @media(min-width:480px){body{max-width:480px;margin:0 auto}.theme-fab{right:calc(50% - 240px)}.theme-panel{right:calc(50% - 240px + 20px)}}
         @media(max-width:414px){
             .tab{font-size:.76rem;padding:5px 10px}
@@ -198,7 +194,6 @@
             #res-split-wrap{flex-direction:column}
             #res-canvas-col{flex:0 0 auto;max-width:100%;border-right:none;border-bottom:1px solid #c8d8e8}
         }
-        /* toast notification */
         .toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:10px;padding:10px 20px;font-size:.85rem;font-weight:600;z-index:999;box-shadow:0 6px 24px rgba(0,0,0,0.6);max-width:90%;text-align:center;display:none;transition:opacity .25s}
         .toast.show{display:block;animation:toastIn .22s ease}
         .toast.success{border-color:var(--green);color:var(--green)}
@@ -618,10 +613,8 @@
     </div>
 </div>
 
-<!-- TOAST -->
 <div id="toast" class="toast"></div>
 
-<!-- ═══ INLINE FILE VIEWER — pinch-to-zoom + pan ═══ -->
 <div id="file-viewer-overlay">
     <div id="file-viewer-bar">
         <span id="file-viewer-title">File Viewer</span>
@@ -633,17 +626,14 @@
         </div>
         <button id="file-viewer-close" onclick="closeFileViewer()">✕ Close</button>
     </div>
-    <!-- Image viewer: separate pinch-zoom viewport -->
     <div id="file-viewer-viewport" style="display:none">
         <div id="fv-img-container">
             <img id="fv-img" src="" alt="" />
         </div>
     </div>
-    <!-- Text/iframe viewer -->
     <div id="file-viewer-content" style="display:none"></div>
 </div>
 
-<!-- THEME SWITCHER -->
 <div class="theme-fab">
     <button class="theme-fab-btn" onclick="toggleThemePanel()" title="Themes">🎨</button>
 </div>
@@ -662,9 +652,6 @@
 <script>
 'use strict';
 
-// ═══════════════════════════════════════════════════════════════
-// MATERIAL LIBRARY
-// ═══════════════════════════════════════════════════════════════
 const DEFAULT_MATERIALS = [
     {name:"Germanium",dens:5.323,ppg:0},{name:"Silicon",dens:2.33,ppg:0},
     {name:"AMTIR-1",dens:4.41,ppg:0},{name:"AMTIR-2",dens:4.50,ppg:0},{name:"AMTIR-5",dens:4.62,ppg:0},
@@ -696,9 +683,6 @@ function getDens(name){const m=MATERIALS.find(x=>x.name===name);return m?m.dens:
 function getPPG(name){const m=MATERIALS.find(x=>x.name===name);return m?(m.ppg||0):0;}
 function fmtPPG(val){return parseFloat((Math.round(val*10000)/10000).toFixed(4)).toString();}
 
-// ═══════════════════════════════════════════════════════════════
-// OPTICS MATH
-// ═══════════════════════════════════════════════════════════════
 function calcSag(surfType,roc,dia){
     const st=surfType.toLowerCase();
     if(st==='plano') return 0;
@@ -736,9 +720,6 @@ function lensVolumeCA(OD,CA1,CA2,s1,s2,CT,sag1ca,sag2ca){
     return Math.max(V,0);
 }
 
-// ═══════════════════════════════════════════════════════════════
-// AUTH — IndexedDB
-// ═══════════════════════════════════════════════════════════════
 const ADMIN_USER="Optica", ADMIN_PASS="shreeganesha";
 let _db=null;
 function _openDB(){return new Promise((res,rej)=>{if(_db){res(_db);return;}const req=indexedDB.open("opticost_db",2);req.onupgradeneeded=e=>{const db=e.target.result;if(!db.objectStoreNames.contains("users"))db.createObjectStore("users",{keyPath:"username"});if(!db.objectStoreNames.contains("kv"))db.createObjectStore("kv",{keyPath:"k"});};req.onsuccess=e=>{_db=e.target.result;res(_db);};req.onerror=e=>rej(e.target.error);});}
@@ -864,9 +845,6 @@ function evalCT(){
 }
 function sf(s,d=0){const val=parseFloat(String(s).replace(",",""));return isNaN(val)?d:val;}
 
-// ═══════════════════════════════════════════════════════════════
-// MATERIAL LIBRARY EDITOR
-// ═══════════════════════════════════════════════════════════════
 function renderMatTable(){
     const tb=document.getElementById("mat-tbody");tb.innerHTML="";
     MATERIALS.forEach((m,i)=>{const tr=document.createElement("tr");tr.dataset.idx=i;tr.innerHTML=`<td style="color:var(--muted);font-size:.73rem;padding-right:4px">${i+1}</td><td><input type="text" class="mat-name" value="${m.name.replace(/"/g,'&quot;')}" style="width:100%" oninput="autoSaveMats()"/></td><td><input type="number" class="mat-dens" value="${m.dens}" step="0.001" min="0.001" style="max-width:88px" oninput="autoSaveMats()"/></td><td><input type="text" inputmode="decimal" class="mat-ppg" value="${m.ppg?fmtPPG(m.ppg):'0'}" placeholder="0.00" style="max-width:96px" oninput="autoSaveMats()"/></td><td><button class="del-btn" onclick="delMat(${i})">✕</button></td>`;tb.appendChild(tr);});
@@ -881,9 +859,6 @@ function warnCurrChange(sel,tab){const libCurr=(document.getElementById('lib-cur
 function saveMaterials(){readMatTableIntoMemory();persistMaterials();populateMats();const curr=(document.getElementById('lib-curr')||{}).value||'INR';setLibCurrency(curr);showModal("Saved ✔","Material library saved.");}
 function resetMaterials(){showConfirm("Reset Library","Restore factory defaults? Custom additions will be lost.",()=>{MATERIALS=DEFAULT_MATERIALS.map(m=>({...m}));persistMaterials();renderMatTable();populateMats();showModal("Done","Material library reset to defaults.");});}
 
-// ═══════════════════════════════════════════════════════════════
-// MAIN CALCULATION
-// ═══════════════════════════════════════════════════════════════
 function doCalc(){
     try{
         if(currentTab==="rectangular") calcRect();
@@ -1004,9 +979,6 @@ function refreshSnapHeader(){
     if(_logoDataUrl){snapLogoBox.style.display="block";snapLogoImg.src=_logoDataUrl;}else snapLogoBox.style.display="none";
 }
 
-// ═══════════════════════════════════════════════════════════════
-// INDEXEDDB FILE STORE
-// ═══════════════════════════════════════════════════════════════
 let _fileDB=null;
 function _openFileDB(){return new Promise((res,rej)=>{if(_fileDB){res(_fileDB);return;}const req=indexedDB.open('opticost_files',1);req.onupgradeneeded=e=>{e.target.result.createObjectStore('files',{keyPath:'fname'});};req.onsuccess=e=>{_fileDB=e.target.result;res(_fileDB);};req.onerror=e=>rej(e.target.error);});}
 function _storeFile(fname,blob){return new Promise((res,rej)=>{const reader=new FileReader();reader.onerror=()=>rej(new Error('FileReader failed'));reader.onload=()=>{const dataUri=reader.result;_openFileDB().then(db=>{const tx=db.transaction('files','readwrite');tx.objectStore('files').put({fname,data:dataUri,mime:blob.type||'application/octet-stream',ts:Date.now()});tx.oncomplete=()=>res(dataUri);tx.onerror=e=>rej(e.target.error);}).catch(rej);};reader.readAsDataURL(blob);});}
@@ -1015,9 +987,6 @@ function _deleteFileDB(fname){return new Promise(res=>{_openFileDB().then(db=>{c
 function _getStoredFile(fname){return new Promise((res,rej)=>{_openFileDB().then(db=>{const req=db.transaction('files','readonly').objectStore('files').get(fname);req.onsuccess=()=>res(req.result||null);req.onerror=e=>rej(e.target.error);}).catch(rej);});}
 function _blobFromDataUri(dataUri,mime){const b64=dataUri.split(',')[1];const bin=atob(b64);const arr=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);return new Blob([arr],{type:mime||'application/octet-stream'});}
 
-// ═══════════════════════════════════════════════════════════════
-// TOAST
-// ═══════════════════════════════════════════════════════════════
 let _toastTimer=null;
 function showToast(msg,type){
     const el=document.getElementById('toast');
@@ -1028,14 +997,8 @@ function showToast(msg,type){
     _toastTimer=setTimeout(()=>{el.className='toast';el.style.display='none';},3600);
 }
 
-// ═══════════════════════════════════════════════════════════════
-// SAVE / EXPORT — robust with toast feedback
-// ═══════════════════════════════════════════════════════════════
 function _saveBlob(blob, defaultFname){
-    // 1) Store in IDB first (silent)
     _storeFile(defaultFname, blob).catch(()=>{});
-
-    // 2) Try Android bridge (APK)
     if(window.Android && typeof window.Android.saveFile === 'function'){
         try{
             const reader = new FileReader();
@@ -1047,10 +1010,8 @@ function _saveBlob(blob, defaultFname){
             reader.onerror = function(){ _fallbackDownload(blob, defaultFname); };
             reader.readAsDataURL(blob);
             return;
-        }catch(e){ /* fall through */ }
+        }catch(e){}
     }
-
-    // 3) Try Web Share API (mobile browsers)
     if(navigator.share){
         try{
             const file = new File([blob], defaultFname, {type: blob.type});
@@ -1063,10 +1024,8 @@ function _saveBlob(blob, defaultFname){
                     });
                 return;
             }
-        }catch(e){ /* fall through */ }
+        }catch(e){}
     }
-
-    // 4) Fallback: standard download
     _fallbackDownload(blob, defaultFname);
 }
 
@@ -1081,7 +1040,6 @@ function _fallbackDownload(blob, fname){
         showToast('⬇ Downloading: '+fname,'success');
         setTimeout(()=>URL.revokeObjectURL(url), 8000);
     }catch(e){
-        // Last resort: open in new tab
         try{
             const url = URL.createObjectURL(blob);
             window.open(url, '_blank');
@@ -1178,9 +1136,6 @@ ${trows}</table></td></tr></table>
     _saveBlob(blob,'OptiCost_'+ts+'.doc');
 }
 
-// ═══════════════════════════════════════════════════════════════
-// FILES TAB
-// ═══════════════════════════════════════════════════════════════
 function renderFilesLib(){
     const el=document.getElementById('_files-list');
     if(!el)return;
@@ -1204,9 +1159,6 @@ function renderFilesLib(){
     }).catch(()=>{el.innerHTML='<div style="color:var(--red);font-size:.8rem;padding:12px">Error loading files.</div>';});
 }
 
-// ═══════════════════════════════════════════════════════════════
-// FILE VIEWER — pinch-to-zoom + pan (image), scroll (text/iframe)
-// ═══════════════════════════════════════════════════════════════
 let _fvScale = 1;
 let _fvOriginX = 0, _fvOriginY = 0;
 let _fvPinchDist0 = 0, _fvPinchScale0 = 1;
@@ -1219,22 +1171,9 @@ function _applyTransform(){
     container.style.transform = `translate(${_fvOriginX}px, ${_fvOriginY}px) scale(${_fvScale})`;
     document.getElementById('zoom-level').textContent = _fvScale.toFixed(1)+'×';
 }
-
-function zoomStep(delta){
-    _fvScale = Math.max(0.2, Math.min(8, _fvScale + delta));
-    _applyTransform();
-}
-function resetZoom(){
-    _fvScale = 1; _fvOriginX = 0; _fvOriginY = 0;
-    _applyTransform();
-}
-
-function _getTouchDist(touches){
-    const dx = touches[0].clientX - touches[1].clientX;
-    const dy = touches[0].clientY - touches[1].clientY;
-    return Math.sqrt(dx*dx + dy*dy);
-}
-
+function zoomStep(delta){_fvScale = Math.max(0.2, Math.min(8, _fvScale + delta));_applyTransform();}
+function resetZoom(){_fvScale = 1; _fvOriginX = 0; _fvOriginY = 0;_applyTransform();}
+function _getTouchDist(touches){const dx = touches[0].clientX - touches[1].clientX;const dy = touches[0].clientY - touches[1].clientY;return Math.sqrt(dx*dx + dy*dy);}
 function _initImageViewer(src, title){
     const overlay = document.getElementById('file-viewer-overlay');
     const viewport = document.getElementById('file-viewer-viewport');
@@ -1256,34 +1195,15 @@ function _initImageViewer(src, title){
     viewport.ontouchmove  = _fvTouchMove;
     viewport.ontouchend   = _fvTouchEnd;
 }
-
 function _fvTouchStart(e){
-    if(e.touches.length === 2){
-        e.preventDefault();
-        _fvPinchDist0  = _getTouchDist(e.touches);
-        _fvPinchScale0 = _fvScale;
-    } else if(e.touches.length === 1){
-        _fvPanStart  = {x: e.touches[0].clientX, y: e.touches[0].clientY};
-        _fvPanOffset0 = {x: _fvOriginX, y: _fvOriginY};
-    }
+    if(e.touches.length === 2){e.preventDefault();_fvPinchDist0  = _getTouchDist(e.touches);_fvPinchScale0 = _fvScale;}
+    else if(e.touches.length === 1){_fvPanStart  = {x: e.touches[0].clientX, y: e.touches[0].clientY};_fvPanOffset0 = {x: _fvOriginX, y: _fvOriginY};}
 }
 function _fvTouchMove(e){
-    if(e.touches.length === 2){
-        e.preventDefault();
-        const dist = _getTouchDist(e.touches);
-        _fvScale = Math.max(0.2, Math.min(8, _fvPinchScale0 * (dist / _fvPinchDist0)));
-        _applyTransform();
-    } else if(e.touches.length === 1 && _fvPanStart && _fvScale > 1){
-        e.preventDefault();
-        _fvOriginX = _fvPanOffset0.x + (e.touches[0].clientX - _fvPanStart.x);
-        _fvOriginY = _fvPanOffset0.y + (e.touches[0].clientY - _fvPanStart.y);
-        _applyTransform();
-    }
+    if(e.touches.length === 2){e.preventDefault();const dist = _getTouchDist(e.touches);_fvScale = Math.max(0.2, Math.min(8, _fvPinchScale0 * (dist / _fvPinchDist0)));_applyTransform();}
+    else if(e.touches.length === 1 && _fvPanStart && _fvScale > 1){e.preventDefault();_fvOriginX = _fvPanOffset0.x + (e.touches[0].clientX - _fvPanStart.x);_fvOriginY = _fvPanOffset0.y + (e.touches[0].clientY - _fvPanStart.y);_applyTransform();}
 }
-function _fvTouchEnd(e){
-    if(e.touches.length < 2) _fvPinchDist0 = 0;
-    if(e.touches.length === 0) _fvPanStart = null;
-}
+function _fvTouchEnd(e){if(e.touches.length < 2) _fvPinchDist0 = 0;if(e.touches.length === 0) _fvPanStart = null;}
 
 function viewStoredFile(fname){
     _getStoredFile(fname).then(rec=>{
@@ -1293,53 +1213,26 @@ function viewStoredFile(fname){
         const content  = document.getElementById('file-viewer-content');
         const zoomBar  = document.getElementById('file-viewer-zoom');
         document.getElementById('file-viewer-title').textContent = rec.fname;
-
-        if(rec.mime.startsWith('image/')){
-            _initImageViewer(rec.data, rec.fname);
-            return;
-        }
-
+        if(rec.mime.startsWith('image/')){_initImageViewer(rec.data, rec.fname);return;}
         viewport.style.display = 'none';
         content.style.display  = 'flex';
         content.innerHTML = '';
         zoomBar.style.display = 'none';
         _fvIsImage = false;
-
         if(rec.mime.startsWith('text/') || rec.fname.endsWith('.csv')){
-            try{
-                const b64 = rec.data.split(',')[1];
-                const txt = decodeURIComponent(escape(atob(b64)));
-                const pre = document.createElement('pre');
-                pre.textContent = txt.slice(0,50000)+(txt.length>50000?'\n\n… (truncated)':'');
-                content.appendChild(pre);
-                overlay.style.display = 'flex';
-            }catch(e){ _downloadFallback(rec); }
+            try{const b64 = rec.data.split(',')[1];const txt = decodeURIComponent(escape(atob(b64)));const pre = document.createElement('pre');pre.textContent = txt.slice(0,50000)+(txt.length>50000?'\n\n… (truncated)':'');content.appendChild(pre);overlay.style.display = 'flex';}
+            catch(e){ _downloadFallback(rec); }
             return;
         }
-
         if(rec.fname.endsWith('.doc') || rec.mime.includes('word')){
-            try{
-                const iframe = document.createElement('iframe');
-                iframe.src = rec.data;
-                iframe.style.cssText = 'width:100%;height:100%;border:none;border-radius:8px;flex:1';
-                content.style.padding = '0';
-                content.appendChild(iframe);
-                overlay.style.display = 'flex';
-            }catch(e){ _downloadFallback(rec); }
+            try{const iframe = document.createElement('iframe');iframe.src = rec.data;iframe.style.cssText = 'width:100%;height:100%;border:none;border-radius:8px;flex:1';content.style.padding = '0';content.appendChild(iframe);overlay.style.display = 'flex';}
+            catch(e){ _downloadFallback(rec); }
             return;
         }
-
         _downloadFallback(rec);
     }).catch(e=>showModal('Error',e.message));
 }
-
-function _downloadFallback(rec){
-    try{
-        const blob = _blobFromDataUri(rec.data, rec.mime);
-        _fallbackDownload(blob, rec.fname);
-    }catch(e){ showModal('Error','Cannot open: '+e.message); }
-}
-
+function _downloadFallback(rec){try{const blob = _blobFromDataUri(rec.data, rec.mime);_fallbackDownload(blob, rec.fname);}catch(e){ showModal('Error','Cannot open: '+e.message); }}
 function closeFileViewer(){
     const overlay = document.getElementById('file-viewer-overlay');
     overlay.style.display = 'none';
@@ -1350,39 +1243,17 @@ function closeFileViewer(){
     document.getElementById('fv-img').src = '';
     resetZoom();
 }
-
 function shareStoredFile(fname){
     _getStoredFile(fname).then(rec=>{
         if(!rec){showToast('❌ File not found.','error');return;}
         const blob = _blobFromDataUri(rec.data, rec.mime);
-        if(navigator.share){
-            try{
-                const file = new File([blob], rec.fname, {type: rec.mime});
-                if(!navigator.canShare || navigator.canShare({files:[file]})){
-                    navigator.share({files:[file], title: rec.fname})
-                        .then(()=>showToast('✅ Shared: '+rec.fname,'success'))
-                        .catch(()=>_fallbackDownload(blob, rec.fname));
-                    return;
-                }
-            }catch(e){}
-        }
-        if(window.Android && typeof window.Android.saveFile === 'function'){
-            try{
-                const reader = new FileReader();
-                reader.onload = e=>{ window.Android.saveFile(rec.fname, rec.mime, e.target.result.split(',')[1]); showToast('✅ Saved: '+rec.fname,'success'); };
-                reader.readAsDataURL(blob);
-                return;
-            }catch(e){}
-        }
+        if(navigator.share){try{const file = new File([blob], rec.fname, {type: rec.mime});if(!navigator.canShare || navigator.canShare({files:[file]})){navigator.share({files:[file], title: rec.fname}).then(()=>showToast('✅ Shared: '+rec.fname,'success')).catch(()=>_fallbackDownload(blob, rec.fname));return;}}catch(e){}}
+        if(window.Android && typeof window.Android.saveFile === 'function'){try{const reader = new FileReader();reader.onload = e=>{window.Android.saveFile(rec.fname, rec.mime, e.target.result.split(',')[1]); showToast('✅ Saved: '+rec.fname,'success');};reader.readAsDataURL(blob);return;}catch(e){}}
         _fallbackDownload(blob, rec.fname);
     }).catch(e=>showToast('❌ '+e.message,'error'));
 }
-
 function deleteStoredFile(fname){showConfirm('Delete',"Remove '"+fname+"'?",()=>{_deleteFileDB(fname).then(()=>renderFilesLib()).catch(()=>renderFilesLib());});}
 
-// ═══════════════════════════════════════════════════════════════
-// RESET
-// ═══════════════════════════════════════════════════════════════
 function doReset(){
     showConfirm("Reset All","Clear all inputs and recorded data?",()=>{
         ["c-od","c-ct","c-ca1","c-ca2","s1ri","s2ri","c-price","r-L","r-W","r-H","r-price","c-cn","c-cd","r-cn","r-cd"].forEach(id=>{const e=document.getElementById(id);if(e)e.value="";});
@@ -1403,10 +1274,11 @@ function doReset(){
 }
 
 // ═══════════════════════════════════════════════════════════════
-// LENS CANVAS — FIXED label placement (no overlap)
+// LENS CANVAS — v2: Zone-based, no-overlap, all surface combos
 // ═══════════════════════════════════════════════════════════════
 function drawLensCanvas(id, p, preview=false){
     const canvas = document.getElementById(id);
+    if(!canvas) return;
     const CW = canvas.offsetWidth || 320;
     const {OD, CT, CA1, CA2, s1, s2, g1, g2} = p;
     const roc1 = parseFloat(document.getElementById("s1ri").value)||0;
@@ -1416,161 +1288,275 @@ function drawLensCanvas(id, p, preview=false){
         const CH = Math.max(CW,200); canvas.width=CW; canvas.height=CH;
         const ctx=canvas.getContext("2d"); ctx.clearRect(0,0,CW,CH);
         ctx.fillStyle="rgba(248,113,113,0.13)"; ctx.fillRect(0,0,CW,CH);
-        ctx.strokeStyle="#f87171"; ctx.lineWidth=1.5; ctx.setLineDash([6,4]); ctx.strokeRect(4,4,CW-8,CH-8); ctx.setLineDash([]);
-        ctx.fillStyle="#f87171"; ctx.textAlign="center"; ctx.font="bold 13px 'Nunito',sans-serif";
+        ctx.strokeStyle="#f87171"; ctx.lineWidth=1.5; ctx.setLineDash([6,4]);
+        ctx.strokeRect(4,4,CW-8,CH-8); ctx.setLineDash([]);
+        ctx.fillStyle="#f87171"; ctx.textAlign="center";
+        ctx.font="bold 13px 'Nunito',sans-serif";
         ctx.fillText("⚠ Impossible Geometry",CW/2,CH/2-14);
         ctx.font="11px 'Nunito',sans-serif";
-        ctx.fillText((msg||"").length>52?(msg||"").slice(0,50)+"…":(msg||""),CW/2,CH/2+6); ctx.textAlign="left";
+        ctx.fillText((msg||"").length>52?(msg||"").slice(0,50)+"…":(msg||""),CW/2,CH/2+6);
+        ctx.textAlign="left";
     }
 
     if(OD<=0||CT<=0) return;
-    if(s1!=="plano"&&roc1>0&&roc1<OD/2){errOverlay("S1 ROC "+roc1.toFixed(2)+" < OD/2 "+((OD/2).toFixed(2)));return;}
-    if(s2!=="plano"&&roc2>0&&roc2<OD/2){errOverlay("S2 ROC "+roc2.toFixed(2)+" < OD/2 "+((OD/2).toFixed(2)));return;}
+    if(s1!=="plano"&&roc1>0&&roc1<OD/2){errOverlay("S1 ROC "+roc1.toFixed(2)+" < OD/2 "+(OD/2).toFixed(2));return;}
+    if(s2!=="plano"&&roc2>0&&roc2<OD/2){errOverlay("S2 ROC "+roc2.toFixed(2)+" < OD/2 "+(OD/2).toFixed(2));return;}
 
-    function getSag(roc,hCA,gMax,absY){
-        const aY=Math.min(absY,hCA);
-        if(gMax<=0) return 0;
-        if(roc>0&&roc>=aY) return roc-Math.sqrt(Math.max(0,roc*roc-aY*aY));
-        return gMax*(aY/hCA)**2;
+    // Sag at any y height, clamped to the relevant CA half-diameter
+    function getSag(roc, hChord, gMax, absY){
+        const aY = Math.min(absY, hChord);
+        if(gMax <= 0) return 0;
+        if(roc > 0 && roc >= aY) return roc - Math.sqrt(Math.max(0, roc*roc - aY*aY));
+        return gMax * (aY / hChord) ** 2;
     }
+
     const hOD=OD/2, hCA1=CA1/2, hCA2=CA2/2;
-    function xS1(y){const sg=getSag(roc1,hCA1,g1,Math.abs(y));if(s1==="convex")return -CT/2-g1+sg;if(s1==="concave")return -CT/2-sg;return -CT/2;}
-    function xS2(y){const sg=getSag(roc2,hCA2,g2,Math.abs(y));if(s2==="convex")return CT/2+g2-sg;if(s2==="concave")return CT/2+sg;return CT/2;}
 
-    const xs1v=xS1(0), xs2v=xS2(0);
-    const xMin=Math.min(xs1v,xS1(hOD))-0.5, xMax=Math.max(xs2v,xS2(hOD))+0.5;
+    // Canvas x-coordinate of surface 1 at mm height y
+    // Convex S1 bulges LEFT (apex is most negative x)
+    // Concave S1 sinks inward (apex is less negative than rim)
+    function xS1(y){
+        const sg = getSag(roc1, hCA1, g1, Math.abs(y));
+        if(s1==="convex")  return -CT/2 - g1 + sg;
+        if(s1==="concave") return -CT/2 - sg;
+        return -CT/2;
+    }
+    // Canvas x-coordinate of surface 2 at mm height y
+    // Convex S2 bulges RIGHT (apex is most positive x)
+    // Concave S2 sinks inward (apex is less positive than rim)
+    function xS2(y){
+        const sg = getSag(roc2, hCA2, g2, Math.abs(y));
+        if(s2==="convex")  return  CT/2 + g2 - sg;
+        if(s2==="concave") return  CT/2 + sg;
+        return CT/2;
+    }
 
-    // Layout zones (px):
-    //  CA1 label  |  lens body  |  CA2 + OD labels (compact)
-    //   56px          fill          88px (CA2 + OD together)
-    const PAD_L=58, PAD_R=92;
-    const physW=xMax-xMin, physH=OD;
-    const drawableW=CW-PAD_L-PAD_R;
-    const sX=drawableW/Math.max(physW,0.1);
-    const sEst=Math.min(sX,(360-30*2)/Math.max(physH,0.1));
-    const padY=Math.max(Math.round(physH*sEst*0.13),28);
-    const sY=(380-padY*2)/Math.max(physH,0.1);
-    const s=Math.min(sX,sY);
-    if(s<=0) return;
-    const CH=Math.max(Math.min(Math.round(physH*s+padY*2),400),200);
-    canvas.width=CW; canvas.height=CH;
-    const ctx=canvas.getContext("2d"); ctx.clearRect(0,0,CW,CH);
+    // Physical extents of the lens in mm-space
+    const xs1_apex = xS1(0),   xs2_apex = xS2(0);
+    const xs1_rim  = xS1(hOD), xs2_rim  = xS2(hOD);
+    const xMin = Math.min(xs1_apex, xs1_rim) - 0.3;
+    const xMax = Math.max(xs2_apex, xs2_rim) + 0.3;
 
-    const drawW=(xMax-xMin)*s;
-    const bodyLeft=PAD_L;
-    const ox=bodyLeft-xMin*s+(drawableW-drawW)/2;
-    const cy=CH/2;
-    const px=xmm=>ox+xmm*s, py=ymm=>cy-ymm*s;
+    // ── Fixed pixel zones ──────────────────────────────────────
+    // LEFT:  [CA1 column=54px] [gap=4px] [lens body fills middle]
+    // RIGHT: [gap=6px] [CA2 column=36px] [gap=6px] [OD column=38px] [margin=6px]
+    // Total fixed: left=58, right=92
+    const Z_CA1 = 54, Z_GAPL = 4;
+    const Z_GAPR = 6, Z_CA2 = 36, Z_GAPCA = 6, Z_OD = 38, Z_RPAD = 6;
+    const fixedL = Z_CA1 + Z_GAPL;   // 58
+    const fixedR = Z_GAPR + Z_CA2 + Z_GAPCA + Z_OD + Z_RPAD;  // 92
 
-    const N=200, ys=[];
-    for(let i=0;i<=N;i++) ys.push(hOD-OD*i/N);
-    const LP=ys.map(y=>[px(xS1(y)),py(y)]);
-    const RP=ys.map(y=>[px(xS2(y)),py(y)]);
+    const drawableW = CW - fixedL - fixedR;
+    const physW = xMax - xMin;
+    const physH = OD;
 
-    const lf1=preview?'rgba(30,58,138,0.85)':'rgba(40,44,52,0.88)';
-    const lf2=preview?'rgba(99,102,241,0.70)':'rgba(160,168,180,0.78)';
-    const cA=preview?'#b45309':'#1a1a1a';
-    const cAmb=preview?'#b45309':'#7c5c00';
-    const cCA2='#6366f1';
+    // Scale so lens body fits in drawable width, then further constrain by height
+    const sX  = drawableW / Math.max(physW, 0.001);
+    const padY = Math.max(Math.round(physH * sX * 0.14), 32);
+    const sY  = (400 - padY * 2) / Math.max(physH, 0.001);
+    const s   = Math.min(sX, sY, 5);
+    if(s <= 0) return;
 
-    ctx.beginPath();LP.forEach((pt,i)=>i?ctx.lineTo(...pt):ctx.moveTo(...pt));[...RP].reverse().forEach(pt=>ctx.lineTo(...pt));ctx.closePath();
-    const grd=ctx.createLinearGradient(px(xs1v),0,px(xs2v),0);grd.addColorStop(0,lf1);grd.addColorStop(0.5,lf2);grd.addColorStop(1,lf1);ctx.fillStyle=grd;ctx.fill();
-    ctx.save();ctx.beginPath();LP.forEach((pt,i)=>i?ctx.lineTo(...pt):ctx.moveTo(...pt));[...RP].reverse().forEach(pt=>ctx.lineTo(...pt));ctx.closePath();ctx.clip();
-    const shim=ctx.createLinearGradient(0,py(hOD),0,py(-hOD));shim.addColorStop(0,"rgba(180,200,255,0.10)");shim.addColorStop(0.35,"rgba(220,230,255,0.48)");shim.addColorStop(0.65,"rgba(220,230,255,0.48)");shim.addColorStop(1,"rgba(180,200,255,0.10)");ctx.fillStyle=shim;ctx.fill();ctx.restore();
+    const CH = Math.max(Math.min(Math.round(physH * s + padY * 2), 430), 200);
+    canvas.width = CW; canvas.height = CH;
+    const ctx = canvas.getContext("2d");
+    ctx.clearRect(0,0,CW,CH);
 
-    ctx.lineJoin="round";ctx.lineCap="round";
-    ctx.beginPath();LP.forEach((pt,i)=>i?ctx.lineTo(...pt):ctx.moveTo(...pt));ctx.strokeStyle=cA;ctx.lineWidth=2.2;ctx.stroke();
-    ctx.beginPath();RP.forEach((pt,i)=>i?ctx.lineTo(...pt):ctx.moveTo(...pt));ctx.strokeStyle=cA;ctx.lineWidth=2.2;ctx.stroke();
-    ctx.beginPath();ctx.moveTo(...LP[0]);ctx.lineTo(...RP[0]);ctx.strokeStyle=cA;ctx.lineWidth=1.8;ctx.stroke();
-    ctx.beginPath();ctx.moveTo(...LP[N]);ctx.lineTo(...RP[N]);ctx.strokeStyle=cA;ctx.lineWidth=1.8;ctx.stroke();
+    // Lens body is centered in [fixedL .. CW-fixedR]
+    const bodyCenter    = fixedL + drawableW / 2;
+    const lensPhysCenter = (xMin + xMax) / 2;
+    const ox = bodyCenter - lensPhysCenter * s;   // px = ox + mm*s
+    const cy = CH / 2;
 
-    // ── HELPER: draw a vertical double-arrow with rotated label ──
-    function drawVArrow(arrowX, topY, botY, labelText, color, side){
-        const span=Math.abs(botY-topY);
-        ctx.strokeStyle=color; ctx.lineWidth=1.4;
-        ctx.beginPath(); ctx.moveTo(arrowX,topY); ctx.lineTo(arrowX,botY); ctx.stroke();
-        const ah=5;
-        ctx.beginPath(); ctx.moveTo(arrowX-ah,topY+ah); ctx.lineTo(arrowX,topY); ctx.lineTo(arrowX+ah,topY+ah); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(arrowX-ah,botY-ah); ctx.lineTo(arrowX,botY); ctx.lineTo(arrowX+ah,botY-ah); ctx.stroke();
-        if(span < 10) return;
+    const px = xmm => ox + xmm * s;
+    const py = ymm => cy  - ymm * s;
+
+    // Build polygon points for left (S1) and right (S2) surfaces
+    const N = 220;
+    const ys = [];
+    for(let i=0; i<=N; i++) ys.push(hOD - OD * i / N);
+    const LP = ys.map(y => [px(xS1(y)), py(y)]);
+    const RP = ys.map(y => [px(xS2(y)), py(y)]);
+
+    // Theme colours
+    const cA   = preview ? 'rgba(30,58,138,0.9)'  : 'rgba(40,44,52,0.9)';
+    const cAmb = preview ? '#b45309' : '#7c5c00';
+    const cCA1 = '#4f46e5';   // indigo — left annotation
+    const cCA2 = '#6366f1';   // violet — right CA2
+    const cOD  = '#b45309';   // amber  — right OD
+
+    // ── Fill lens body ──────────────────────────────────────────
+    ctx.beginPath();
+    LP.forEach((pt,i) => i ? ctx.lineTo(...pt) : ctx.moveTo(...pt));
+    [...RP].reverse().forEach(pt => ctx.lineTo(...pt));
+    ctx.closePath();
+    const grd = ctx.createLinearGradient(px(xs1_apex),0,px(xs2_apex),0);
+    const c1 = preview ? 'rgba(30,58,138,0.85)'   : 'rgba(40,44,52,0.88)';
+    const c2 = preview ? 'rgba(99,102,241,0.70)'   : 'rgba(160,168,180,0.78)';
+    grd.addColorStop(0,c1); grd.addColorStop(0.5,c2); grd.addColorStop(1,c1);
+    ctx.fillStyle = grd; ctx.fill();
+
+    // Sheen overlay
+    ctx.save();
+    ctx.beginPath();
+    LP.forEach((pt,i) => i ? ctx.lineTo(...pt) : ctx.moveTo(...pt));
+    [...RP].reverse().forEach(pt => ctx.lineTo(...pt));
+    ctx.closePath(); ctx.clip();
+    const sh = ctx.createLinearGradient(0,py(hOD),0,py(-hOD));
+    sh.addColorStop(0,"rgba(180,200,255,0.10)");
+    sh.addColorStop(0.35,"rgba(220,230,255,0.46)");
+    sh.addColorStop(0.65,"rgba(220,230,255,0.46)");
+    sh.addColorStop(1,"rgba(180,200,255,0.10)");
+    ctx.fillStyle=sh; ctx.fill();
+    ctx.restore();
+
+    // ── Outline the lens ────────────────────────────────────────
+    ctx.lineJoin="round"; ctx.lineCap="round";
+    ctx.beginPath(); LP.forEach((pt,i)=>i?ctx.lineTo(...pt):ctx.moveTo(...pt));
+    ctx.strokeStyle=cA; ctx.lineWidth=2.2; ctx.stroke();
+    ctx.beginPath(); RP.forEach((pt,i)=>i?ctx.lineTo(...pt):ctx.moveTo(...pt));
+    ctx.strokeStyle=cA; ctx.lineWidth=2.2; ctx.stroke();
+    // Top and bottom rims
+    ctx.beginPath(); ctx.moveTo(...LP[0]);  ctx.lineTo(...RP[0]);
+    ctx.strokeStyle=cA; ctx.lineWidth=1.8; ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(...LP[N]);  ctx.lineTo(...RP[N]);
+    ctx.strokeStyle=cA; ctx.lineWidth=1.8; ctx.stroke();
+
+    // ── Helper: vertical double-headed arrow + rotated label ───
+    // arrowX: canvas x of arrow shaft
+    // topPx,botPx: canvas y of arrow ends
+    // side: 'left' = label sits to the left of shaft; 'right' = to the right
+    function drawVArrow(arrowX, topPx, botPx, labelText, color, side){
+        const span = Math.abs(botPx - topPx);
         ctx.save();
-        ctx.font="bold 11px 'Nunito',sans-serif";
-        ctx.fillStyle=color;
-        const labelX=side==='left'?(arrowX-13):(arrowX+13);
-        const labelY=(topY+botY)/2;
-        ctx.translate(labelX, labelY);
-        ctx.rotate(side==='left'?-Math.PI/2:Math.PI/2);
-        ctx.textAlign="center";
-        ctx.fillText(labelText, 0, 0);
+        ctx.strokeStyle = color; ctx.lineWidth = 1.4;
+        ctx.beginPath(); ctx.moveTo(arrowX, topPx); ctx.lineTo(arrowX, botPx); ctx.stroke();
+        const ah = 5;
+        // Top arrowhead
+        ctx.beginPath();
+        ctx.moveTo(arrowX-ah, topPx+ah); ctx.lineTo(arrowX, topPx); ctx.lineTo(arrowX+ah, topPx+ah);
+        ctx.stroke();
+        // Bottom arrowhead
+        ctx.beginPath();
+        ctx.moveTo(arrowX-ah, botPx-ah); ctx.lineTo(arrowX, botPx); ctx.lineTo(arrowX+ah, botPx-ah);
+        ctx.stroke();
+        if(span >= 16){
+            const midY    = (topPx + botPx) / 2;
+            const offX    = side === 'left' ? -12 : 12;
+            ctx.font      = "bold 10px 'Nunito',sans-serif";
+            ctx.fillStyle = color;
+            ctx.translate(arrowX + offX, midY);
+            ctx.rotate(side === 'left' ? -Math.PI/2 : Math.PI/2);
+            ctx.textAlign = "center";
+            ctx.fillText(labelText, 0, 4);
+        }
         ctx.restore();
     }
 
-    // ── CT annotation ──
-    const ctX1=px(xS1(0)), ctX2=px(xS2(0));
-    const ctArrY=cy+Math.min(22, CH/2-16);
-    ctx.strokeStyle=cA; ctx.lineWidth=1.3;
-    ctx.beginPath(); ctx.moveTo(ctX1,cy-4); ctx.lineTo(ctX1,ctArrY+4); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(ctX2,cy-4); ctx.lineTo(ctX2,ctArrY+4); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(ctX1,ctArrY); ctx.lineTo(ctX2,ctArrY); ctx.stroke();
-    const ah=5;
-    ctx.beginPath(); ctx.moveTo(ctX1+ah,ctArrY-3); ctx.lineTo(ctX1,ctArrY); ctx.lineTo(ctX1+ah,ctArrY+3); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(ctX2-ah,ctArrY-3); ctx.lineTo(ctX2,ctArrY); ctx.lineTo(ctX2-ah,ctArrY+3); ctx.stroke();
-    ctx.font="bold 11px 'Nunito',sans-serif"; ctx.fillStyle=cA; ctx.textAlign="center";
-    ctx.fillText("CT="+CT.toFixed(2)+"mm",(ctX1+ctX2)/2,ctArrY+13); ctx.textAlign="left";
+    // ── CT annotation (horizontal, below axis) ─────────────────
+    const ctX1 = px(xs1_apex), ctX2 = px(xs2_apex);
+    const ctArrY = Math.min(cy + Math.min(26, CH/2 - 20), CH - 24);
+    if(Math.abs(ctX2 - ctX1) > 8){
+        ctx.save();
+        ctx.strokeStyle = cA; ctx.lineWidth = 1.2;
+        // Tick stems
+        ctx.beginPath(); ctx.moveTo(ctX1, cy-3); ctx.lineTo(ctX1, ctArrY+4); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(ctX2, cy-3); ctx.lineTo(ctX2, ctArrY+4); ctx.stroke();
+        // Horizontal arrow
+        ctx.beginPath(); ctx.moveTo(ctX1, ctArrY); ctx.lineTo(ctX2, ctArrY); ctx.stroke();
+        const ah=5;
+        ctx.beginPath(); ctx.moveTo(ctX1+ah,ctArrY-3); ctx.lineTo(ctX1,ctArrY); ctx.lineTo(ctX1+ah,ctArrY+3); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(ctX2-ah,ctArrY-3); ctx.lineTo(ctX2,ctArrY); ctx.lineTo(ctX2-ah,ctArrY+3); ctx.stroke();
+        ctx.font="bold 11px 'Nunito',sans-serif"; ctx.fillStyle=cA; ctx.textAlign="center";
+        ctx.fillText("CT="+CT.toFixed(2)+"mm", (ctX1+ctX2)/2, ctArrY+13);
+        ctx.restore();
+    }
 
-    // ── ET@CA annotation ──
-    const etCA=edgeThicknessAt(s1,s2,CT,g1,g2);
-    if(!isNaN(etCA)&&etCA>0){
-        const etYline=Math.min(py(hCA1 > 0 ? hCA1 : hOD), py(hCA2 > 0 ? hCA2 : hOD))-18;
-        const etLeft=px(xS1(hCA1>0?hCA1:hOD)), etRight=px(xS2(hCA2>0?hCA2:hOD));
-        if(Math.abs(etRight-etLeft)>12){
-            ctx.strokeStyle=preview?"#64748b":"#374151"; ctx.lineWidth=1.2; ctx.setLineDash([]);
-            ctx.beginPath(); ctx.moveTo(etLeft,etYline); ctx.lineTo(etRight,etYline); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(etLeft+6,etYline-3); ctx.lineTo(etLeft,etYline); ctx.lineTo(etLeft+6,etYline+3); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(etRight-6,etYline-3); ctx.lineTo(etRight,etYline); ctx.lineTo(etRight-6,etYline+3); ctx.stroke();
+    // ── ET@CA annotation (above top rim) ───────────────────────
+    const etCA = edgeThicknessAt(s1,s2,CT,g1,g2);
+    if(!isNaN(etCA) && etCA > 0){
+        const etLeft  = px(xS1(hCA1));
+        const etRight = px(xS2(hCA2));
+        if(Math.abs(etRight-etLeft) > 12){
+            const etY = py(hOD) - 16;
+            ctx.save();
+            ctx.strokeStyle = preview ? "#64748b" : "#374151"; ctx.lineWidth=1.1;
+            ctx.beginPath(); ctx.moveTo(etLeft, etY); ctx.lineTo(etRight, etY); ctx.stroke();
+            const ah=5;
+            ctx.beginPath(); ctx.moveTo(etLeft+ah,etY-3); ctx.lineTo(etLeft,etY); ctx.lineTo(etLeft+ah,etY+3); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(etRight-ah,etY-3); ctx.lineTo(etRight,etY); ctx.lineTo(etRight-ah,etY+3); ctx.stroke();
             ctx.font="bold 10px 'Nunito',sans-serif"; ctx.fillStyle=preview?"#92400e":"#374151"; ctx.textAlign="center";
-            ctx.fillText("ET@CA="+etCA.toFixed(2)+"mm",(etLeft+etRight)/2,etYline-5); ctx.textAlign="left";
+            ctx.fillText("ET@CA="+etCA.toFixed(2)+"mm", (etLeft+etRight)/2, etY-5);
+            ctx.restore();
         }
     }
 
-    // ── Surface labels ──
-    ctx.font="bold 13px 'Nunito',sans-serif"; ctx.fillStyle=cA;
-    ctx.textAlign="right"; ctx.fillText("S1",LP[Math.round(N*0.12)][0]-5,LP[Math.round(N*0.12)][1]-7);
-    ctx.textAlign="left";  ctx.fillText("S2",RP[Math.round(N*0.12)][0]+5,RP[Math.round(N*0.12)][1]-7);
-
-    ctx.font="bold 11px 'Nunito',sans-serif";
-    if(s1!=="plano"&&roc1>0){ctx.fillStyle=cAmb;ctx.textAlign="right";ctx.fillText("R1="+roc1.toFixed(1),LP[Math.round(N*0.3)][0]-4,LP[Math.round(N*0.3)][1]+4);}
-    if(s2!=="plano"&&roc2>0){ctx.fillStyle=cAmb;ctx.textAlign="left"; ctx.fillText("R2="+roc2.toFixed(1),RP[Math.round(N*0.3)][0]+4,RP[Math.round(N*0.3)][1]+4);}
+    // ── S1 / S2 labels and ROC labels ──────────────────────────
+    ctx.font="bold 12px 'Nunito',sans-serif"; ctx.fillStyle=cA;
+    const s1LblPt = LP[Math.round(N*0.12)];
+    const s2LblPt = RP[Math.round(N*0.12)];
+    ctx.textAlign="right"; ctx.fillText("S1", s1LblPt[0]-5, s1LblPt[1]-7);
+    ctx.textAlign="left";  ctx.fillText("S2", s2LblPt[0]+5, s2LblPt[1]-7);
+    ctx.font="bold 10px 'Nunito',sans-serif";
+    if(s1!=="plano"&&roc1>0){
+        const pt=LP[Math.round(N*0.28)];
+        ctx.fillStyle=cAmb; ctx.textAlign="right";
+        ctx.fillText("R1="+roc1.toFixed(1), pt[0]-4, pt[1]+4);
+    }
+    if(s2!=="plano"&&roc2>0){
+        const pt=RP[Math.round(N*0.28)];
+        ctx.fillStyle=cAmb; ctx.textAlign="left";
+        ctx.fillText("R2="+roc2.toFixed(1), pt[0]+4, pt[1]+4);
+    }
     ctx.textAlign="left";
 
-    // ── CA1 arrow (left zone) ──
-    const ca1ArrowX = PAD_L - 16;
-    if(hCA1>0){
-        drawVArrow(ca1ArrowX, py(hCA1), py(-hCA1), "⌀CA1="+CA1.toFixed(2)+"mm", '#4f46e5', 'left');
+    // ── Dashed tick extension lines ────────────────────────────
+    // These lead from the lens edge to each arrow shaft.
+    ctx.save(); ctx.setLineDash([3,4]); ctx.lineWidth=0.7;
+
+    // CA1 ticks: from S1 surface at ±hCA1 → to ca1ArrowX
+    const ca1ArrowX = Z_CA1 - 10;   // fixed x, always 10px from left of CA1 zone
+    const xs1_ca1_top = px(xS1(hCA1));
+    const xs1_ca1_bot = px(xS1(-hCA1));
+    ctx.strokeStyle = cCA1;
+    ctx.beginPath(); ctx.moveTo(xs1_ca1_top-2, py(hCA1));  ctx.lineTo(ca1ArrowX+2, py(hCA1));  ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(xs1_ca1_bot-2, py(-hCA1)); ctx.lineTo(ca1ArrowX+2, py(-hCA1)); ctx.stroke();
+
+    // OD ticks: from rightmost lens edge at ±hOD → to odArrowX
+    const ca2ZoneL  = CW - fixedR + Z_GAPR;
+    const ca2ArrowX = ca2ZoneL + Z_CA2 / 2;
+    const odArrowX  = ca2ZoneL + Z_CA2 + Z_GAPCA + Z_OD / 2;
+    // find rightmost x at ±hOD
+    const xRimTop = Math.max(px(xS2(hOD)), px(xS1(hOD)));
+    const xRimBot = Math.max(px(xS2(-hOD)), px(xS1(-hOD)));
+    ctx.strokeStyle = cOD;
+    ctx.beginPath(); ctx.moveTo(xRimTop+2, py(hOD));  ctx.lineTo(odArrowX-2, py(hOD));  ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(xRimBot+2, py(-hOD)); ctx.lineTo(odArrowX-2, py(-hOD)); ctx.stroke();
+
+    // CA2 ticks: only if CA2 < OD meaningfully
+    if(Math.abs(hCA2 - hOD) > 0.4){
+        const xs2_ca2_top = px(xS2(hCA2));
+        const xs2_ca2_bot = px(xS2(-hCA2));
+        ctx.strokeStyle = cCA2;
+        ctx.beginPath(); ctx.moveTo(xs2_ca2_top+2, py(hCA2));  ctx.lineTo(ca2ArrowX-2, py(hCA2));  ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(xs2_ca2_bot+2, py(-hCA2)); ctx.lineTo(ca2ArrowX-2, py(-hCA2)); ctx.stroke();
     }
 
-    // ── CA2 arrow (right of lens) ──
-    const lensRightEdge = Math.max(...RP.map(pt=>pt[0]));
-    const ca2ArrowX = lensRightEdge + 10;
-    if(hCA2>0 && Math.abs(hCA2-hOD)>0.5){
-        drawVArrow(ca2ArrowX, py(hCA2), py(-hCA2), "⌀CA2="+CA2.toFixed(2)+"mm", cCA2, 'right');
+    ctx.restore();
+
+    // ── CA1 arrow — FIXED at left zone ────────────────────────
+    drawVArrow(ca1ArrowX, py(hCA1), py(-hCA1),
+               "⌀CA1="+CA1.toFixed(2)+"mm", cCA1, 'left');
+
+    // ── CA2 arrow — only if CA2 differs from OD ───────────────
+    if(Math.abs(hCA2 - hOD) > 0.4){
+        drawVArrow(ca2ArrowX, py(hCA2), py(-hCA2),
+                   "⌀CA2="+CA2.toFixed(2)+"mm", cCA2, 'right');
     }
 
-    // ── OD arrow — now placed CLOSER to CA2, with a compact gap ──
-    // Position: just to the right of CA2 arrow with 18px gap, capped at canvas right edge
-    const odArrowX = Math.min(ca2ArrowX + 20, CW - 14);
-    // But ensure it's at least 8px right of CA2 arrow
-    const odX = Math.max(odArrowX, ca2ArrowX + 12);
-    // Also ensure it doesn't overlap the CA2 label text (roughly 80px wide)
-    // So if CA2 + OD are too close, push OD slightly further
-    const gap = odX - ca2ArrowX;
-    if(gap < 30 && hCA2 > 0 && hOD > 0){
-        // Only push if there's space
-        const pushedX = Math.min(ca2ArrowX + 34, CW - 14);
-        drawVArrow(pushedX, py(hOD), py(-hOD), "⌀OD="+OD+" mm", cAmb, 'right');
-    } else {
-        drawVArrow(odX, py(hOD), py(-hOD), "⌀OD="+OD+" mm", cAmb, 'right');
-    }
+    // ── OD arrow — FIXED at far right zone ────────────────────
+    drawVArrow(odArrowX, py(hOD), py(-hOD),
+               "⌀OD="+OD.toFixed(2)+"mm", cOD, 'right');
 }
 
 function liveDrawLens(){
@@ -1623,22 +1609,100 @@ function liveDrawRect(){
 
 function clearCanvas(id){const c=document.getElementById(id);c.width=c.offsetWidth||320;c.getContext("2d").clearRect(0,0,c.width,c.height);}
 
+// ── Rectangular preview canvas ─────────────────────────────────
+// Fixed: now uses actual canvas.clientHeight (not offsetWidth*ratio) to avoid
+// stretching, and labels are always clamped inside.
 function drawRectCanvas(id,{L,W,H}){
-    const canvas=document.getElementById(id), W2=canvas.offsetWidth||320, H2=parseInt(canvas.getAttribute("height"))||130;
-    canvas.width=W2;canvas.height=H2;
-    const ctx=canvas.getContext("2d");ctx.clearRect(0,0,W2,H2);
+    const canvas=document.getElementById(id);
+    const cW=canvas.offsetWidth||320;
+    const cH=parseInt(canvas.getAttribute("height"))||130;
+    canvas.width=cW; canvas.height=cH;
+    const ctx=canvas.getContext("2d"); ctx.clearRect(0,0,cW,cH);
     if(L<=0||H<=0) return;
-    const pad=20, sc=Math.min((W2-pad*2)/L,(H2-pad*2)/H), dw=L*sc, dh=H*sc, x0=(W2-dw)/2, y0=(H2-dh)/2;
-    ctx.shadowColor="rgba(0,0,0,0.4)";ctx.shadowBlur=10;ctx.shadowOffsetX=4;ctx.shadowOffsetY=4;
-    ctx.fillStyle="rgba(4,40,86,0.45)";ctx.beginPath();ctx.roundRect(x0,y0,dw,dh,8);ctx.fill();
+
+    // Isometric-style 2.5D rect: draw front face + top face + right face
+    // using a simple oblique projection (top/right at 30°, depth=W*0.25)
+    const PAD=22;
+    // Front face scale: fit L×H into (cW-PAD*2-depthPx) × (cH-PAD*2-depthPx)
+    const maxW=cW-PAD*2, maxH=cH-PAD*2;
+    const depthRatio=0.28;  // W maps to this fraction of display size
+    const sc=Math.min(maxW/(L*(1+depthRatio*0.6)), maxH/(H+L*depthRatio*0.35));
+    const dw=L*sc, dh=H*sc;
+    const dxW=W*sc*depthRatio*0.7, dyW=W*sc*depthRatio*0.4; // oblique offset for W
+    // Bottom-left of front face
+    const fx=(cW-dw-dxW)/2, fy=(cH-dh-dyW)/2+dyW;
+
+    // Shadow
+    ctx.shadowColor="rgba(0,0,0,0.3)"; ctx.shadowBlur=8; ctx.shadowOffsetX=3; ctx.shadowOffsetY=3;
+
+    // Right face (shaded)
+    ctx.beginPath();
+    ctx.moveTo(fx+dw,fy);
+    ctx.lineTo(fx+dw+dxW,fy-dyW);
+    ctx.lineTo(fx+dw+dxW,fy-dyW+dh);
+    ctx.lineTo(fx+dw,fy+dh);
+    ctx.closePath();
+    ctx.fillStyle="rgba(0,60,120,0.30)"; ctx.fill();
+
+    // Top face (medium shading)
+    ctx.beginPath();
+    ctx.moveTo(fx,fy);
+    ctx.lineTo(fx+dxW,fy-dyW);
+    ctx.lineTo(fx+dw+dxW,fy-dyW);
+    ctx.lineTo(fx+dw,fy);
+    ctx.closePath();
+    ctx.fillStyle="rgba(30,80,150,0.35)"; ctx.fill();
+
     ctx.shadowColor="transparent";
-    ctx.fillStyle="rgba(40,98,146,0.18)";ctx.beginPath();ctx.roundRect(x0,y0+dh*.54,dw,dh*.46,8);ctx.fill();
-    ctx.strokeStyle="#22d3ee";ctx.lineWidth=2.2;ctx.beginPath();ctx.roundRect(x0,y0,dw,dh,8);ctx.stroke();
-    const my=y0+dh/2;ctx.save();ctx.setLineDash([8,8]);ctx.strokeStyle="rgba(248,113,113,0.85)";ctx.lineWidth=1.4;ctx.beginPath();ctx.moveTo(x0,my);ctx.lineTo(x0+dw,my);ctx.stroke();ctx.restore();
-    ctx.font="bold 9px 'Nunito',sans-serif";ctx.fillStyle="#fbbf24";ctx.textAlign="center";
-    ctx.fillText("L="+L.toFixed(2)+"mm",x0+dw/2,y0-6);
-    ctx.save();ctx.translate(x0-8,y0+dh/2);ctx.rotate(-Math.PI/2);ctx.fillText("H="+H.toFixed(2)+"mm",0,0);ctx.restore();
-    if(W>0){ctx.fillStyle="#22d3ee";ctx.fillText("W="+W.toFixed(2)+"mm",x0+dw/2,y0+dh+14);}
+
+    // Front face (main)
+    ctx.beginPath(); ctx.roundRect(fx,fy,dw,dh,5); ctx.fillStyle="rgba(4,40,86,0.50)"; ctx.fill();
+
+    // Outline edges
+    ctx.strokeStyle="#22d3ee"; ctx.lineWidth=1.8;
+    // Front face outline
+    ctx.beginPath(); ctx.roundRect(fx,fy,dw,dh,5); ctx.stroke();
+    // Top face edges
+    ctx.beginPath();
+    ctx.moveTo(fx,fy); ctx.lineTo(fx+dxW,fy-dyW);
+    ctx.lineTo(fx+dw+dxW,fy-dyW); ctx.lineTo(fx+dw,fy);
+    ctx.stroke();
+    // Right face vertical edge
+    ctx.beginPath();
+    ctx.moveTo(fx+dw+dxW,fy-dyW); ctx.lineTo(fx+dw+dxW,fy-dyW+dh);
+    ctx.stroke();
+    // Right face bottom edge
+    ctx.beginPath();
+    ctx.moveTo(fx+dw+dxW,fy-dyW+dh); ctx.lineTo(fx+dw,fy+dh);
+    ctx.stroke();
+
+    // Centreline (dashed)
+    const mY=fy+dh/2;
+    ctx.save(); ctx.setLineDash([7,7]); ctx.strokeStyle="rgba(248,113,113,0.80)";
+    ctx.lineWidth=1.3; ctx.beginPath(); ctx.moveTo(fx,mY); ctx.lineTo(fx+dw,mY); ctx.stroke();
+    ctx.restore();
+
+    // Labels — clamp to keep inside canvas
+    ctx.font="bold 9.5px 'Nunito',sans-serif"; ctx.fillStyle="#fbbf24"; ctx.textAlign="center";
+    // L label: below front face bottom edge, clamped
+    const lLblY = Math.min(fy+dh+13, cH-4);
+    ctx.fillText("L="+L.toFixed(2)+"mm", fx+dw/2, lLblY);
+    // H label: left of front face, rotated
+    ctx.save();
+    ctx.translate(Math.max(fx-8,12), fy+dh/2);
+    ctx.rotate(-Math.PI/2);
+    ctx.fillText("H="+H.toFixed(2)+"mm", 0, 0);
+    ctx.restore();
+    // W label: along top-right oblique edge
+    if(W>0){
+        ctx.fillStyle="#22d3ee";
+        ctx.save();
+        ctx.translate(fx+dw+dxW/2+4, fy-dyW/2-4);
+        ctx.rotate(Math.atan2(-dyW,dxW));
+        ctx.textAlign="center";
+        ctx.fillText("W="+W.toFixed(2)+"mm",0,0);
+        ctx.restore();
+    }
     ctx.textAlign="left";
 }
 
@@ -1646,9 +1710,6 @@ if(!CanvasRenderingContext2D.prototype.roundRect){
     CanvasRenderingContext2D.prototype.roundRect=function(x,y,w,h,r){if(r>w/2)r=w/2;if(r>h/2)r=h/2;this.moveTo(x+r,y);this.lineTo(x+w-r,y);this.quadraticCurveTo(x+w,y,x+w,y+r);this.lineTo(x+w,y+h-r);this.quadraticCurveTo(x+w,y+h,x+w-r,y+h);this.lineTo(x+r,y+h);this.quadraticCurveTo(x,y+h,x,y+h-r);this.lineTo(x,y+r);this.quadraticCurveTo(x,y,x+r,y);return this;};
 }
 
-// ═══════════════════════════════════════════════════════════════
-// PNG REPORT BUILDER
-// ═══════════════════════════════════════════════════════════════
 function _buildReportCanvas(callback){
     refreshSnapHeader();
     const g=id=>(document.getElementById(id)||{}).textContent||(document.getElementById(id)||{}).value||'';
@@ -1713,9 +1774,6 @@ function _buildReportCanvas(callback){
     else callback(cv);
 }
 
-// ═══════════════════════════════════════════════════════════════
-// MODAL
-// ═══════════════════════════════════════════════════════════════
 let _modalOkCb=null;
 function showModal(title,msg,okCb){_modalOkCb=okCb||null;window._cYcb=null;document.getElementById("modal-title").textContent=title;document.getElementById("modal-msg").textContent=msg;document.getElementById("modal-btns").innerHTML='<button class="mbtn-ok" onclick="_closeModal()">OK</button>';document.getElementById("modal-overlay").style.display="flex";}
 function showConfirm(title,msg,yes){_modalOkCb=null;window._cYcb=yes||null;document.getElementById("modal-title").textContent=title;document.getElementById("modal-msg").textContent=msg;document.getElementById("modal-btns").innerHTML='<button class="mbtn-ok" onclick="window._cY()">Yes</button><button class="mbtn-cancel" onclick="_closeModal()">No</button>';document.getElementById("modal-overlay").style.display="flex";}
@@ -1724,21 +1782,12 @@ function closeModal(e){if(e&&e.target&&e.target.id!=='modal-overlay')return;_clo
 function _closeModal(){document.getElementById("modal-overlay").style.display="none";const cb=_modalOkCb;_modalOkCb=null;if(cb)cb();}
 function v(id){return(document.getElementById(id)||{value:""}).value;}
 
-// ═══════════════════════════════════════════════════════════════
-// THEME
-// ═══════════════════════════════════════════════════════════════
 const THEMES=['dark','light','white','warm','green','steel','purple','red'];
 function setTheme(t){document.documentElement.setAttribute('data-theme',t==='dark'?'':t);THEMES.forEach(x=>{const el=document.getElementById('sw-'+x);if(el)el.classList.toggle('active',x===t);});try{localStorage.setItem('opticost_theme',t);}catch(e){}liveDrawLens();}
 function toggleThemePanel(){document.getElementById('theme-panel').classList.toggle('open');}
 
-// ═══════════════════════════════════════════════════════════════
-// ABOUT
-// ═══════════════════════════════════════════════════════════════
 function showAbout(){showModal("About OptiCost LRMCE","OptiCost — LRMCE v1.2\n\nDeveloped by:\n  Priya Gavshinde\n  Sr. Optical Engineer\n  Optics & Allied Engg. Pvt. Ltd.\n\nContact:\n  www.opticsindia.com\n  +91-9886654729\n  info@opticsindia.com\n\n© 2025 Optics & Allied Engg. Pvt. Ltd.");}
 
-// ═══════════════════════════════════════════════════════════════
-// INIT
-// ═══════════════════════════════════════════════════════════════
 window.addEventListener('DOMContentLoaded',()=>{
     loadMaterials();
     try{const su=localStorage.getItem("opticost_saved_user"),sp=localStorage.getItem("opticost_saved_pass");if(su&&sp){document.getElementById("login-user").value=su;document.getElementById("login-pass").value=atob(sp);document.getElementById("remember-me").checked=true;const fi=document.getElementById("forget-login-row");if(fi)fi.style.display="block";}}catch(e){}

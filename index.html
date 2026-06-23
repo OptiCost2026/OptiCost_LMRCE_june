@@ -951,8 +951,8 @@ function mirrorCanvasToResults(srcId){
         const colW=col.clientWidth||140;
         const aspect=src.height/src.width;
         const dstH=Math.min(Math.round(colW*aspect),320);
-        // Render at 4x for high resolution
-        const scale = 4;
+        // Render at 5x for ultra‑high resolution
+        const scale = 5;
         dst.width=colW*scale; dst.height=dstH*scale;
         dst.style.width=colW+"px"; dst.style.height=dstH+"px";
         const ctx=dst.getContext("2d");
@@ -962,9 +962,39 @@ function mirrorCanvasToResults(srcId){
     });});
 }
 
-let _logoDataUrl="";
-function loadLogoFile(inp){const file=inp.files[0];if(!file)return;const r=new FileReader();r.onload=e=>{_logoDataUrl=e.target.result;document.getElementById("logo-img").src=_logoDataUrl;document.getElementById("logo-preview").style.display="block";};r.readAsDataURL(file);}
-function clearLogo(){_logoDataUrl="";document.getElementById("logo-preview").style.display="none";document.getElementById("logo-img").src="";}
+// ─── LOGO HANDLING (improved) ──────────────────────────────
+let _logoDataUrl = "";
+let _logoImageObj = null; // pre‑loaded image for export
+
+function loadLogoFile(inp){
+    const file = inp.files[0];
+    if(!file) return;
+    const r = new FileReader();
+    r.onload = e => {
+        _logoDataUrl = e.target.result;
+        document.getElementById("logo-img").src = _logoDataUrl;
+        document.getElementById("logo-preview").style.display = "block";
+        // Pre‑load the image object for export
+        const img = new Image();
+        img.onload = function() {
+            _logoImageObj = img;
+        };
+        img.onerror = function() {
+            _logoImageObj = null;
+        };
+        img.src = _logoDataUrl;
+    };
+    r.readAsDataURL(file);
+}
+function clearLogo(){
+    _logoDataUrl = "";
+    _logoImageObj = null;
+    document.getElementById("logo-preview").style.display = "none";
+    document.getElementById("logo-img").src = "";
+    // Also hide in snap header
+    document.getElementById("snap-logo-box").style.display = "none";
+}
+
 function refreshSnapHeader(){
     const mfr=document.getElementById("rpt-mfr").value.trim(),vendor=document.getElementById("rpt-vendor").value.trim(),title=document.getElementById("rpt-title").value.trim(),partno=document.getElementById("rpt-partno").value.trim(),dateVal=document.getElementById("rpt-date").value.trim()||new Date().toLocaleDateString(),hasData=recs.length>0;
     document.getElementById("snap-header").style.display=hasData?"block":"none";
@@ -978,7 +1008,12 @@ function refreshSnapHeader(){
     set("snap-sub-txt",website+(contact?" | "+contact:""));
     const ftr=document.getElementById("snap-footer-sub");if(ftr)ftr.textContent=(mfr||"OPTICA")+" | "+website+(contact?" | "+contact:"");
     const snapLogoBox=document.getElementById("snap-logo-box"),snapLogoImg=document.getElementById("snap-logo-img");
-    if(_logoDataUrl){snapLogoBox.style.display="block";snapLogoImg.src=_logoDataUrl;}else snapLogoBox.style.display="none";
+    if(_logoDataUrl){
+        snapLogoBox.style.display="block";
+        snapLogoImg.src=_logoDataUrl;
+    } else {
+        snapLogoBox.style.display="none";
+    }
 }
 
 let _fileDB=null;
@@ -1067,7 +1102,7 @@ function doSaveXLSX(){
 
 function saveReportImage(){
     if(!recs.length){showToast('⚠ No data — calculate first.','error');return;}
-    showToast('🖼 Building high-res image…','');
+    showToast('🖼 Generating high‑resolution image…','');
     setTimeout(()=>{
         try{
             _buildReportCanvas(cv=>{
@@ -1674,8 +1709,7 @@ if(!CanvasRenderingContext2D.prototype.roundRect){
     CanvasRenderingContext2D.prototype.roundRect=function(x,y,w,h,r){if(r>w/2)r=w/2;if(r>h/2)r=h/2;this.moveTo(x+r,y);this.lineTo(x+w-r,y);this.quadraticCurveTo(x+w,y,x+w,y+r);this.lineTo(x+w,y+h-r);this.quadraticCurveTo(x+w,y+h,x+w-r,y+h);this.lineTo(x+r,y+h);this.quadraticCurveTo(x,y+h,x,y+h-r);this.lineTo(x,y+r);this.quadraticCurveTo(x,y,x+r,y);return this;};
 }
 
-// ─── BUILD HIGH-RES PNG REPORT ──────────────────────────────
-// SC = 4 gives 4400x~3000 pixels (crisp)
+// ─── BUILD HIGH-RES PNG REPORT (SC=5 for ultra crisp) ──────
 function _buildReportCanvas(callback){
     refreshSnapHeader();
     const g=id=>(document.getElementById(id)||{}).textContent||(document.getElementById(id)||{}).value||'';
@@ -1693,8 +1727,8 @@ function _buildReportCanvas(callback){
     const srcCanvas=document.getElementById('res-canvas');
     const hasCanvas=srcCanvas&&srcCanvas.width>0&&srcCanvas.height>0;
 
-    // High resolution: scale factor 4
-    const SC=4;
+    // Ultra‑high resolution: scale factor 5
+    const SC=5;
     const W=1100, PAD=24, HDR_H=110, FOOTER_H=40, ROW_H=32, SEC_H=30, GAP=10, TITLE_ROW=36;
     let dataH=TITLE_ROW+8;sections.forEach(s=>{dataH+=SEC_H;s.rows.forEach(()=>dataH+=ROW_H);dataH+=GAP;});
     const SPLIT_W=hasCanvas?Math.round(W*0.38):0;
@@ -1709,9 +1743,17 @@ function _buildReportCanvas(callback){
     const logoW = 70, logoH = 40;
     const logoX = PAD;
     const logoY = 8;
-    if(_logoDataUrl){
+    if(_logoImageObj && _logoImageObj.complete && _logoImageObj.naturalWidth>0){
+        // Use pre‑loaded image
+        ctx.drawImage(_logoImageObj, logoX, logoY, logoW, logoH);
+        _drawHeaderText(ctx, PAD + logoW + 12, logoY, logoH, mfr, website, contact);
+        _drawBody(ctx, hasCanvas, srcCanvas, SPLIT_W, DATA_W, CONTENT_H, HDR_H, PAD, sections, titleTxt, vendor, partno, dateVal, mfr, website, contact, H, FOOTER_H, W);
+        callback(cv);
+    } else if(_logoDataUrl){
+        // Fallback: load and draw
         const li=new Image();
         li.onload=()=>{
+            _logoImageObj = li;
             ctx.drawImage(li, logoX, logoY, logoW, logoH);
             _drawHeaderText(ctx, PAD + logoW + 12, logoY, logoH, mfr, website, contact);
             _drawBody(ctx, hasCanvas, srcCanvas, SPLIT_W, DATA_W, CONTENT_H, HDR_H, PAD, sections, titleTxt, vendor, partno, dateVal, mfr, website, contact, H, FOOTER_H, W);

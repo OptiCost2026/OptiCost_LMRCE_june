@@ -1274,7 +1274,7 @@ function doReset(){
 }
 
 // ═══════════════════════════════════════════════════════════════
-// LENS CANVAS — v2: Zone-based, no-overlap, all surface combos
+// LENS CANVAS — v3: Smooth, theme-adaptive, CA1/CA2/OD always shown
 // ═══════════════════════════════════════════════════════════════
 function drawLensCanvas(id, p, preview=false){
     const canvas = document.getElementById(id);
@@ -1283,6 +1283,25 @@ function drawLensCanvas(id, p, preview=false){
     const {OD, CT, CA1, CA2, s1, s2, g1, g2} = p;
     const roc1 = parseFloat(document.getElementById("s1ri").value)||0;
     const roc2 = parseFloat(document.getElementById("s2ri").value)||0;
+
+    // Read theme colors from CSS
+    const cs = getComputedStyle(document.documentElement);
+    const accent = cs.getPropertyValue('--accent').trim() || '#22d3ee';
+    const accent2 = cs.getPropertyValue('--accent2').trim() || '#c084fc';
+    const text = cs.getPropertyValue('--text').trim() || '#e8f4ff';
+    const muted = cs.getPropertyValue('--muted').trim() || '#7db0cc';
+    const surface = cs.getPropertyValue('--surface').trim() || '#0c1d30';
+    const bg = cs.getPropertyValue('--bg').trim() || '#060e18';
+
+    // Derive lens colours from theme
+    const cBody = preview ? 'rgba(30,58,138,0.85)' : 'rgba(40,44,52,0.88)';
+    const cBody2 = preview ? 'rgba(99,102,241,0.70)' : 'rgba(160,168,180,0.78)';
+    const cOutline = preview ? 'rgba(30,58,138,0.9)' : 'rgba(200,210,220,0.85)';
+    const cCA1 = '#4f46e5';
+    const cCA2 = '#6366f1';
+    const cOD = '#b45309';
+    const cCT = preview ? '#1a3a6e' : '#a0b0c0';
+    const cET = preview ? '#92400e' : '#8899aa';
 
     function errOverlay(msg){
         const CH = Math.max(CW,200); canvas.width=CW; canvas.height=CH;
@@ -1302,7 +1321,6 @@ function drawLensCanvas(id, p, preview=false){
     if(s1!=="plano"&&roc1>0&&roc1<OD/2){errOverlay("S1 ROC "+roc1.toFixed(2)+" < OD/2 "+(OD/2).toFixed(2));return;}
     if(s2!=="plano"&&roc2>0&&roc2<OD/2){errOverlay("S2 ROC "+roc2.toFixed(2)+" < OD/2 "+(OD/2).toFixed(2));return;}
 
-    // Sag at any y height, clamped to the relevant CA half-diameter
     function getSag(roc, hChord, gMax, absY){
         const aY = Math.min(absY, hChord);
         if(gMax <= 0) return 0;
@@ -1312,18 +1330,12 @@ function drawLensCanvas(id, p, preview=false){
 
     const hOD=OD/2, hCA1=CA1/2, hCA2=CA2/2;
 
-    // Canvas x-coordinate of surface 1 at mm height y
-    // Convex S1 bulges LEFT (apex is most negative x)
-    // Concave S1 sinks inward (apex is less negative than rim)
     function xS1(y){
         const sg = getSag(roc1, hCA1, g1, Math.abs(y));
         if(s1==="convex")  return -CT/2 - g1 + sg;
         if(s1==="concave") return -CT/2 - sg;
         return -CT/2;
     }
-    // Canvas x-coordinate of surface 2 at mm height y
-    // Convex S2 bulges RIGHT (apex is most positive x)
-    // Concave S2 sinks inward (apex is less positive than rim)
     function xS2(y){
         const sg = getSag(roc2, hCA2, g2, Math.abs(y));
         if(s2==="convex")  return  CT/2 + g2 - sg;
@@ -1331,26 +1343,19 @@ function drawLensCanvas(id, p, preview=false){
         return CT/2;
     }
 
-    // Physical extents of the lens in mm-space
     const xs1_apex = xS1(0),   xs2_apex = xS2(0);
     const xs1_rim  = xS1(hOD), xs2_rim  = xS2(hOD);
     const xMin = Math.min(xs1_apex, xs1_rim) - 0.3;
     const xMax = Math.max(xs2_apex, xs2_rim) + 0.3;
 
-    // ── Fixed pixel zones ──────────────────────────────────────
-    // LEFT:  [CA1 column=54px] [gap=4px] [lens body fills middle]
-    // RIGHT: [gap=6px] [CA2 column=36px] [gap=6px] [OD column=38px] [margin=6px]
-    // Total fixed: left=58, right=92
+    // Fixed pixel zones: left=58 (CA1), right=92 (CA2+OD)
     const Z_CA1 = 54, Z_GAPL = 4;
     const Z_GAPR = 6, Z_CA2 = 36, Z_GAPCA = 6, Z_OD = 38, Z_RPAD = 6;
-    const fixedL = Z_CA1 + Z_GAPL;   // 58
-    const fixedR = Z_GAPR + Z_CA2 + Z_GAPCA + Z_OD + Z_RPAD;  // 92
-
+    const fixedL = Z_CA1 + Z_GAPL;
+    const fixedR = Z_GAPR + Z_CA2 + Z_GAPCA + Z_OD + Z_RPAD;
     const drawableW = CW - fixedL - fixedR;
     const physW = xMax - xMin;
     const physH = OD;
-
-    // Scale so lens body fits in drawable width, then further constrain by height
     const sX  = drawableW / Math.max(physW, 0.001);
     const padY = Math.max(Math.round(physH * sX * 0.14), 32);
     const sY  = (400 - padY * 2) / Math.max(physH, 0.001);
@@ -1362,88 +1367,75 @@ function drawLensCanvas(id, p, preview=false){
     const ctx = canvas.getContext("2d");
     ctx.clearRect(0,0,CW,CH);
 
-    // Lens body is centered in [fixedL .. CW-fixedR]
     const bodyCenter    = fixedL + drawableW / 2;
     const lensPhysCenter = (xMin + xMax) / 2;
-    const ox = bodyCenter - lensPhysCenter * s;   // px = ox + mm*s
+    const ox = bodyCenter - lensPhysCenter * s;
     const cy = CH / 2;
-
     const px = xmm => ox + xmm * s;
     const py = ymm => cy  - ymm * s;
 
-    // Build polygon points for left (S1) and right (S2) surfaces
-    const N = 220;
+    const N = 260;
     const ys = [];
     for(let i=0; i<=N; i++) ys.push(hOD - OD * i / N);
     const LP = ys.map(y => [px(xS1(y)), py(y)]);
     const RP = ys.map(y => [px(xS2(y)), py(y)]);
 
-    // Theme colours
-    const cA   = preview ? 'rgba(30,58,138,0.9)'  : 'rgba(40,44,52,0.9)';
-    const cAmb = preview ? '#b45309' : '#7c5c00';
-    const cCA1 = '#4f46e5';   // indigo — left annotation
-    const cCA2 = '#6366f1';   // violet — right CA2
-    const cOD  = '#b45309';   // amber  — right OD
-
-    // ── Fill lens body ──────────────────────────────────────────
+    // ── Fill lens body with smooth gradient ────────────────────
     ctx.beginPath();
     LP.forEach((pt,i) => i ? ctx.lineTo(...pt) : ctx.moveTo(...pt));
     [...RP].reverse().forEach(pt => ctx.lineTo(...pt));
     ctx.closePath();
     const grd = ctx.createLinearGradient(px(xs1_apex),0,px(xs2_apex),0);
-    const c1 = preview ? 'rgba(30,58,138,0.85)'   : 'rgba(40,44,52,0.88)';
-    const c2 = preview ? 'rgba(99,102,241,0.70)'   : 'rgba(160,168,180,0.78)';
-    grd.addColorStop(0,c1); grd.addColorStop(0.5,c2); grd.addColorStop(1,c1);
-    ctx.fillStyle = grd; ctx.fill();
+    grd.addColorStop(0,cBody);
+    grd.addColorStop(0.45,cBody2);
+    grd.addColorStop(0.55,cBody2);
+    grd.addColorStop(1,cBody);
+    ctx.fillStyle = grd;
+    ctx.fill();
 
-    // Sheen overlay
+    // Sheen highlight
     ctx.save();
     ctx.beginPath();
     LP.forEach((pt,i) => i ? ctx.lineTo(...pt) : ctx.moveTo(...pt));
     [...RP].reverse().forEach(pt => ctx.lineTo(...pt));
     ctx.closePath(); ctx.clip();
     const sh = ctx.createLinearGradient(0,py(hOD),0,py(-hOD));
-    sh.addColorStop(0,"rgba(180,200,255,0.10)");
-    sh.addColorStop(0.35,"rgba(220,230,255,0.46)");
-    sh.addColorStop(0.65,"rgba(220,230,255,0.46)");
-    sh.addColorStop(1,"rgba(180,200,255,0.10)");
+    sh.addColorStop(0,"rgba(255,255,255,0.08)");
+    sh.addColorStop(0.30,"rgba(255,255,255,0.28)");
+    sh.addColorStop(0.50,"rgba(255,255,255,0.32)");
+    sh.addColorStop(0.70,"rgba(255,255,255,0.28)");
+    sh.addColorStop(1,"rgba(255,255,255,0.08)");
     ctx.fillStyle=sh; ctx.fill();
     ctx.restore();
 
-    // ── Outline the lens ────────────────────────────────────────
+    // ── Outline ────────────────────────────────────────────────
     ctx.lineJoin="round"; ctx.lineCap="round";
     ctx.beginPath(); LP.forEach((pt,i)=>i?ctx.lineTo(...pt):ctx.moveTo(...pt));
-    ctx.strokeStyle=cA; ctx.lineWidth=2.2; ctx.stroke();
+    ctx.strokeStyle=cOutline; ctx.lineWidth=2.2; ctx.stroke();
     ctx.beginPath(); RP.forEach((pt,i)=>i?ctx.lineTo(...pt):ctx.moveTo(...pt));
-    ctx.strokeStyle=cA; ctx.lineWidth=2.2; ctx.stroke();
-    // Top and bottom rims
+    ctx.strokeStyle=cOutline; ctx.lineWidth=2.2; ctx.stroke();
     ctx.beginPath(); ctx.moveTo(...LP[0]);  ctx.lineTo(...RP[0]);
-    ctx.strokeStyle=cA; ctx.lineWidth=1.8; ctx.stroke();
+    ctx.strokeStyle=cOutline; ctx.lineWidth=1.6; ctx.stroke();
     ctx.beginPath(); ctx.moveTo(...LP[N]);  ctx.lineTo(...RP[N]);
-    ctx.strokeStyle=cA; ctx.lineWidth=1.8; ctx.stroke();
+    ctx.strokeStyle=cOutline; ctx.lineWidth=1.6; ctx.stroke();
 
-    // ── Helper: vertical double-headed arrow + rotated label ───
-    // arrowX: canvas x of arrow shaft
-    // topPx,botPx: canvas y of arrow ends
-    // side: 'left' = label sits to the left of shaft; 'right' = to the right
+    // ── Double-headed arrow helper ─────────────────────────────
     function drawVArrow(arrowX, topPx, botPx, labelText, color, side){
         const span = Math.abs(botPx - topPx);
         ctx.save();
         ctx.strokeStyle = color; ctx.lineWidth = 1.4;
         ctx.beginPath(); ctx.moveTo(arrowX, topPx); ctx.lineTo(arrowX, botPx); ctx.stroke();
         const ah = 5;
-        // Top arrowhead
         ctx.beginPath();
         ctx.moveTo(arrowX-ah, topPx+ah); ctx.lineTo(arrowX, topPx); ctx.lineTo(arrowX+ah, topPx+ah);
         ctx.stroke();
-        // Bottom arrowhead
         ctx.beginPath();
         ctx.moveTo(arrowX-ah, botPx-ah); ctx.lineTo(arrowX, botPx); ctx.lineTo(arrowX+ah, botPx-ah);
         ctx.stroke();
-        if(span >= 16){
+        if(span >= 14){
             const midY    = (topPx + botPx) / 2;
             const offX    = side === 'left' ? -12 : 12;
-            ctx.font      = "bold 10px 'Nunito',sans-serif";
+            ctx.font      = "bold 9.5px 'Nunito',sans-serif";
             ctx.fillStyle = color;
             ctx.translate(arrowX + offX, midY);
             ctx.rotate(side === 'left' ? -Math.PI/2 : Math.PI/2);
@@ -1453,46 +1445,44 @@ function drawLensCanvas(id, p, preview=false){
         ctx.restore();
     }
 
-    // ── CT annotation (horizontal, below axis) ─────────────────
+    // ── CT annotation ───────────────────────────────────────────
     const ctX1 = px(xs1_apex), ctX2 = px(xs2_apex);
     const ctArrY = Math.min(cy + Math.min(26, CH/2 - 20), CH - 24);
     if(Math.abs(ctX2 - ctX1) > 8){
         ctx.save();
-        ctx.strokeStyle = cA; ctx.lineWidth = 1.2;
-        // Tick stems
+        ctx.strokeStyle = cCT; ctx.lineWidth = 1.2;
         ctx.beginPath(); ctx.moveTo(ctX1, cy-3); ctx.lineTo(ctX1, ctArrY+4); ctx.stroke();
         ctx.beginPath(); ctx.moveTo(ctX2, cy-3); ctx.lineTo(ctX2, ctArrY+4); ctx.stroke();
-        // Horizontal arrow
         ctx.beginPath(); ctx.moveTo(ctX1, ctArrY); ctx.lineTo(ctX2, ctArrY); ctx.stroke();
         const ah=5;
         ctx.beginPath(); ctx.moveTo(ctX1+ah,ctArrY-3); ctx.lineTo(ctX1,ctArrY); ctx.lineTo(ctX1+ah,ctArrY+3); ctx.stroke();
         ctx.beginPath(); ctx.moveTo(ctX2-ah,ctArrY-3); ctx.lineTo(ctX2,ctArrY); ctx.lineTo(ctX2-ah,ctArrY+3); ctx.stroke();
-        ctx.font="bold 11px 'Nunito',sans-serif"; ctx.fillStyle=cA; ctx.textAlign="center";
+        ctx.font="bold 10.5px 'Nunito',sans-serif"; ctx.fillStyle=cCT; ctx.textAlign="center";
         ctx.fillText("CT="+CT.toFixed(2)+"mm", (ctX1+ctX2)/2, ctArrY+13);
         ctx.restore();
     }
 
-    // ── ET@CA annotation (above top rim) ───────────────────────
+    // ── ET@CA annotation ────────────────────────────────────────
     const etCA = edgeThicknessAt(s1,s2,CT,g1,g2);
     if(!isNaN(etCA) && etCA > 0){
         const etLeft  = px(xS1(hCA1));
         const etRight = px(xS2(hCA2));
         if(Math.abs(etRight-etLeft) > 12){
-            const etY = py(hOD) - 16;
+            const etY = py(hOD) - 14;
             ctx.save();
-            ctx.strokeStyle = preview ? "#64748b" : "#374151"; ctx.lineWidth=1.1;
+            ctx.strokeStyle = cET; ctx.lineWidth=1.1;
             ctx.beginPath(); ctx.moveTo(etLeft, etY); ctx.lineTo(etRight, etY); ctx.stroke();
             const ah=5;
             ctx.beginPath(); ctx.moveTo(etLeft+ah,etY-3); ctx.lineTo(etLeft,etY); ctx.lineTo(etLeft+ah,etY+3); ctx.stroke();
             ctx.beginPath(); ctx.moveTo(etRight-ah,etY-3); ctx.lineTo(etRight,etY); ctx.lineTo(etRight-ah,etY+3); ctx.stroke();
-            ctx.font="bold 10px 'Nunito',sans-serif"; ctx.fillStyle=preview?"#92400e":"#374151"; ctx.textAlign="center";
+            ctx.font="bold 9.5px 'Nunito',sans-serif"; ctx.fillStyle=cET; ctx.textAlign="center";
             ctx.fillText("ET@CA="+etCA.toFixed(2)+"mm", (etLeft+etRight)/2, etY-5);
             ctx.restore();
         }
     }
 
-    // ── S1 / S2 labels and ROC labels ──────────────────────────
-    ctx.font="bold 12px 'Nunito',sans-serif"; ctx.fillStyle=cA;
+    // ── S1 / S2 / ROC labels ────────────────────────────────────
+    ctx.font="bold 12px 'Nunito',sans-serif"; ctx.fillStyle=cOutline;
     const s1LblPt = LP[Math.round(N*0.12)];
     const s2LblPt = RP[Math.round(N*0.12)];
     ctx.textAlign="right"; ctx.fillText("S1", s1LblPt[0]-5, s1LblPt[1]-7);
@@ -1500,61 +1490,60 @@ function drawLensCanvas(id, p, preview=false){
     ctx.font="bold 10px 'Nunito',sans-serif";
     if(s1!=="plano"&&roc1>0){
         const pt=LP[Math.round(N*0.28)];
-        ctx.fillStyle=cAmb; ctx.textAlign="right";
+        ctx.fillStyle=cOD; ctx.textAlign="right";
         ctx.fillText("R1="+roc1.toFixed(1), pt[0]-4, pt[1]+4);
     }
     if(s2!=="plano"&&roc2>0){
         const pt=RP[Math.round(N*0.28)];
-        ctx.fillStyle=cAmb; ctx.textAlign="left";
+        ctx.fillStyle=cOD; ctx.textAlign="left";
         ctx.fillText("R2="+roc2.toFixed(1), pt[0]+4, pt[1]+4);
     }
     ctx.textAlign="left";
 
-    // ── Dashed tick extension lines ────────────────────────────
-    // These lead from the lens edge to each arrow shaft.
+    // ── Dashed extension lines ──────────────────────────────────
     ctx.save(); ctx.setLineDash([3,4]); ctx.lineWidth=0.7;
 
-    // CA1 ticks: from S1 surface at ±hCA1 → to ca1ArrowX
-    const ca1ArrowX = Z_CA1 - 10;   // fixed x, always 10px from left of CA1 zone
+    // CA1 ticks
+    const ca1ArrowX = Z_CA1 - 10;
     const xs1_ca1_top = px(xS1(hCA1));
     const xs1_ca1_bot = px(xS1(-hCA1));
     ctx.strokeStyle = cCA1;
     ctx.beginPath(); ctx.moveTo(xs1_ca1_top-2, py(hCA1));  ctx.lineTo(ca1ArrowX+2, py(hCA1));  ctx.stroke();
     ctx.beginPath(); ctx.moveTo(xs1_ca1_bot-2, py(-hCA1)); ctx.lineTo(ca1ArrowX+2, py(-hCA1)); ctx.stroke();
 
-    // OD ticks: from rightmost lens edge at ±hOD → to odArrowX
+    // OD ticks
     const ca2ZoneL  = CW - fixedR + Z_GAPR;
     const ca2ArrowX = ca2ZoneL + Z_CA2 / 2;
     const odArrowX  = ca2ZoneL + Z_CA2 + Z_GAPCA + Z_OD / 2;
-    // find rightmost x at ±hOD
     const xRimTop = Math.max(px(xS2(hOD)), px(xS1(hOD)));
     const xRimBot = Math.max(px(xS2(-hOD)), px(xS1(-hOD)));
     ctx.strokeStyle = cOD;
     ctx.beginPath(); ctx.moveTo(xRimTop+2, py(hOD));  ctx.lineTo(odArrowX-2, py(hOD));  ctx.stroke();
     ctx.beginPath(); ctx.moveTo(xRimBot+2, py(-hOD)); ctx.lineTo(odArrowX-2, py(-hOD)); ctx.stroke();
 
-    // CA2 ticks: only if CA2 < OD meaningfully
-    if(Math.abs(hCA2 - hOD) > 0.4){
-        const xs2_ca2_top = px(xS2(hCA2));
-        const xs2_ca2_bot = px(xS2(-hCA2));
-        ctx.strokeStyle = cCA2;
-        ctx.beginPath(); ctx.moveTo(xs2_ca2_top+2, py(hCA2));  ctx.lineTo(ca2ArrowX-2, py(hCA2));  ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(xs2_ca2_bot+2, py(-hCA2)); ctx.lineTo(ca2ArrowX-2, py(-hCA2)); ctx.stroke();
-    }
+    // CA2 ticks — ALWAYS drawn now (fix: CA2 missing)
+    const xs2_ca2_top = px(xS2(hCA2));
+    const xs2_ca2_bot = px(xS2(-hCA2));
+    ctx.strokeStyle = cCA2;
+    ctx.beginPath(); ctx.moveTo(xs2_ca2_top+2, py(hCA2));  ctx.lineTo(ca2ArrowX-2, py(hCA2));  ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(xs2_ca2_bot+2, py(-hCA2)); ctx.lineTo(ca2ArrowX-2, py(-hCA2)); ctx.stroke();
 
     ctx.restore();
 
-    // ── CA1 arrow — FIXED at left zone ────────────────────────
+    // ── CA1 arrow (always) ──────────────────────────────────────
     drawVArrow(ca1ArrowX, py(hCA1), py(-hCA1),
                "⌀CA1="+CA1.toFixed(2)+"mm", cCA1, 'left');
 
-    // ── CA2 arrow — only if CA2 differs from OD ───────────────
-    if(Math.abs(hCA2 - hOD) > 0.4){
-        drawVArrow(ca2ArrowX, py(hCA2), py(-hCA2),
-                   "⌀CA2="+CA2.toFixed(2)+"mm", cCA2, 'right');
-    }
+    // ── CA2 arrow (ALWAYS drawn — fix applied) ─────────────────
+    // Always show CA2; if very close to OD, still show but with a slight offset
+    const isCA2CloseToOD = Math.abs(hCA2 - hOD) < 0.2;
+    const ca2Label = isCA2CloseToOD ? "⌀CA2≈OD" : "⌀CA2="+CA2.toFixed(2)+"mm";
+    // Use slightly different X if close to OD to avoid overlap
+    const ca2ArrowXAdj = isCA2CloseToOD ? ca2ArrowX - 4 : ca2ArrowX;
+    drawVArrow(ca2ArrowXAdj, py(hCA2), py(-hCA2),
+               ca2Label, cCA2, 'right');
 
-    // ── OD arrow — FIXED at far right zone ────────────────────
+    // ── OD arrow (always) ──────────────────────────────────────
     drawVArrow(odArrowX, py(hOD), py(-hOD),
                "⌀OD="+OD.toFixed(2)+"mm", cOD, 'right');
 }
@@ -1609,9 +1598,7 @@ function liveDrawRect(){
 
 function clearCanvas(id){const c=document.getElementById(id);c.width=c.offsetWidth||320;c.getContext("2d").clearRect(0,0,c.width,c.height);}
 
-// ── Rectangular preview canvas ─────────────────────────────────
-// Fixed: now uses actual canvas.clientHeight (not offsetWidth*ratio) to avoid
-// stretching, and labels are always clamped inside.
+// ── Rectangular preview ──────────────────────────────────────
 function drawRectCanvas(id,{L,W,H}){
     const canvas=document.getElementById(id);
     const cW=canvas.offsetWidth||320;
@@ -1619,23 +1606,15 @@ function drawRectCanvas(id,{L,W,H}){
     canvas.width=cW; canvas.height=cH;
     const ctx=canvas.getContext("2d"); ctx.clearRect(0,0,cW,cH);
     if(L<=0||H<=0) return;
-
-    // Isometric-style 2.5D rect: draw front face + top face + right face
-    // using a simple oblique projection (top/right at 30°, depth=W*0.25)
     const PAD=22;
-    // Front face scale: fit L×H into (cW-PAD*2-depthPx) × (cH-PAD*2-depthPx)
     const maxW=cW-PAD*2, maxH=cH-PAD*2;
-    const depthRatio=0.28;  // W maps to this fraction of display size
+    const depthRatio=0.28;
     const sc=Math.min(maxW/(L*(1+depthRatio*0.6)), maxH/(H+L*depthRatio*0.35));
     const dw=L*sc, dh=H*sc;
-    const dxW=W*sc*depthRatio*0.7, dyW=W*sc*depthRatio*0.4; // oblique offset for W
-    // Bottom-left of front face
+    const dxW=W*sc*depthRatio*0.7, dyW=W*sc*depthRatio*0.4;
     const fx=(cW-dw-dxW)/2, fy=(cH-dh-dyW)/2+dyW;
 
-    // Shadow
     ctx.shadowColor="rgba(0,0,0,0.3)"; ctx.shadowBlur=8; ctx.shadowOffsetX=3; ctx.shadowOffsetY=3;
-
-    // Right face (shaded)
     ctx.beginPath();
     ctx.moveTo(fx+dw,fy);
     ctx.lineTo(fx+dw+dxW,fy-dyW);
@@ -1643,8 +1622,6 @@ function drawRectCanvas(id,{L,W,H}){
     ctx.lineTo(fx+dw,fy+dh);
     ctx.closePath();
     ctx.fillStyle="rgba(0,60,120,0.30)"; ctx.fill();
-
-    // Top face (medium shading)
     ctx.beginPath();
     ctx.moveTo(fx,fy);
     ctx.lineTo(fx+dxW,fy-dyW);
@@ -1652,48 +1629,33 @@ function drawRectCanvas(id,{L,W,H}){
     ctx.lineTo(fx+dw,fy);
     ctx.closePath();
     ctx.fillStyle="rgba(30,80,150,0.35)"; ctx.fill();
-
     ctx.shadowColor="transparent";
-
-    // Front face (main)
     ctx.beginPath(); ctx.roundRect(fx,fy,dw,dh,5); ctx.fillStyle="rgba(4,40,86,0.50)"; ctx.fill();
-
-    // Outline edges
     ctx.strokeStyle="#22d3ee"; ctx.lineWidth=1.8;
-    // Front face outline
     ctx.beginPath(); ctx.roundRect(fx,fy,dw,dh,5); ctx.stroke();
-    // Top face edges
     ctx.beginPath();
     ctx.moveTo(fx,fy); ctx.lineTo(fx+dxW,fy-dyW);
     ctx.lineTo(fx+dw+dxW,fy-dyW); ctx.lineTo(fx+dw,fy);
     ctx.stroke();
-    // Right face vertical edge
     ctx.beginPath();
     ctx.moveTo(fx+dw+dxW,fy-dyW); ctx.lineTo(fx+dw+dxW,fy-dyW+dh);
     ctx.stroke();
-    // Right face bottom edge
     ctx.beginPath();
     ctx.moveTo(fx+dw+dxW,fy-dyW+dh); ctx.lineTo(fx+dw,fy+dh);
     ctx.stroke();
-
-    // Centreline (dashed)
     const mY=fy+dh/2;
     ctx.save(); ctx.setLineDash([7,7]); ctx.strokeStyle="rgba(248,113,113,0.80)";
     ctx.lineWidth=1.3; ctx.beginPath(); ctx.moveTo(fx,mY); ctx.lineTo(fx+dw,mY); ctx.stroke();
     ctx.restore();
 
-    // Labels — clamp to keep inside canvas
     ctx.font="bold 9.5px 'Nunito',sans-serif"; ctx.fillStyle="#fbbf24"; ctx.textAlign="center";
-    // L label: below front face bottom edge, clamped
     const lLblY = Math.min(fy+dh+13, cH-4);
     ctx.fillText("L="+L.toFixed(2)+"mm", fx+dw/2, lLblY);
-    // H label: left of front face, rotated
     ctx.save();
     ctx.translate(Math.max(fx-8,12), fy+dh/2);
     ctx.rotate(-Math.PI/2);
     ctx.fillText("H="+H.toFixed(2)+"mm", 0, 0);
     ctx.restore();
-    // W label: along top-right oblique edge
     if(W>0){
         ctx.fillStyle="#22d3ee";
         ctx.save();
@@ -1735,20 +1697,57 @@ function _buildReportCanvas(callback){
     const cv=document.createElement('canvas');cv.width=W*SC;cv.height=H*SC;
     const ctx=cv.getContext('2d');ctx.scale(SC,SC);ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
     ctx.fillStyle='#ffffff';ctx.fillRect(0,0,W,H);
-    ctx.fillStyle='#111827';ctx.font='bold 20px Arial';ctx.fillText(mfr.substring(0,60),PAD,28);
-    ctx.fillStyle='#4b5563';ctx.font='13px Arial';ctx.fillText((website+(contact?' | '+contact:'')).substring(0,90),PAD,50);
-    ctx.strokeStyle='#e5e7eb';ctx.lineWidth=0.8;ctx.beginPath();ctx.moveTo(PAD,60);ctx.lineTo(W-PAD,60);ctx.stroke();
+
+    // ── HEADER: Logo on LEFT, company name to the RIGHT ──────
+    const logoW = 70, logoH = 40;
+    const logoX = PAD;
+    const logoY = 8;
+    if(_logoDataUrl){
+        const li=new Image();
+        li.onload=()=>{
+            ctx.drawImage(li, logoX, logoY, logoW, logoH);
+            _drawHeaderText(ctx, PAD + logoW + 12, logoY, logoH, mfr, website, contact);
+            _drawBody(ctx, hasCanvas, srcCanvas, SPLIT_W, DATA_W, CONTENT_H, HDR_H, PAD, sections, titleTxt, vendor, partno, dateVal, mfr, website, contact, H, FOOTER_H, W);
+            callback(cv);
+        };
+        li.onerror=()=>{
+            _drawHeaderText(ctx, PAD, logoY, logoH, mfr, website, contact);
+            _drawBody(ctx, hasCanvas, srcCanvas, SPLIT_W, DATA_W, CONTENT_H, HDR_H, PAD, sections, titleTxt, vendor, partno, dateVal, mfr, website, contact, H, FOOTER_H, W);
+            callback(cv);
+        };
+        li.src=_logoDataUrl;
+    } else {
+        _drawHeaderText(ctx, PAD, logoY, logoH, mfr, website, contact);
+        _drawBody(ctx, hasCanvas, srcCanvas, SPLIT_W, DATA_W, CONTENT_H, HDR_H, PAD, sections, titleTxt, vendor, partno, dateVal, mfr, website, contact, H, FOOTER_H, W);
+        callback(cv);
+    }
+}
+
+function _drawHeaderText(ctx, x, y, logoH, mfr, website, contact){
+    ctx.fillStyle='#111827';
+    ctx.font='bold 18px Arial';
+    ctx.fillText(mfr.substring(0,60), x, y + 18);
+    ctx.fillStyle='#4b5563';
+    ctx.font='12px Arial';
+    ctx.fillText((website+(contact?' | '+contact:'')).substring(0,90), x, y + 36);
+    ctx.strokeStyle='#e5e7eb';
+    ctx.lineWidth=0.8;
+    ctx.beginPath();
+    ctx.moveTo(PAD, 60);
+    ctx.lineTo(W-PAD, 60);
+    ctx.stroke();
+}
+
+function _drawBody(ctx, hasCanvas, srcCanvas, SPLIT_W, DATA_W, CONTENT_H, HDR_H, PAD, sections, titleTxt, vendor, partno, dateVal, mfr, website, contact, H, FOOTER_H, W){
+    const bodyY=HDR_H;
     const fW=Math.floor((W-PAD*2)/4);
     [['TO / VENDOR',vendor],['TITLE',titleTxt],['PART NO.',partno],['DATE',dateVal]].forEach(([lbl,val],i)=>{const fx=PAD+i*fW;ctx.font='bold 10px Arial';ctx.fillStyle='#6b7280';ctx.fillText(lbl,fx,76);ctx.font='bold 13px Arial';ctx.fillStyle=lbl==='PART NO.'?'#b45309':'#111827';ctx.fillText((val||'—').substring(0,Math.floor(fW/7)),fx,94);});
-    const bodyY=HDR_H;
-    const liveC=document.getElementById('c-canvas')||document.getElementById('r-canvas');
-    const actualSrc=(liveC&&liveC.width>0)?liveC:srcCanvas;
-    if(hasCanvas&&actualSrc){
+    if(hasCanvas&&srcCanvas){
         ctx.fillStyle='#f1f3f5';ctx.fillRect(0,bodyY,SPLIT_W,CONTENT_H);
         ctx.fillStyle='#374151';ctx.font='bold 10px Arial';ctx.textAlign='center';ctx.fillText('CROSS-SECTION PREVIEW',SPLIT_W/2,bodyY+16);ctx.textAlign='left';
-        const cw=SPLIT_W-16, ch=Math.round(cw*actualSrc.height/actualSrc.width);
+        const cw=SPLIT_W-16, ch=Math.round(cw*srcCanvas.height/srcCanvas.width);
         const cOffY=Math.max(0,Math.round((CONTENT_H-ch)/2));
-        ctx.drawImage(actualSrc,0,0,actualSrc.width,actualSrc.height,8,bodyY+22+cOffY,cw,ch);
+        ctx.drawImage(srcCanvas,0,0,srcCanvas.width,srcCanvas.height,8,bodyY+22+cOffY,cw,ch);
         ctx.fillStyle='#c8d8e8';ctx.fillRect(SPLIT_W,bodyY,1,CONTENT_H);
     }
     const dataX=(hasCanvas?SPLIT_W:0)+PAD, dataRight=dataX+DATA_W;
@@ -1770,8 +1769,6 @@ function _buildReportCanvas(callback){
     ctx.strokeStyle='#e5e7eb';ctx.lineWidth=0.8;ctx.beginPath();ctx.moveTo(0,fy);ctx.lineTo(W,fy);ctx.stroke();
     ctx.fillStyle='#374151';ctx.font='11px Arial';ctx.textAlign='center';
     ctx.fillText('Generated by OptiCost LRMCE v1.2  |  '+mfr+'  |  '+website+(contact?' | '+contact:''),W/2,fy+FOOTER_H/2+5);ctx.textAlign='left';
-    if(_logoDataUrl){const li=new Image();li.onload=()=>{ctx.drawImage(li,W-PAD-70,8,60,36);callback(cv);};li.onerror=()=>callback(cv);li.src=_logoDataUrl;}
-    else callback(cv);
 }
 
 let _modalOkCb=null;
@@ -1786,7 +1783,7 @@ const THEMES=['dark','light','white','warm','green','steel','purple','red'];
 function setTheme(t){document.documentElement.setAttribute('data-theme',t==='dark'?'':t);THEMES.forEach(x=>{const el=document.getElementById('sw-'+x);if(el)el.classList.toggle('active',x===t);});try{localStorage.setItem('opticost_theme',t);}catch(e){}liveDrawLens();}
 function toggleThemePanel(){document.getElementById('theme-panel').classList.toggle('open');}
 
-function showAbout(){showModal("About OptiCost LRMCE","OptiCost — LRMCE v1.2\n\nDeveloped by:\n  Priya Gavshinde\n  Sr. Optical Engineer\n  Optics & Allied Engg. Pvt. Ltd.\n\nContact:\n  www.opticsindia.com\n  +91-9886654729\n  info@opticsindia.com\n\n© 2025 Optics & Allied Engg. Pvt. Ltd.");}
+function showAbout(){showModal("About OptiCost LRMCE","OptiCost — LRMCE v1.3\n\nDeveloped by:\n  Priya Gavshinde\n  Sr. Optical Engineer\n  Optics & Allied Engg. Pvt. Ltd.\n\nContact:\n  www.opticsindia.com\n  +91-9886654729\n  info@opticsindia.com\n\n© 2025 Optics & Allied Engg. Pvt. Ltd.");}
 
 window.addEventListener('DOMContentLoaded',()=>{
     loadMaterials();

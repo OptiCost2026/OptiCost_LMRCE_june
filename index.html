@@ -1,5 +1,3 @@
-
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -13,7 +11,14 @@
     <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet" />
     <style>
         *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
-        :root{--bg:#060e18;--topbar:#020a12;--surface:#0c1d30;--footer-bg:#010709;--surf2:#091624;--inp:#040f1c;--inp-brd:#1a8ad4;--accent:#22d3ee;--accent2:#c084fc;--green:#4ade80;--amber:#fbbf24;--red:#f87171;--text:#e8f4ff;--muted:#7db0cc;--border:#0e2e4e;--tag-txt:#060e18;--footer-txt:#3e7498;--radius:10px;--font:'Nunito',sans-serif;--font-mono:'Share Tech Mono',monospace;--font-head:'Rajdhani',sans-serif;}
+        :root{
+            --bg:#060e18;--topbar:#020a12;--surface:#0c1d30;--footer-bg:#010709;
+            --surf2:#091624;--inp:#040f1c;--inp-brd:#1a8ad4;--accent:#22d3ee;
+            --accent2:#c084fc;--green:#4ade80;--amber:#fbbf24;--red:#f87171;
+            --text:#e8f4ff;--muted:#7db0cc;--border:#0e2e4e;--tag-txt:#060e18;
+            --footer-txt:#3e7498;--radius:10px;--font:'Nunito',sans-serif;
+            --font-mono:'Share Tech Mono',monospace;--font-head:'Rajdhani',sans-serif;
+        }
         [data-theme="light"]{--bg:#f4f7fb;--topbar:#ffffff;--surface:#ffffff;--footer-bg:#e2e8f0;--surf2:#eaf0f7;--inp:#f8fafc;--inp-brd:#3b82f6;--accent:#1d4ed8;--accent2:#7c3aed;--green:#16a34a;--amber:#b45309;--red:#dc2626;--text:#0f172a;--muted:#475569;--border:#cbd5e1;--tag-txt:#ffffff;--footer-txt:#334155}
         [data-theme="white"]{--bg:#ffffff;--topbar:#ffffff;--surface:#f8f8f8;--footer-bg:#ececec;--surf2:#f0f0f0;--inp:#ffffff;--inp-brd:#888;--accent:#222222;--accent2:#555555;--green:#166534;--amber:#92400e;--red:#b91c1c;--text:#111111;--muted:#555555;--border:#dddddd;--tag-txt:#ffffff;--footer-txt:#444444}
         [data-theme="warm"]{--bg:#1a1208;--topbar:#120d04;--surface:#231808;--footer-bg:#0d0904;--surf2:#1c1306;--inp:#120d04;--inp-brd:#c47c20;--accent:#f59e0b;--accent2:#f87171;--green:#4ade80;--amber:#fbbf24;--red:#f87171;--text:#fef3c7;--muted:#b08040;--border:#3d2a0a;--tag-txt:#120d04;--footer-txt:#8a6030}
@@ -171,8 +176,24 @@
         #file-viewer-content iframe{width:100%;height:100%;border:none;background:#fff;border-radius:8px}
         #file-viewer-content pre{color:#e8f4ff;font-family:'Share Tech Mono',monospace;font-size:.78rem;white-space:pre-wrap;word-break:break-word;background:#091624;padding:14px;border-radius:8px;width:100%}
         @media(min-width:480px){body{max-width:480px;margin:0 auto}.theme-fab{right:calc(50% - 240px)}.theme-panel{right:calc(50% - 240px + 20px)}}
-        @media(max-width:414px){.tab{font-size:.76rem;padding:5px 10px}main{padding:9px 9px 120px}.card{padding:11px}.actbar button{font-size:.79rem;padding:10px 3px}.meta-grid{grid-template-columns:1fr}#res-split-wrap{flex-direction:row}#res-canvas-col{flex:0 0 38%;max-width:38%}.export-grid{grid-template-columns:1fr}.file-actions{grid-template-columns:1fr 1fr}.res-row{flex-wrap:wrap}.res-lbl{flex:1 1 60px;min-width:60px}.res-val-inp{flex:1 1 80px;min-width:60px}}
-        @media(max-width:320px){#res-split-wrap{flex-direction:column}#res-canvas-col{flex:0 0 auto;max-width:100%;border-right:none;border-bottom:1px solid #c8d8e8}}
+        @media(max-width:414px){
+            .tab{font-size:.76rem;padding:5px 10px}
+            main{padding:9px 9px 120px}
+            .card{padding:11px}
+            .actbar button{font-size:.79rem;padding:10px 3px}
+            .meta-grid{grid-template-columns:1fr}
+            #res-split-wrap{flex-direction:row}
+            #res-canvas-col{flex:0 0 38%;max-width:38%}
+            .export-grid{grid-template-columns:1fr}
+            .file-actions{grid-template-columns:1fr 1fr}
+            .res-row{flex-wrap:wrap}
+            .res-lbl{flex:1 1 60px;min-width:60px}
+            .res-val-inp{flex:1 1 80px;min-width:60px}
+        }
+        @media(max-width:320px){
+            #res-split-wrap{flex-direction:column}
+            #res-canvas-col{flex:0 0 auto;max-width:100%;border-right:none;border-bottom:1px solid #c8d8e8}
+        }
         .toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:10px;padding:10px 20px;font-size:.85rem;font-weight:600;z-index:999;box-shadow:0 6px 24px rgba(0,0,0,0.6);max-width:90%;text-align:center;display:none;transition:opacity .25s}
         .toast.show{display:block;animation:toastIn .22s ease}
         .toast.success{border-color:var(--green);color:var(--green)}
@@ -707,9 +728,30 @@ function _putUser(obj){return _openDB().then(db=>new Promise((res,rej)=>{const r
 function _deleteUser(username){return _openDB().then(db=>new Promise((res,rej)=>{const req=db.transaction("users","readwrite").objectStore("users").delete(username);req.onsuccess=()=>res();req.onerror=e=>rej(e.target.error);}));}
 function _seedDefaultUser(){_getAllUsers().then(users=>{if(!users["optica"]){const exp=new Date();exp.setFullYear(exp.getFullYear()+10);_putUser({username:"optica",password:btoa("shreeganesha"),expires:exp.toISOString()});}}).catch(()=>{});}
 
-function _saveLogoForUser(username,dataUrl){return _openDB().then(db=>new Promise((res,rej)=>{const tx=db.transaction("logos","readwrite");tx.objectStore("logos").put({username,data:dataUrl,ts:Date.now()});tx.oncomplete=()=>res();tx.onerror=e=>rej(e.target.error);}));}
-function _getLogoForUser(username){return _openDB().then(db=>new Promise((res,rej)=>{const req=db.transaction("logos","readonly").objectStore("logos").get(username);req.onsuccess=()=>res(req.result?req.result.data:null);req.onerror=e=>rej(e.target.error);}));}
-function _deleteLogoForUser(username){return _openDB().then(db=>new Promise((res,rej)=>{const tx=db.transaction("logos","readwrite");tx.objectStore("logos").delete(username);tx.oncomplete=()=>res();tx.onerror=e=>rej(e.target.error);}));}
+// ---- Logo persistence ----
+function _saveLogoForUser(username,dataUrl){
+    return _openDB().then(db=>new Promise((res,rej)=>{
+        const tx=db.transaction("logos","readwrite");
+        tx.objectStore("logos").put({username,data:dataUrl,ts:Date.now()});
+        tx.oncomplete=()=>res();
+        tx.onerror=e=>rej(e.target.error);
+    }));
+}
+function _getLogoForUser(username){
+    return _openDB().then(db=>new Promise((res,rej)=>{
+        const req=db.transaction("logos","readonly").objectStore("logos").get(username);
+        req.onsuccess=()=>res(req.result?req.result.data:null);
+        req.onerror=e=>rej(e.target.error);
+    }));
+}
+function _deleteLogoForUser(username){
+    return _openDB().then(db=>new Promise((res,rej)=>{
+        const tx=db.transaction("logos","readwrite");
+        tx.objectStore("logos").delete(username);
+        tx.oncomplete=()=>res();
+        tx.onerror=e=>rej(e.target.error);
+    }));
+}
 
 let currentUser=null, recs=[];
 let _logoDataUrl = "";
@@ -729,6 +771,7 @@ function doLogin(){
         try{if(remember&&remember.checked){localStorage.setItem("opticost_saved_user",u);localStorage.setItem("opticost_saved_pass",btoa(p));}else{localStorage.removeItem("opticost_saved_user");localStorage.removeItem("opticost_saved_pass");}}catch(e){}
         try{sessionStorage.setItem("opticost_session",u);}catch(e){}
         document.getElementById("logged-in-label").textContent="👤 "+u;
+        // Load logo for this user
         _getLogoForUser(u).then(data=>{
             if(data){_logoDataUrl=data;document.getElementById("logo-img").src=data;document.getElementById("logo-preview").style.display="block";const img=new Image();img.onload=()=>{_logoImageObj=img;};img.onerror=()=>{_logoImageObj=null;};img.src=data;}
             showScreen("screen-main");
@@ -949,6 +992,7 @@ function mirrorCanvasToResults(srcId){
     });});
 }
 
+// ---- LOGO HANDLING with persistence ----
 function loadLogoFile(inp){
     const file=inp.files[0];if(!file)return;
     const r=new FileReader();
@@ -960,7 +1004,10 @@ function loadLogoFile(inp){
         img.onload=function(){_logoImageObj=this;};
         img.onerror=function(){_logoImageObj=null;};
         img.src=_logoDataUrl;
-        if(currentUser){_saveLogoForUser(currentUser,_logoDataUrl).catch(()=>{});}
+        // Save to IndexedDB for this user
+        if(currentUser){
+            _saveLogoForUser(currentUser,_logoDataUrl).catch(()=>{});
+        }
     };
     r.readAsDataURL(file);
 }
@@ -969,7 +1016,9 @@ function clearLogo(){
     document.getElementById("logo-preview").style.display="none";
     document.getElementById("logo-img").src="";
     document.getElementById("snap-logo-box").style.display="none";
-    if(currentUser){_deleteLogoForUser(currentUser).catch(()=>{});}
+    if(currentUser){
+        _deleteLogoForUser(currentUser).catch(()=>{});
+    }
 }
 
 function refreshSnapHeader(){
@@ -1006,21 +1055,57 @@ function showToast(msg,type){
     _toastTimer=setTimeout(()=>{el.className='toast';el.style.display='none';},3600);
 }
 
-// ── SILENT DIRECT DOWNLOAD — no share popup ──
-function _saveBlob(blob, fname){
-    _storeFile(fname, blob).catch(()=>{});
+function _saveBlob(blob, defaultFname){
+    _storeFile(defaultFname, blob).catch(()=>{});
+    if(window.Android && typeof window.Android.saveFile === 'function'){
+        try{
+            const reader = new FileReader();
+            reader.onload = function(e){
+                const base64 = e.target.result.split(',')[1];
+                window.Android.saveFile(defaultFname, blob.type || 'application/octet-stream', base64);
+                showToast('✅ Saved: '+defaultFname,'success');
+            };
+            reader.onerror = function(){ _fallbackDownload(blob, defaultFname); };
+            reader.readAsDataURL(blob);
+            return;
+        }catch(e){}
+    }
+    if(navigator.share){
+        try{
+            const file = new File([blob], defaultFname, {type: blob.type});
+            if(!navigator.canShare || navigator.canShare({files:[file]})){
+                navigator.share({files:[file], title: defaultFname})
+                    .then(()=>{ showToast('✅ Shared: '+defaultFname,'success'); })
+                    .catch((err)=>{
+                        if(err.name!=='AbortError') _fallbackDownload(blob, defaultFname);
+                        else showToast('⏹ Share cancelled','');
+                    });
+                return;
+            }
+        }catch(e){}
+    }
+    _fallbackDownload(blob, defaultFname);
+}
+
+function _fallbackDownload(blob, fname){
     try{
-        const url=URL.createObjectURL(blob);
-        const a=document.createElement('a');
-        a.href=url; a.download=fname;
-        a.style.display='none';
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = fname;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
-        setTimeout(()=>URL.revokeObjectURL(url),10000);
-        showToast('⬇ Saved: '+fname,'success');
+        showToast('⬇ Downloading: '+fname,'success');
+        setTimeout(()=>URL.revokeObjectURL(url), 8000);
     }catch(e){
-        showToast('❌ Save failed: '+e.message,'error');
+        try{
+            const url = URL.createObjectURL(blob);
+            window.open(url, '_blank');
+            showToast('📂 File opened in new tab','');
+            setTimeout(()=>URL.revokeObjectURL(url), 8000);
+        }catch(e2){
+            showToast('❌ Could not save file. Try PNG or Word export.','error');
+        }
     }
 }
 
@@ -1038,7 +1123,7 @@ function doSaveXLSX(){
 
 function saveReportImage(){
     if(!recs.length){showToast('⚠ No data — calculate first.','error');return;}
-    showToast('🖼 Generating image…','');
+    showToast('🖼 Generating high‑resolution image…','');
     setTimeout(()=>{
         try{
             _buildReportCanvas(cv=>{
@@ -1048,8 +1133,8 @@ function saveReportImage(){
                     _saveBlob(blob,'OptiCost_'+ts+'.png');
                 },'image/png');
             });
-        }catch(e){showToast('❌ '+e.message,'error');}
-    },80);
+        }catch(e){showToast('❌ Image build error: '+e.message,'error');}
+    },120);
 }
 
 function _escHtml(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
@@ -1136,7 +1221,12 @@ let _fvScale=1;
 let _fvOriginX=0,_fvOriginY=0;
 let _fvPinchDist0=0,_fvPinchScale0=1;
 let _fvPanStart=null,_fvPanOffset0={x:0,y:0};
-function _applyTransform(){const container=document.getElementById('fv-img-container');if(!container)return;container.style.transform=`translate(${_fvOriginX}px,${_fvOriginY}px) scale(${_fvScale})`;document.getElementById('zoom-level').textContent=_fvScale.toFixed(1)+'×';}
+function _applyTransform(){
+    const container=document.getElementById('fv-img-container');
+    if(!container)return;
+    container.style.transform=`translate(${_fvOriginX}px,${_fvOriginY}px) scale(${_fvScale})`;
+    document.getElementById('zoom-level').textContent=_fvScale.toFixed(1)+'×';
+}
 function zoomStep(delta){_fvScale=Math.max(0.2,Math.min(8,_fvScale+delta));_applyTransform();}
 function resetZoom(){_fvScale=1;_fvOriginX=0;_fvOriginY=0;_applyTransform();}
 function _getTouchDist(touches){const dx=touches[0].clientX-touches[1].clientX;const dy=touches[0].clientY-touches[1].clientY;return Math.sqrt(dx*dx+dy*dy);}
@@ -1146,16 +1236,28 @@ function _initImageViewer(src,title){
     const content=document.getElementById('file-viewer-content');
     const zoomBar=document.getElementById('file-viewer-zoom');
     document.getElementById('file-viewer-title').textContent=title;
-    viewport.style.display='block';content.style.display='none';zoomBar.style.display='flex';
+    viewport.style.display='block';
+    content.style.display='none';
+    zoomBar.style.display='flex';
     _fvScale=1;_fvOriginX=0;_fvOriginY=0;
-    document.getElementById('fv-img').src=src;
-    document.getElementById('fv-img-container').style.transform='translate(0,0) scale(1)';
+    const img=document.getElementById('fv-img');
+    img.src=src;
+    const container=document.getElementById('fv-img-container');
+    container.style.transform='translate(0,0) scale(1)';
     document.getElementById('zoom-level').textContent='1.0×';
     overlay.style.display='flex';
-    viewport.ontouchstart=_fvTouchStart;viewport.ontouchmove=_fvTouchMove;viewport.ontouchend=_fvTouchEnd;
+    viewport.ontouchstart=_fvTouchStart;
+    viewport.ontouchmove=_fvTouchMove;
+    viewport.ontouchend=_fvTouchEnd;
 }
-function _fvTouchStart(e){if(e.touches.length===2){e.preventDefault();_fvPinchDist0=_getTouchDist(e.touches);_fvPinchScale0=_fvScale;}else if(e.touches.length===1){_fvPanStart={x:e.touches[0].clientX,y:e.touches[0].clientY};_fvPanOffset0={x:_fvOriginX,y:_fvOriginY};}}
-function _fvTouchMove(e){if(e.touches.length===2){e.preventDefault();const dist=_getTouchDist(e.touches);_fvScale=Math.max(0.2,Math.min(8,_fvPinchScale0*(dist/_fvPinchDist0)));_applyTransform();}else if(e.touches.length===1&&_fvPanStart&&_fvScale>1){e.preventDefault();_fvOriginX=_fvPanOffset0.x+(e.touches[0].clientX-_fvPanStart.x);_fvOriginY=_fvPanOffset0.y+(e.touches[0].clientY-_fvPanStart.y);_applyTransform();}}
+function _fvTouchStart(e){
+    if(e.touches.length===2){e.preventDefault();_fvPinchDist0=_getTouchDist(e.touches);_fvPinchScale0=_fvScale;}
+    else if(e.touches.length===1){_fvPanStart={x:e.touches[0].clientX,y:e.touches[0].clientY};_fvPanOffset0={x:_fvOriginX,y:_fvOriginY};}
+}
+function _fvTouchMove(e){
+    if(e.touches.length===2){e.preventDefault();const dist=_getTouchDist(e.touches);_fvScale=Math.max(0.2,Math.min(8,_fvPinchScale0*(dist/_fvPinchDist0)));_applyTransform();}
+    else if(e.touches.length===1&&_fvPanStart&&_fvScale>1){e.preventDefault();_fvOriginX=_fvPanOffset0.x+(e.touches[0].clientX-_fvPanStart.x);_fvOriginY=_fvPanOffset0.y+(e.touches[0].clientY-_fvPanStart.y);_applyTransform();}
+}
 function _fvTouchEnd(e){if(e.touches.length<2)_fvPinchDist0=0;if(e.touches.length===0)_fvPanStart=null;}
 
 function viewStoredFile(fname){
@@ -1167,7 +1269,10 @@ function viewStoredFile(fname){
         const zoomBar=document.getElementById('file-viewer-zoom');
         document.getElementById('file-viewer-title').textContent=rec.fname;
         if(rec.mime.startsWith('image/')){_initImageViewer(rec.data,rec.fname);return;}
-        viewport.style.display='none';content.style.display='flex';content.innerHTML='';zoomBar.style.display='none';
+        viewport.style.display='none';
+        content.style.display='flex';
+        content.innerHTML='';
+        zoomBar.style.display='none';
         if(rec.mime.startsWith('text/')||rec.fname.endsWith('.csv')){
             try{const b64=rec.data.split(',')[1];const txt=decodeURIComponent(escape(atob(b64)));const pre=document.createElement('pre');pre.textContent=txt.slice(0,50000)+(txt.length>50000?'\n\n… (truncated)':'');content.appendChild(pre);overlay.style.display='flex';}
             catch(e){_downloadFallback(rec);}
@@ -1181,12 +1286,14 @@ function viewStoredFile(fname){
         _downloadFallback(rec);
     }).catch(e=>showModal('Error',e.message));
 }
-function _downloadFallback(rec){try{const blob=_blobFromDataUri(rec.data,rec.mime);_saveBlob(blob,rec.fname);}catch(e){showModal('Error','Cannot open: '+e.message);}}
+function _downloadFallback(rec){try{const blob=_blobFromDataUri(rec.data,rec.mime);_fallbackDownload(blob,rec.fname);}catch(e){showModal('Error','Cannot open: '+e.message);}}
 function closeFileViewer(){
-    document.getElementById('file-viewer-overlay').style.display='none';
+    const overlay=document.getElementById('file-viewer-overlay');
+    overlay.style.display='none';
     document.getElementById('file-viewer-viewport').style.display='none';
     const content=document.getElementById('file-viewer-content');
-    content.style.display='none';content.innerHTML='';
+    content.style.display='none';
+    content.innerHTML='';
     document.getElementById('fv-img').src='';
     resetZoom();
 }
@@ -1194,7 +1301,9 @@ function shareStoredFile(fname){
     _getStoredFile(fname).then(rec=>{
         if(!rec){showToast('❌ File not found.','error');return;}
         const blob=_blobFromDataUri(rec.data,rec.mime);
-        _saveBlob(blob,rec.fname);
+        if(navigator.share){try{const file=new File([blob],rec.fname,{type:rec.mime});if(!navigator.canShare||navigator.canShare({files:[file]})){navigator.share({files:[file],title:rec.fname}).then(()=>showToast('✅ Shared: '+rec.fname,'success')).catch(()=>_fallbackDownload(blob,rec.fname));return;}}catch(e){}}
+        if(window.Android&&typeof window.Android.saveFile==='function'){try{const reader=new FileReader();reader.onload=e=>{window.Android.saveFile(rec.fname,rec.mime,e.target.result.split(',')[1]);showToast('✅ Saved: '+rec.fname,'success');};reader.readAsDataURL(blob);return;}catch(e){}}
+        _fallbackDownload(blob,rec.fname);
     }).catch(e=>showToast('❌ '+e.message,'error'));
 }
 function deleteStoredFile(fname){showConfirm('Delete',"Remove '"+fname+"'?",()=>{_deleteFileDB(fname).then(()=>renderFilesLib()).catch(()=>renderFilesLib());});}
@@ -1227,19 +1336,33 @@ function drawLensCanvas(id,p,preview=false){
     const roc1=parseFloat(document.getElementById("s1ri").value)||0;
     const roc2=parseFloat(document.getElementById("s2ri").value)||0;
     const cs=getComputedStyle(document.documentElement);
-    const cOutline=preview?'rgba(30,58,138,0.9)':'rgba(200,210,220,0.85)';
+    const accent=cs.getPropertyValue('--accent').trim()||'#22d3ee';
+    const accent2=cs.getPropertyValue('--accent2').trim()||'#c084fc';
+    const text=cs.getPropertyValue('--text').trim()||'#e8f4ff';
+    const muted=cs.getPropertyValue('--muted').trim()||'#7db0cc';
+    const surface=cs.getPropertyValue('--surface').trim()||'#0c1d30';
+    const bg=cs.getPropertyValue('--bg').trim()||'#060e18';
     const cBody=preview?'rgba(30,58,138,0.85)':'rgba(40,44,52,0.88)';
     const cBody2=preview?'rgba(99,102,241,0.70)':'rgba(160,168,180,0.78)';
-    const cCA1='#4f46e5';const cCA2='#6366f1';const cOD='#b45309';
-    const cCT=preview?'#1a3a6e':'#a0b0c0';const cET=preview?'#92400e':'#8899aa';
+    const cOutline=preview?'rgba(30,58,138,0.9)':'rgba(200,210,220,0.85)';
+    const cCA1='#4f46e5';
+    const cCA2='#6366f1';
+    const cOD='#b45309';
+    const cCT=preview?'#1a3a6e':'#a0b0c0';
+    const cET=preview?'#92400e':'#8899aa';
 
     function errOverlay(msg){
         const CH=Math.max(CW,200);canvas.width=CW;canvas.height=CH;
         const ctx=canvas.getContext("2d");ctx.clearRect(0,0,CW,CH);
         ctx.fillStyle="rgba(248,113,113,0.13)";ctx.fillRect(0,0,CW,CH);
-        ctx.strokeStyle="#f87171";ctx.lineWidth=1.5;ctx.setLineDash([6,4]);ctx.strokeRect(4,4,CW-8,CH-8);ctx.setLineDash([]);
-        ctx.fillStyle="#f87171";ctx.textAlign="center";ctx.font="bold 13px 'Nunito',sans-serif";ctx.fillText("⚠ Impossible Geometry",CW/2,CH/2-14);
-        ctx.font="11px 'Nunito',sans-serif";ctx.fillText((msg||"").length>52?(msg||"").slice(0,50)+"…":(msg||""),CW/2,CH/2+6);ctx.textAlign="left";
+        ctx.strokeStyle="#f87171";ctx.lineWidth=1.5;ctx.setLineDash([6,4]);
+        ctx.strokeRect(4,4,CW-8,CH-8);ctx.setLineDash([]);
+        ctx.fillStyle="#f87171";ctx.textAlign="center";
+        ctx.font="bold 13px 'Nunito',sans-serif";
+        ctx.fillText("⚠ Impossible Geometry",CW/2,CH/2-14);
+        ctx.font="11px 'Nunito',sans-serif";
+        ctx.fillText((msg||"").length>52?(msg||"").slice(0,50)+"…":(msg||""),CW/2,CH/2+6);
+        ctx.textAlign="left";
     }
     if(OD<=0||CT<=0)return;
     if(s1!=="plano"&&roc1>0&&roc1<OD/2){errOverlay("S1 ROC "+roc1.toFixed(2)+" < OD/2 "+(OD/2).toFixed(2));return;}
@@ -1252,16 +1375,29 @@ function drawLensCanvas(id,p,preview=false){
         return gMax*(aY/hChord)**2;
     }
     const hOD=OD/2,hCA1=CA1/2,hCA2=CA2/2;
-    function xS1(y){const sg=getSag(roc1,hCA1,g1,Math.abs(y));if(s1==="convex")return -CT/2-g1+sg;if(s1==="concave")return -CT/2-sg;return -CT/2;}
-    function xS2(y){const sg=getSag(roc2,hCA2,g2,Math.abs(y));if(s2==="convex")return CT/2+g2-sg;if(s2==="concave")return CT/2+sg;return CT/2;}
+    function xS1(y){
+        const sg=getSag(roc1,hCA1,g1,Math.abs(y));
+        if(s1==="convex")return -CT/2-g1+sg;
+        if(s1==="concave")return -CT/2-sg;
+        return -CT/2;
+    }
+    function xS2(y){
+        const sg=getSag(roc2,hCA2,g2,Math.abs(y));
+        if(s2==="convex")return CT/2+g2-sg;
+        if(s2==="concave")return CT/2+sg;
+        return CT/2;
+    }
     const xs1_apex=xS1(0),xs2_apex=xS2(0);
     const xs1_rim=xS1(hOD),xs2_rim=xS2(hOD);
     const xMin=Math.min(xs1_apex,xs1_rim)-0.3;
     const xMax=Math.max(xs2_apex,xs2_rim)+0.3;
-    const Z_CA1=54,Z_GAPL=4,Z_GAPR=6,Z_CA2=36,Z_GAPCA=6,Z_OD=38,Z_RPAD=6;
-    const fixedL=Z_CA1+Z_GAPL;const fixedR=Z_GAPR+Z_CA2+Z_GAPCA+Z_OD+Z_RPAD;
+    const Z_CA1=54,Z_GAPL=4;
+    const Z_GAPR=6,Z_CA2=36,Z_GAPCA=6,Z_OD=38,Z_RPAD=6;
+    const fixedL=Z_CA1+Z_GAPL;
+    const fixedR=Z_GAPR+Z_CA2+Z_GAPCA+Z_OD+Z_RPAD;
     const drawableW=CW-fixedL-fixedR;
-    const physW=xMax-xMin;const physH=OD;
+    const physW=xMax-xMin;
+    const physH=OD;
     const sX=drawableW/Math.max(physW,0.001);
     const padY=Math.max(Math.round(physH*sX*0.14),32);
     const sY=(400-padY*2)/Math.max(physH,0.001);
@@ -1269,42 +1405,84 @@ function drawLensCanvas(id,p,preview=false){
     if(s<=0)return;
     const CH=Math.max(Math.min(Math.round(physH*s+padY*2),430),200);
     canvas.width=CW;canvas.height=CH;
-    const ctx=canvas.getContext("2d");ctx.clearRect(0,0,CW,CH);
+    const ctx=canvas.getContext("2d");
+    ctx.clearRect(0,0,CW,CH);
     const bodyCenter=fixedL+drawableW/2;
     const lensPhysCenter=(xMin+xMax)/2;
-    const ox=bodyCenter-lensPhysCenter*s;const cy=CH/2;
-    const px=xmm=>ox+xmm*s;const py=ymm=>cy-ymm*s;
+    const ox=bodyCenter-lensPhysCenter*s;
+    const cy=CH/2;
+    const px=xmm=>ox+xmm*s;
+    const py=ymm=>cy-ymm*s;
     const N=260;
     const ys=[];for(let i=0;i<=N;i++)ys.push(hOD-OD*i/N);
-    const LP=ys.map(y=>[px(xS1(y)),py(y)]);const RP=ys.map(y=>[px(xS2(y)),py(y)]);
-    ctx.beginPath();LP.forEach((pt,i)=>i?ctx.lineTo(...pt):ctx.moveTo(...pt));[...RP].reverse().forEach(pt=>ctx.lineTo(...pt));ctx.closePath();
+    const LP=ys.map(y=>[px(xS1(y)),py(y)]);
+    const RP=ys.map(y=>[px(xS2(y)),py(y)]);
+
+    ctx.beginPath();
+    LP.forEach((pt,i)=>i?ctx.lineTo(...pt):ctx.moveTo(...pt));
+    [...RP].reverse().forEach(pt=>ctx.lineTo(...pt));
+    ctx.closePath();
     const grd=ctx.createLinearGradient(px(xs1_apex),0,px(xs2_apex),0);
-    grd.addColorStop(0,cBody);grd.addColorStop(0.45,cBody2);grd.addColorStop(0.55,cBody2);grd.addColorStop(1,cBody);
+    grd.addColorStop(0,cBody);
+    grd.addColorStop(0.45,cBody2);
+    grd.addColorStop(0.55,cBody2);
+    grd.addColorStop(1,cBody);
     ctx.fillStyle=grd;ctx.fill();
-    ctx.save();ctx.beginPath();LP.forEach((pt,i)=>i?ctx.lineTo(...pt):ctx.moveTo(...pt));[...RP].reverse().forEach(pt=>ctx.lineTo(...pt));ctx.closePath();ctx.clip();
+
+    ctx.save();
+    ctx.beginPath();
+    LP.forEach((pt,i)=>i?ctx.lineTo(...pt):ctx.moveTo(...pt));
+    [...RP].reverse().forEach(pt=>ctx.lineTo(...pt));
+    ctx.closePath();ctx.clip();
     const sh=ctx.createLinearGradient(0,py(hOD),0,py(-hOD));
-    sh.addColorStop(0,"rgba(255,255,255,0.08)");sh.addColorStop(0.30,"rgba(255,255,255,0.28)");sh.addColorStop(0.50,"rgba(255,255,255,0.32)");sh.addColorStop(0.70,"rgba(255,255,255,0.28)");sh.addColorStop(1,"rgba(255,255,255,0.08)");
-    ctx.fillStyle=sh;ctx.fill();ctx.restore();
+    sh.addColorStop(0,"rgba(255,255,255,0.08)");
+    sh.addColorStop(0.30,"rgba(255,255,255,0.28)");
+    sh.addColorStop(0.50,"rgba(255,255,255,0.32)");
+    sh.addColorStop(0.70,"rgba(255,255,255,0.28)");
+    sh.addColorStop(1,"rgba(255,255,255,0.08)");
+    ctx.fillStyle=sh;ctx.fill();
+    ctx.restore();
+
     ctx.lineJoin="round";ctx.lineCap="round";
-    ctx.beginPath();LP.forEach((pt,i)=>i?ctx.lineTo(...pt):ctx.moveTo(...pt));ctx.strokeStyle=cOutline;ctx.lineWidth=2.2;ctx.stroke();
-    ctx.beginPath();RP.forEach((pt,i)=>i?ctx.lineTo(...pt):ctx.moveTo(...pt));ctx.strokeStyle=cOutline;ctx.lineWidth=2.2;ctx.stroke();
-    ctx.beginPath();ctx.moveTo(...LP[0]);ctx.lineTo(...RP[0]);ctx.strokeStyle=cOutline;ctx.lineWidth=1.6;ctx.stroke();
-    ctx.beginPath();ctx.moveTo(...LP[N]);ctx.lineTo(...RP[N]);ctx.strokeStyle=cOutline;ctx.lineWidth=1.6;ctx.stroke();
+    ctx.beginPath();LP.forEach((pt,i)=>i?ctx.lineTo(...pt):ctx.moveTo(...pt));
+    ctx.strokeStyle=cOutline;ctx.lineWidth=2.2;ctx.stroke();
+    ctx.beginPath();RP.forEach((pt,i)=>i?ctx.lineTo(...pt):ctx.moveTo(...pt));
+    ctx.strokeStyle=cOutline;ctx.lineWidth=2.2;ctx.stroke();
+    ctx.beginPath();ctx.moveTo(...LP[0]);ctx.lineTo(...RP[0]);
+    ctx.strokeStyle=cOutline;ctx.lineWidth=1.6;ctx.stroke();
+    ctx.beginPath();ctx.moveTo(...LP[N]);ctx.lineTo(...RP[N]);
+    ctx.strokeStyle=cOutline;ctx.lineWidth=1.6;ctx.stroke();
 
     function drawVArrow(arrowX,topPx,botPx,labelText,color,side){
         const span=Math.abs(botPx-topPx);
-        ctx.save();ctx.strokeStyle=color;ctx.lineWidth=1.4;
+        ctx.save();
+        ctx.strokeStyle=color;ctx.lineWidth=1.4;
         ctx.beginPath();ctx.moveTo(arrowX,topPx);ctx.lineTo(arrowX,botPx);ctx.stroke();
         const ah=5;
-        ctx.beginPath();ctx.moveTo(arrowX-ah,topPx+ah);ctx.lineTo(arrowX,topPx);ctx.lineTo(arrowX+ah,topPx+ah);ctx.stroke();
-        ctx.beginPath();ctx.moveTo(arrowX-ah,botPx-ah);ctx.lineTo(arrowX,botPx);ctx.lineTo(arrowX+ah,botPx-ah);ctx.stroke();
-        if(span>=14){const midY=(topPx+botPx)/2;const offX=side==='left'?-12:12;ctx.font="bold 9.5px 'Nunito',sans-serif";ctx.fillStyle=color;ctx.translate(arrowX+offX,midY);ctx.rotate(side==='left'?-Math.PI/2:Math.PI/2);ctx.textAlign="center";ctx.fillText(labelText,0,4);}
+        ctx.beginPath();
+        ctx.moveTo(arrowX-ah,topPx+ah);ctx.lineTo(arrowX,topPx);ctx.lineTo(arrowX+ah,topPx+ah);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(arrowX-ah,botPx-ah);ctx.lineTo(arrowX,botPx);ctx.lineTo(arrowX+ah,botPx-ah);
+        ctx.stroke();
+        if(span>=14){
+            const midY=(topPx+botPx)/2;
+            const offX=side==='left'?-12:12;
+            ctx.font="bold 9.5px 'Nunito',sans-serif";
+            ctx.fillStyle=color;
+            ctx.translate(arrowX+offX,midY);
+            ctx.rotate(side==='left'?-Math.PI/2:Math.PI/2);
+            ctx.textAlign="center";
+            ctx.fillText(labelText,0,4);
+        }
         ctx.restore();
     }
+
     const ctX1=px(xs1_apex),ctX2=px(xs2_apex);
     const ctArrY=Math.min(cy+Math.min(26,CH/2-20),CH-24);
     if(Math.abs(ctX2-ctX1)>8){
-        ctx.save();ctx.strokeStyle=cCT;ctx.lineWidth=1.2;
+        ctx.save();
+        ctx.strokeStyle=cCT;ctx.lineWidth=1.2;
         ctx.beginPath();ctx.moveTo(ctX1,cy-3);ctx.lineTo(ctX1,ctArrY+4);ctx.stroke();
         ctx.beginPath();ctx.moveTo(ctX2,cy-3);ctx.lineTo(ctX2,ctArrY+4);ctx.stroke();
         ctx.beginPath();ctx.moveTo(ctX1,ctArrY);ctx.lineTo(ctX2,ctArrY);ctx.stroke();
@@ -1312,48 +1490,75 @@ function drawLensCanvas(id,p,preview=false){
         ctx.beginPath();ctx.moveTo(ctX1+ah,ctArrY-3);ctx.lineTo(ctX1,ctArrY);ctx.lineTo(ctX1+ah,ctArrY+3);ctx.stroke();
         ctx.beginPath();ctx.moveTo(ctX2-ah,ctArrY-3);ctx.lineTo(ctX2,ctArrY);ctx.lineTo(ctX2-ah,ctArrY+3);ctx.stroke();
         ctx.font="bold 10.5px 'Nunito',sans-serif";ctx.fillStyle=cCT;ctx.textAlign="center";
-        ctx.fillText("CT="+CT.toFixed(2)+"mm",(ctX1+ctX2)/2,ctArrY+13);ctx.restore();
+        ctx.fillText("CT="+CT.toFixed(2)+"mm",(ctX1+ctX2)/2,ctArrY+13);
+        ctx.restore();
     }
+
     const etCA=edgeThicknessAt(s1,s2,CT,g1,g2);
     if(!isNaN(etCA)&&etCA>0){
-        const etLeft=px(xS1(hCA1)),etRight=px(xS2(hCA2));
+        const etLeft=px(xS1(hCA1));
+        const etRight=px(xS2(hCA2));
         if(Math.abs(etRight-etLeft)>12){
-            const etY=py(hOD)-14;ctx.save();ctx.strokeStyle=cET;ctx.lineWidth=1.1;
+            const etY=py(hOD)-14;
+            ctx.save();
+            ctx.strokeStyle=cET;ctx.lineWidth=1.1;
             ctx.beginPath();ctx.moveTo(etLeft,etY);ctx.lineTo(etRight,etY);ctx.stroke();
             const ah=5;
             ctx.beginPath();ctx.moveTo(etLeft+ah,etY-3);ctx.lineTo(etLeft,etY);ctx.lineTo(etLeft+ah,etY+3);ctx.stroke();
             ctx.beginPath();ctx.moveTo(etRight-ah,etY-3);ctx.lineTo(etRight,etY);ctx.lineTo(etRight-ah,etY+3);ctx.stroke();
             ctx.font="bold 9.5px 'Nunito',sans-serif";ctx.fillStyle=cET;ctx.textAlign="center";
-            ctx.fillText("ET@CA="+etCA.toFixed(2)+"mm",(etLeft+etRight)/2,etY-5);ctx.restore();
+            ctx.fillText("ET@CA="+etCA.toFixed(2)+"mm",(etLeft+etRight)/2,etY-5);
+            ctx.restore();
         }
     }
+
     ctx.font="bold 12px 'Nunito',sans-serif";ctx.fillStyle=cOutline;
-    const s1LblPt=LP[Math.round(N*0.12)];const s2LblPt=RP[Math.round(N*0.12)];
+    const s1LblPt=LP[Math.round(N*0.12)];
+    const s2LblPt=RP[Math.round(N*0.12)];
     ctx.textAlign="right";ctx.fillText("S1",s1LblPt[0]-5,s1LblPt[1]-7);
     ctx.textAlign="left";ctx.fillText("S2",s2LblPt[0]+5,s2LblPt[1]-7);
     ctx.font="bold 10px 'Nunito',sans-serif";
-    if(s1!=="plano"&&roc1>0){const pt=LP[Math.round(N*0.28)];ctx.fillStyle=cOD;ctx.textAlign="right";ctx.fillText("R1="+roc1.toFixed(1),pt[0]-4,pt[1]+4);}
-    if(s2!=="plano"&&roc2>0){const pt=RP[Math.round(N*0.28)];ctx.fillStyle=cOD;ctx.textAlign="left";ctx.fillText("R2="+roc2.toFixed(1),pt[0]+4,pt[1]+4);}
+    if(s1!=="plano"&&roc1>0){
+        const pt=LP[Math.round(N*0.28)];
+        ctx.fillStyle=cOD;ctx.textAlign="right";
+        ctx.fillText("R1="+roc1.toFixed(1),pt[0]-4,pt[1]+4);
+    }
+    if(s2!=="plano"&&roc2>0){
+        const pt=RP[Math.round(N*0.28)];
+        ctx.fillStyle=cOD;ctx.textAlign="left";
+        ctx.fillText("R2="+roc2.toFixed(1),pt[0]+4,pt[1]+4);
+    }
     ctx.textAlign="left";
+
     ctx.save();ctx.setLineDash([3,4]);ctx.lineWidth=0.7;
     const ca1ArrowX=Z_CA1-10;
-    const xs1_ca1_top=px(xS1(hCA1)),xs1_ca1_bot=px(xS1(-hCA1));
+    const xs1_ca1_top=px(xS1(hCA1));
+    const xs1_ca1_bot=px(xS1(-hCA1));
     ctx.strokeStyle=cCA1;
     ctx.beginPath();ctx.moveTo(xs1_ca1_top-2,py(hCA1));ctx.lineTo(ca1ArrowX+2,py(hCA1));ctx.stroke();
     ctx.beginPath();ctx.moveTo(xs1_ca1_bot-2,py(-hCA1));ctx.lineTo(ca1ArrowX+2,py(-hCA1));ctx.stroke();
-    const ca2ZoneL=CW-fixedR+Z_GAPR;const ca2ArrowX=ca2ZoneL+Z_CA2/2;const odArrowX=ca2ZoneL+Z_CA2+Z_GAPCA+Z_OD/2;
-    const xRimTop=Math.max(px(xS2(hOD)),px(xS1(hOD)));const xRimBot=Math.max(px(xS2(-hOD)),px(xS1(-hOD)));
+
+    const ca2ZoneL=CW-fixedR+Z_GAPR;
+    const ca2ArrowX=ca2ZoneL+Z_CA2/2;
+    const odArrowX=ca2ZoneL+Z_CA2+Z_GAPCA+Z_OD/2;
+    const xRimTop=Math.max(px(xS2(hOD)),px(xS1(hOD)));
+    const xRimBot=Math.max(px(xS2(-hOD)),px(xS1(-hOD)));
     ctx.strokeStyle=cOD;
     ctx.beginPath();ctx.moveTo(xRimTop+2,py(hOD));ctx.lineTo(odArrowX-2,py(hOD));ctx.stroke();
     ctx.beginPath();ctx.moveTo(xRimBot+2,py(-hOD));ctx.lineTo(odArrowX-2,py(-hOD));ctx.stroke();
-    const xs2_ca2_top=px(xS2(hCA2)),xs2_ca2_bot=px(xS2(-hCA2));
+
+    const xs2_ca2_top=px(xS2(hCA2));
+    const xs2_ca2_bot=px(xS2(-hCA2));
     ctx.strokeStyle=cCA2;
     ctx.beginPath();ctx.moveTo(xs2_ca2_top+2,py(hCA2));ctx.lineTo(ca2ArrowX-2,py(hCA2));ctx.stroke();
     ctx.beginPath();ctx.moveTo(xs2_ca2_bot+2,py(-hCA2));ctx.lineTo(ca2ArrowX-2,py(-hCA2));ctx.stroke();
     ctx.restore();
+
     drawVArrow(ca1ArrowX,py(hCA1),py(-hCA1),"⌀CA1="+CA1.toFixed(2)+"mm",cCA1,'left');
     const isCA2CloseToOD=Math.abs(hCA2-hOD)<0.2;
-    drawVArrow(isCA2CloseToOD?ca2ArrowX-4:ca2ArrowX,py(hCA2),py(-hCA2),isCA2CloseToOD?"⌀CA2≈OD":"⌀CA2="+CA2.toFixed(2)+"mm",cCA2,'right');
+    const ca2Label=isCA2CloseToOD?"⌀CA2≈OD":"⌀CA2="+CA2.toFixed(2)+"mm";
+    const ca2ArrowXAdj=isCA2CloseToOD?ca2ArrowX-4:ca2ArrowX;
+    drawVArrow(ca2ArrowXAdj,py(hCA2),py(-hCA2),ca2Label,cCA2,'right');
     drawVArrow(odArrowX,py(hOD),py(-hOD),"⌀OD="+OD.toFixed(2)+"mm",cOD,'right');
 }
 
@@ -1409,28 +1614,70 @@ function clearCanvas(id){const c=document.getElementById(id);c.width=c.offsetWid
 
 function drawRectCanvas(id,{L,W,H}){
     const canvas=document.getElementById(id);
-    const cW=canvas.offsetWidth||320;const cH=parseInt(canvas.getAttribute("height"))||130;
+    const cW=canvas.offsetWidth||320;
+    const cH=parseInt(canvas.getAttribute("height"))||130;
     canvas.width=cW;canvas.height=cH;
     const ctx=canvas.getContext("2d");ctx.clearRect(0,0,cW,cH);
     if(L<=0||H<=0)return;
-    const PAD=22;const maxW=cW-PAD*2,maxH=cH-PAD*2;const depthRatio=0.28;
+    const PAD=22;
+    const maxW=cW-PAD*2,maxH=cH-PAD*2;
+    const depthRatio=0.28;
     const sc=Math.min(maxW/(L*(1+depthRatio*0.6)),maxH/(H+L*depthRatio*0.35));
-    const dw=L*sc,dh=H*sc;const dxW=W*sc*depthRatio*0.7,dyW=W*sc*depthRatio*0.4;
+    const dw=L*sc,dh=H*sc;
+    const dxW=W*sc*depthRatio*0.7,dyW=W*sc*depthRatio*0.4;
     const fx=(cW-dw-dxW)/2,fy=(cH-dh-dyW)/2+dyW;
+
     ctx.shadowColor="rgba(0,0,0,0.3)";ctx.shadowBlur=8;ctx.shadowOffsetX=3;ctx.shadowOffsetY=3;
-    ctx.beginPath();ctx.moveTo(fx+dw,fy);ctx.lineTo(fx+dw+dxW,fy-dyW);ctx.lineTo(fx+dw+dxW,fy-dyW+dh);ctx.lineTo(fx+dw,fy+dh);ctx.closePath();ctx.fillStyle="rgba(0,60,120,0.30)";ctx.fill();
-    ctx.beginPath();ctx.moveTo(fx,fy);ctx.lineTo(fx+dxW,fy-dyW);ctx.lineTo(fx+dw+dxW,fy-dyW);ctx.lineTo(fx+dw,fy);ctx.closePath();ctx.fillStyle="rgba(30,80,150,0.35)";ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(fx+dw,fy);
+    ctx.lineTo(fx+dw+dxW,fy-dyW);
+    ctx.lineTo(fx+dw+dxW,fy-dyW+dh);
+    ctx.lineTo(fx+dw,fy+dh);
+    ctx.closePath();
+    ctx.fillStyle="rgba(0,60,120,0.30)";ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(fx,fy);
+    ctx.lineTo(fx+dxW,fy-dyW);
+    ctx.lineTo(fx+dw+dxW,fy-dyW);
+    ctx.lineTo(fx+dw,fy);
+    ctx.closePath();
+    ctx.fillStyle="rgba(30,80,150,0.35)";ctx.fill();
     ctx.shadowColor="transparent";
     ctx.beginPath();ctx.roundRect(fx,fy,dw,dh,5);ctx.fillStyle="rgba(4,40,86,0.50)";ctx.fill();
-    ctx.strokeStyle="#22d3ee";ctx.lineWidth=1.8;ctx.beginPath();ctx.roundRect(fx,fy,dw,dh,5);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(fx,fy);ctx.lineTo(fx+dxW,fy-dyW);ctx.lineTo(fx+dw+dxW,fy-dyW);ctx.lineTo(fx+dw,fy);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(fx+dw+dxW,fy-dyW);ctx.lineTo(fx+dw+dxW,fy-dyW+dh);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(fx+dw+dxW,fy-dyW+dh);ctx.lineTo(fx+dw,fy+dh);ctx.stroke();
-    const mY=fy+dh/2;ctx.save();ctx.setLineDash([7,7]);ctx.strokeStyle="rgba(248,113,113,0.80)";ctx.lineWidth=1.3;ctx.beginPath();ctx.moveTo(fx,mY);ctx.lineTo(fx+dw,mY);ctx.stroke();ctx.restore();
+    ctx.strokeStyle="#22d3ee";ctx.lineWidth=1.8;
+    ctx.beginPath();ctx.roundRect(fx,fy,dw,dh,5);ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(fx,fy);ctx.lineTo(fx+dxW,fy-dyW);
+    ctx.lineTo(fx+dw+dxW,fy-dyW);ctx.lineTo(fx+dw,fy);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(fx+dw+dxW,fy-dyW);ctx.lineTo(fx+dw+dxW,fy-dyW+dh);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(fx+dw+dxW,fy-dyW+dh);ctx.lineTo(fx+dw,fy+dh);
+    ctx.stroke();
+    const mY=fy+dh/2;
+    ctx.save();ctx.setLineDash([7,7]);ctx.strokeStyle="rgba(248,113,113,0.80)";
+    ctx.lineWidth=1.3;ctx.beginPath();ctx.moveTo(fx,mY);ctx.lineTo(fx+dw,mY);ctx.stroke();
+    ctx.restore();
+
     ctx.font="bold 9.5px 'Nunito',sans-serif";ctx.fillStyle="#fbbf24";ctx.textAlign="center";
-    ctx.fillText("L="+L.toFixed(2)+"mm",fx+dw/2,Math.min(fy+dh+13,cH-4));
-    ctx.save();ctx.translate(Math.max(fx-8,12),fy+dh/2);ctx.rotate(-Math.PI/2);ctx.fillText("H="+H.toFixed(2)+"mm",0,0);ctx.restore();
-    if(W>0){ctx.fillStyle="#22d3ee";ctx.save();ctx.translate(fx+dw+dxW/2+4,fy-dyW/2-4);ctx.rotate(Math.atan2(-dyW,dxW));ctx.textAlign="center";ctx.fillText("W="+W.toFixed(2)+"mm",0,0);ctx.restore();}
+    const lLblY=Math.min(fy+dh+13,cH-4);
+    ctx.fillText("L="+L.toFixed(2)+"mm",fx+dw/2,lLblY);
+    ctx.save();
+    ctx.translate(Math.max(fx-8,12),fy+dh/2);
+    ctx.rotate(-Math.PI/2);
+    ctx.fillText("H="+H.toFixed(2)+"mm",0,0);
+    ctx.restore();
+    if(W>0){
+        ctx.fillStyle="#22d3ee";
+        ctx.save();
+        ctx.translate(fx+dw+dxW/2+4,fy-dyW/2-4);
+        ctx.rotate(Math.atan2(-dyW,dxW));
+        ctx.textAlign="center";
+        ctx.fillText("W="+W.toFixed(2)+"mm",0,0);
+        ctx.restore();
+    }
     ctx.textAlign="left";
 }
 
@@ -1438,179 +1685,116 @@ if(!CanvasRenderingContext2D.prototype.roundRect){
     CanvasRenderingContext2D.prototype.roundRect=function(x,y,w,h,r){if(r>w/2)r=w/2;if(r>h/2)r=h/2;this.moveTo(x+r,y);this.lineTo(x+w-r,y);this.quadraticCurveTo(x+w,y,x+w,y+r);this.lineTo(x+w,y+h-r);this.quadraticCurveTo(x+w,y+h,x+w-r,y+h);this.lineTo(x+r,y+h);this.quadraticCurveTo(x,y+h,x,y+h-r);this.lineTo(x,y+r);this.quadraticCurveTo(x,y,x+r,y);return this;};
 }
 
-// ─── HIGH-RES PNG REPORT — SC=16 for print-quality output ───────────────────
+// ─── HIGH‑RES PNG REPORT (SC=8 for ultra crisp, no PAD scoping issues) ───
 function _buildReportCanvas(callback){
     refreshSnapHeader();
-    const g=id=>{const el=document.getElementById(id);return el?(el.textContent||el.value||''):'';};
+    const g=id=>(document.getElementById(id)||{}).textContent||(document.getElementById(id)||{}).value||'';
     const mfr=g('snap-mfr-txt')||'Optics & Allied Engg. Pvt. Ltd. (OPTICA)';
-    const vendor=g('snap-vendor-txt')||'—';
-    const titleTxt=g('snap-title-txt')||'Lens Cost Estimation';
-    const partno=g('snap-partno-txt')||'—';
-    const dateVal=g('snap-date-txt')||new Date().toLocaleDateString();
+    const vendor=g('snap-vendor-txt')||'—',titleTxt=g('snap-title-txt')||'Lens Cost Estimation';
+    const partno=g('snap-partno-txt')||'—',dateVal=g('snap-date-txt')||new Date().toLocaleDateString();
     const website=(document.getElementById('rpt-website')||{}).value||'www.opticsindia.com';
     const contact=(document.getElementById('rpt-contact')||{}).value||'+91-9886654729';
-
-    // Collect result rows
     const sections=[];
     document.querySelectorAll('#result-text .res-section').forEach(sec=>{
         const hdr=sec.querySelector('.res-sec-hdr');
-        const srows=[];
-        sec.querySelectorAll('.res-row').forEach(r=>{
-            const lblEl=r.querySelector('.res-lbl'),inp=r.querySelector('.res-val-inp');
-            if(lblEl&&inp)srows.push({lbl:lblEl.textContent||'',val:inp.value||'',green:inp.classList.contains('green'),amber:inp.classList.contains('amber')});
-        });
+        const srows=[];sec.querySelectorAll('.res-row').forEach(r=>{const lblEl=r.querySelector('.res-lbl'),inp=r.querySelector('.res-val-inp');if(lblEl&&inp)srows.push({lbl:lblEl.textContent||'',val:inp.value||'',green:inp.classList.contains('green'),amber:inp.classList.contains('amber')});});
         sections.push({hdr:hdr?hdr.textContent.trim():'',rows:srows});
     });
+    const srcCanvas=document.getElementById('res-canvas');
+    const hasCanvas=srcCanvas&&srcCanvas.width>0&&srcCanvas.height>0;
 
-    // Source canvas (lens drawing — already rendered at full internal resolution)
-    const srcCanvas=document.getElementById('c-canvas').width>10?document.getElementById('c-canvas'):document.getElementById('r-canvas');
-    const hasCanvas=srcCanvas&&srcCanvas.width>10&&srcCanvas.height>10;
-
-    // Layout constants (logical pixels — will be scaled by SC)
-    const SC=16;          // 16× supersampling → ~5000px wide output
-    const W=1400;         // logical width
-    const P=32;
-    const HDR_H=130;
-    const FOOTER_H=52;
-    const ROW_H=36;
-    const SEC_H=34;
-    const GAP=14;
-    const TITLE_ROW=46;
-
-    // Compute data column height
-    let dataH=TITLE_ROW+12;
-    sections.forEach(s=>{dataH+=SEC_H;s.rows.forEach(()=>dataH+=ROW_H);dataH+=GAP;});
-
-    // Canvas area: left=lens cross-section, right=data
-    const SPLIT_W=hasCanvas?Math.round(W*0.36):0;
-    const DATA_W=W-SPLIT_W-(hasCanvas?P*3:P*2);
-
-    // Lens image dimensions, preserving aspect ratio
-    const lensAspect=hasCanvas?(srcCanvas.height/srcCanvas.width):0;
-    const lensDrawW=SPLIT_W-P*2;
-    const lensDrawH=hasCanvas?Math.round(lensDrawW*lensAspect):0;
-
-    const CONTENT_H=Math.max(lensDrawH+P*2+30, dataH)+P;
+    // Ultra‑high resolution: SC=8 for crisp A4 prints
+    const SC=8;
+    const W=1200, P=28, HDR_H=120, FOOTER_H=48, ROW_H=34, SEC_H=32, GAP=12, TITLE_ROW=40;
+    let dataH=TITLE_ROW+8;sections.forEach(s=>{dataH+=SEC_H;s.rows.forEach(()=>dataH+=ROW_H);dataH+=GAP;});
+    const SPLIT_W=hasCanvas?Math.round(W*0.38):0;
+    const DATA_W=W-SPLIT_W-P*3;
+    const CONTENT_H=Math.max(hasCanvas?Math.round(SPLIT_W*srcCanvas.height/srcCanvas.width):0,dataH)+P;
     const H=HDR_H+CONTENT_H+FOOTER_H;
+    const cv=document.createElement('canvas');cv.width=W*SC;cv.height=H*SC;
+    const ctx=cv.getContext('2d');ctx.scale(SC,SC);ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
+    ctx.fillStyle='#ffffff';ctx.fillRect(0,0,W,H);
 
-    // Create ultra-high-res canvas
-    const cv=document.createElement('canvas');
-    cv.width=W*SC;
-    cv.height=H*SC;
-    const ctx=cv.getContext('2d');
-    ctx.scale(SC,SC);
-    ctx.imageSmoothingEnabled=true;
-    ctx.imageSmoothingQuality='high';
+    const logoW=80,logoH=46;
+    const logoX=P,logoY=8;
 
-    // White background
-    ctx.fillStyle='#ffffff';
-    ctx.fillRect(0,0,W,H);
-
-    function render(logoImg){
-        // ── HEADER ──
-        const logoW=90,logoH=52;
-        let textStartX=P;
-        if(logoImg){
-            // Draw logo preserving aspect ratio
-            const la=logoImg.naturalWidth/logoImg.naturalHeight;
-            const lw=Math.min(logoW,logoH*la);
-            const lh=Math.min(logoH,logoW/la);
-            ctx.drawImage(logoImg,P,(HDR_H-lh)/2,lw,lh);
-            textStartX=P+lw+16;
-        }
-        ctx.fillStyle='#0f172a';
-        ctx.font='bold 22px Arial,sans-serif';
-        ctx.fillText(mfr.substring(0,70),textStartX,40);
-        ctx.fillStyle='#475569';
-        ctx.font='14px Arial,sans-serif';
-        ctx.fillText((website+(contact?' | '+contact:'')).substring(0,100),textStartX,64);
-
-        // Divider line
-        ctx.strokeStyle='#e2e8f0';ctx.lineWidth=1.5;
-        ctx.beginPath();ctx.moveTo(P,78);ctx.lineTo(W-P,78);ctx.stroke();
-
-        // Meta grid (To, Title, Part, Date)
-        const fields=[['TO / VENDOR',vendor],['TITLE',titleTxt],['PART NO.',partno],['DATE',dateVal]];
-        const fw=Math.floor((W-P*2)/4);
-        fields.forEach(([lbl,val],i)=>{
-            const fx=P+i*fw;
-            ctx.font='bold 11px Arial,sans-serif';ctx.fillStyle='#64748b';
-            ctx.fillText(lbl,fx,100);
-            ctx.font='bold 15px Arial,sans-serif';
-            ctx.fillStyle=lbl==='PART NO.'?'#b45309':'#0f172a';
-            ctx.fillText((val||'—').substring(0,Math.floor(fw/8.5)),fx,120);
-        });
-
-        // ── BODY ──
-        const bodyY=HDR_H;
-
-        // Lens image panel (left)
-        if(hasCanvas&&srcCanvas){
-            ctx.fillStyle='#f0f4ff';
-            ctx.fillRect(0,bodyY,SPLIT_W,CONTENT_H);
-            // Label
-            ctx.font='bold 13px Arial,sans-serif';ctx.fillStyle='#374151';ctx.textAlign='center';
-            ctx.fillText('CROSS-SECTION PREVIEW',SPLIT_W/2,bodyY+22);ctx.textAlign='left';
-            // Draw lens canvas content, preserving exact aspect ratio
-            const drawX=P;
-            const drawY=bodyY+34;
-            ctx.drawImage(srcCanvas,0,0,srcCanvas.width,srcCanvas.height,drawX,drawY,lensDrawW,lensDrawH);
-            // Separator
-            ctx.strokeStyle='#c8d8e8';ctx.lineWidth=1.5;
-            ctx.beginPath();ctx.moveTo(SPLIT_W,bodyY);ctx.lineTo(SPLIT_W,bodyY+CONTENT_H);ctx.stroke();
-        }
-
-        // Data panel (right)
-        const dataX=(hasCanvas?SPLIT_W:0)+P;
-        const dataRight=dataX+DATA_W;
-        let dy=bodyY+P;
-
-        ctx.fillStyle='#0f172a';ctx.font='bold 20px Arial,sans-serif';
-        ctx.fillText(titleTxt.substring(0,80),dataX,dy+20);dy+=TITLE_ROW;
-
-        sections.forEach(sec=>{
-            // Section header
-            ctx.fillStyle='#dbeafe';ctx.fillRect(dataX,dy,DATA_W,SEC_H-2);
-            ctx.fillStyle='#1e3a5f';ctx.font='bold 13px Arial,sans-serif';
-            ctx.fillText((sec.hdr||'').toUpperCase(),dataX+10,dy+SEC_H-10);dy+=SEC_H;
-            // Rows
-            sec.rows.forEach(r=>{
-                const bg=r.green?'#f0fdf4':r.amber?'#fffbeb':'#ffffff';
-                ctx.fillStyle=bg;ctx.fillRect(dataX,dy,DATA_W,ROW_H-1);
-                ctx.fillStyle='#334155';ctx.font='13px Arial,sans-serif';
-                ctx.fillText(r.lbl||'',dataX+10,dy+ROW_H-11);
-                const vc=r.green?'#15803d':r.amber?'#92400e':'#0f172a';
-                ctx.fillStyle=vc;ctx.font=r.green||r.amber?'bold 14px Arial,sans-serif':'13px Arial,sans-serif';
-                ctx.textAlign='right';ctx.fillText(r.val||'',dataRight-6,dy+ROW_H-11);ctx.textAlign='left';
-                ctx.strokeStyle='#e2e8f0';ctx.lineWidth=0.5;
-                ctx.beginPath();ctx.moveTo(dataX,dy+ROW_H-1);ctx.lineTo(dataRight,dy+ROW_H-1);ctx.stroke();
-                dy+=ROW_H;
-            });
-            dy+=GAP;
-        });
-
-        // ── FOOTER ──
-        const fy=H-FOOTER_H;
-        ctx.fillStyle='#f8fafc';ctx.fillRect(0,fy,W,FOOTER_H);
-        ctx.strokeStyle='#e2e8f0';ctx.lineWidth=1;
-        ctx.beginPath();ctx.moveTo(0,fy);ctx.lineTo(W,fy);ctx.stroke();
-        ctx.fillStyle='#64748b';ctx.font='12px Arial,sans-serif';ctx.textAlign='center';
-        ctx.fillText('Generated by OptiCost LRMCE v1.3  |  '+mfr+'  |  '+website+(contact?' | '+contact:''),W/2,fy+FOOTER_H/2+5);
-        ctx.textAlign='left';
-
-        callback(cv);
+    function drawHeaderText(cx, ox, oy, oh, mf, ws, ct){
+        cx.fillStyle='#111827';
+        cx.font='bold 20px Arial';
+        cx.fillText(mf.substring(0,60), ox, oy+20);
+        cx.fillStyle='#4b5563';
+        cx.font='13px Arial';
+        cx.fillText((ws+(ct?' | '+ct:'')).substring(0,90), ox, oy+40);
+        cx.strokeStyle='#e5e7eb';
+        cx.lineWidth=1;
+        cx.beginPath();
+        cx.moveTo(P,64);
+        cx.lineTo(W-P,64);
+        cx.stroke();
     }
 
-    // Load logo then render
-    if(_logoImageObj&&_logoImageObj.complete&&_logoImageObj.naturalWidth>0){
-        render(_logoImageObj);
+    function drawBody(cx, hasC, srcC, splitW, dataW, contH, hdrH, pad, secs, tTxt, vend, pno, dVal, mf, ws, ct, Htot, footH, Wtot){
+        const bodyY=hdrH;
+        const fW=Math.floor((Wtot-pad*2)/4);
+        [['TO / VENDOR',vend],['TITLE',tTxt],['PART NO.',pno],['DATE',dVal]].forEach(([lbl,val],i)=>{
+            const fx=pad+i*fW;
+            cx.font='bold 11px Arial';cx.fillStyle='#6b7280';cx.fillText(lbl,fx,80);
+            cx.font='bold 14px Arial';cx.fillStyle=lbl==='PART NO.'?'#b45309':'#111827';
+            cx.fillText((val||'—').substring(0,Math.floor(fW/7)),fx,100);
+        });
+        if(hasC&&srcC){
+            cx.fillStyle='#f1f3f5';cx.fillRect(0,bodyY,splitW,contH);
+            cx.fillStyle='#374151';cx.font='bold 11px Arial';cx.textAlign='center';cx.fillText('CROSS-SECTION PREVIEW',splitW/2,bodyY+18);cx.textAlign='left';
+            const cw=splitW-20,ch=Math.round(cw*srcC.height/srcC.width);
+            const cOffY=Math.max(0,Math.round((contH-ch)/2));
+            cx.drawImage(srcC,0,0,srcC.width,srcC.height,10,bodyY+26+cOffY,cw,ch);
+            cx.fillStyle='#c8d8e8';cx.fillRect(splitW,bodyY,1.5,contH);
+        }
+        const dataX=(hasC?splitW:0)+pad, dataRight=dataX+dataW;
+        let dy=bodyY+pad;
+        cx.fillStyle='#111827';cx.font='bold 18px Arial';cx.fillText(tTxt.substring(0,60),dataX,dy+20);dy+=TITLE_ROW;
+        secs.forEach(sec=>{
+            cx.fillStyle='#e8f0fb';cx.fillRect(dataX,dy,dataW,SEC_H-2);
+            cx.fillStyle='#1a3a6e';cx.font='bold 13px Arial';cx.fillText((sec.hdr||'').toUpperCase(),dataX+8,dy+SEC_H-10);dy+=SEC_H;
+            sec.rows.forEach(r=>{
+                const bg=r.green?'#f0fdf4':r.amber?'#fffbeb':'#ffffff';cx.fillStyle=bg;cx.fillRect(dataX,dy,dataW,ROW_H-1);
+                cx.fillStyle='#111827';cx.font='13px Arial';cx.fillText(r.lbl||'',dataX+8,dy+ROW_H-10);
+                const vc=r.green?'#16a34a':r.amber?'#92400e':'#111827';cx.fillStyle=vc;cx.font=r.green||r.amber?'bold 14px Arial':'13px Arial';
+                cx.textAlign='right';cx.fillText(r.val||'',dataRight,dy+ROW_H-10);cx.textAlign='left';
+                cx.strokeStyle='#e5e7eb';cx.lineWidth=0.5;cx.beginPath();cx.moveTo(dataX,dy+ROW_H-1);cx.lineTo(dataRight,dy+ROW_H-1);cx.stroke();
+                dy+=ROW_H;
+            });dy+=GAP;
+        });
+        const fy=Htot-footH;cx.fillStyle='#f3f4f6';cx.fillRect(0,fy,Wtot,footH);
+        cx.strokeStyle='#e5e7eb';cx.lineWidth=1;cx.beginPath();cx.moveTo(0,fy);cx.lineTo(Wtot,fy);cx.stroke();
+        cx.fillStyle='#374151';cx.font='12px Arial';cx.textAlign='center';
+        cx.fillText('Generated by OptiCost LRMCE v1.3  |  '+mf+'  |  '+ws+(ct?' | '+ct:''),Wtot/2,fy+footH/2+6);cx.textAlign='left';
+    }
+
+    if(_logoImageObj && _logoImageObj.complete && _logoImageObj.naturalWidth>0){
+        ctx.drawImage(_logoImageObj, logoX, logoY, logoW, logoH);
+        drawHeaderText(ctx, P+logoW+16, logoY, logoH, mfr, website, contact);
+        drawBody(ctx, hasCanvas, srcCanvas, SPLIT_W, DATA_W, CONTENT_H, HDR_H, P, sections, titleTxt, vendor, partno, dateVal, mfr, website, contact, H, FOOTER_H, W);
+        callback(cv);
     } else if(_logoDataUrl){
         const li=new Image();
-        li.onload=()=>{_logoImageObj=li;render(li);};
-        li.onerror=()=>render(null);
+        li.onload=()=>{
+            _logoImageObj=li;
+            ctx.drawImage(li, logoX, logoY, logoW, logoH);
+            drawHeaderText(ctx, P+logoW+16, logoY, logoH, mfr, website, contact);
+            drawBody(ctx, hasCanvas, srcCanvas, SPLIT_W, DATA_W, CONTENT_H, HDR_H, P, sections, titleTxt, vendor, partno, dateVal, mfr, website, contact, H, FOOTER_H, W);
+            callback(cv);
+        };
+        li.onerror=()=>{
+            drawHeaderText(ctx, P, logoY, logoH, mfr, website, contact);
+            drawBody(ctx, hasCanvas, srcCanvas, SPLIT_W, DATA_W, CONTENT_H, HDR_H, P, sections, titleTxt, vendor, partno, dateVal, mfr, website, contact, H, FOOTER_H, W);
+            callback(cv);
+        };
         li.src=_logoDataUrl;
     } else {
-        render(null);
+        drawHeaderText(ctx, P, logoY, logoH, mfr, website, contact);
+        drawBody(ctx, hasCanvas, srcCanvas, SPLIT_W, DATA_W, CONTENT_H, HDR_H, P, sections, titleTxt, vendor, partno, dateVal, mfr, website, contact, H, FOOTER_H, W);
+        callback(cv);
     }
 }
 
@@ -1625,6 +1809,7 @@ function v(id){return(document.getElementById(id)||{value:""}).value;}
 const THEMES=['dark','light','white','warm','green','steel','purple','red'];
 function setTheme(t){document.documentElement.setAttribute('data-theme',t==='dark'?'':t);THEMES.forEach(x=>{const el=document.getElementById('sw-'+x);if(el)el.classList.toggle('active',x===t);});try{localStorage.setItem('opticost_theme',t);}catch(e){}liveDrawLens();}
 function toggleThemePanel(){document.getElementById('theme-panel').classList.toggle('open');}
+
 function showAbout(){showModal("About OptiCost LRMCE","OptiCost — LRMCE v1.4\n\nDeveloped by:\n  Priya Gavshinde\n  Sr. Optical Engineer\n  Optics & Allied Engg. Pvt. Ltd.\n\nContact:\n  www.opticsindia.com\n  +91-9886654729\n  info@opticsindia.com\n\n© 2025 Optics & Allied Engg. Pvt. Ltd.");}
 
 window.addEventListener('DOMContentLoaded',()=>{
@@ -1658,7 +1843,3 @@ window.addEventListener('DOMContentLoaded',()=>{
 </script>
 </body>
 </html>
-
-
-
-

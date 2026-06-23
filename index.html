@@ -722,13 +722,40 @@ function lensVolumeCA(OD,CA1,CA2,s1,s2,CT,sag1ca,sag2ca){
 
 const ADMIN_USER="Optica", ADMIN_PASS="shreeganesha";
 let _db=null;
-function _openDB(){return new Promise((res,rej)=>{if(_db){res(_db);return;}const req=indexedDB.open("opticost_db",2);req.onupgradeneeded=e=>{const db=e.target.result;if(!db.objectStoreNames.contains("users"))db.createObjectStore("users",{keyPath:"username"});if(!db.objectStoreNames.contains("kv"))db.createObjectStore("kv",{keyPath:"k"});};req.onsuccess=e=>{_db=e.target.result;res(_db);};req.onerror=e=>rej(e.target.error);});}
+function _openDB(){return new Promise((res,rej)=>{if(_db){res(_db);return;}const req=indexedDB.open("opticost_db",3);req.onupgradeneeded=e=>{const db=e.target.result;if(!db.objectStoreNames.contains("users"))db.createObjectStore("users",{keyPath:"username"});if(!db.objectStoreNames.contains("kv"))db.createObjectStore("kv",{keyPath:"k"});if(!db.objectStoreNames.contains("logos"))db.createObjectStore("logos",{keyPath:"username"});};req.onsuccess=e=>{_db=e.target.result;res(_db);};req.onerror=e=>rej(e.target.error);});}
 function _getAllUsers(){return _openDB().then(db=>new Promise((res,rej)=>{const req=db.transaction("users","readonly").objectStore("users").getAll();req.onsuccess=()=>{const map={};req.result.forEach(u=>{map[u.username]=u;});res(map);};req.onerror=e=>rej(e.target.error);}));}
 function _putUser(obj){return _openDB().then(db=>new Promise((res,rej)=>{const req=db.transaction("users","readwrite").objectStore("users").put(obj);req.onsuccess=()=>res();req.onerror=e=>rej(e.target.error);}));}
 function _deleteUser(username){return _openDB().then(db=>new Promise((res,rej)=>{const req=db.transaction("users","readwrite").objectStore("users").delete(username);req.onsuccess=()=>res();req.onerror=e=>rej(e.target.error);}));}
 function _seedDefaultUser(){_getAllUsers().then(users=>{if(!users["optica"]){const exp=new Date();exp.setFullYear(exp.getFullYear()+10);_putUser({username:"optica",password:btoa("shreeganesha"),expires:exp.toISOString()});}}).catch(()=>{});}
 
+// ---- Logo persistence ----
+function _saveLogoForUser(username,dataUrl){
+    return _openDB().then(db=>new Promise((res,rej)=>{
+        const tx=db.transaction("logos","readwrite");
+        tx.objectStore("logos").put({username,data:dataUrl,ts:Date.now()});
+        tx.oncomplete=()=>res();
+        tx.onerror=e=>rej(e.target.error);
+    }));
+}
+function _getLogoForUser(username){
+    return _openDB().then(db=>new Promise((res,rej)=>{
+        const req=db.transaction("logos","readonly").objectStore("logos").get(username);
+        req.onsuccess=()=>res(req.result?req.result.data:null);
+        req.onerror=e=>rej(e.target.error);
+    }));
+}
+function _deleteLogoForUser(username){
+    return _openDB().then(db=>new Promise((res,rej)=>{
+        const tx=db.transaction("logos","readwrite");
+        tx.objectStore("logos").delete(username);
+        tx.oncomplete=()=>res();
+        tx.onerror=e=>rej(e.target.error);
+    }));
+}
+
 let currentUser=null, recs=[];
+let _logoDataUrl = "";
+let _logoImageObj = null;
 
 function doLogin(){
     const u=v("login-user").trim(), p=v("login-pass").trim();
@@ -744,7 +771,11 @@ function doLogin(){
         try{if(remember&&remember.checked){localStorage.setItem("opticost_saved_user",u);localStorage.setItem("opticost_saved_pass",btoa(p));}else{localStorage.removeItem("opticost_saved_user");localStorage.removeItem("opticost_saved_pass");}}catch(e){}
         try{sessionStorage.setItem("opticost_session",u);}catch(e){}
         document.getElementById("logged-in-label").textContent="👤 "+u;
-        showScreen("screen-main");
+        // Load logo for this user
+        _getLogoForUser(u).then(data=>{
+            if(data){_logoDataUrl=data;document.getElementById("logo-img").src=data;document.getElementById("logo-preview").style.display="block";const img=new Image();img.onload=()=>{_logoImageObj=img;};img.onerror=()=>{_logoImageObj=null;};img.src=data;}
+            showScreen("screen-main");
+        }).catch(()=>{showScreen("screen-main");});
     }).catch(e=>showModal("Error","Storage error:\n"+e.message));
 }
 function forgetLogin(){
@@ -951,8 +982,7 @@ function mirrorCanvasToResults(srcId){
         const colW=col.clientWidth||140;
         const aspect=src.height/src.width;
         const dstH=Math.min(Math.round(colW*aspect),320);
-        // Render at 5x for ultra‑high resolution
-        const scale = 5;
+        const scale=6;
         dst.width=colW*scale; dst.height=dstH*scale;
         dst.style.width=colW+"px"; dst.style.height=dstH+"px";
         const ctx=dst.getContext("2d");
@@ -962,37 +992,33 @@ function mirrorCanvasToResults(srcId){
     });});
 }
 
-// ─── LOGO HANDLING (improved) ──────────────────────────────
-let _logoDataUrl = "";
-let _logoImageObj = null; // pre‑loaded image for export
-
+// ---- LOGO HANDLING with persistence ----
 function loadLogoFile(inp){
-    const file = inp.files[0];
-    if(!file) return;
-    const r = new FileReader();
-    r.onload = e => {
-        _logoDataUrl = e.target.result;
-        document.getElementById("logo-img").src = _logoDataUrl;
-        document.getElementById("logo-preview").style.display = "block";
-        // Pre‑load the image object for export
-        const img = new Image();
-        img.onload = function() {
-            _logoImageObj = img;
-        };
-        img.onerror = function() {
-            _logoImageObj = null;
-        };
-        img.src = _logoDataUrl;
+    const file=inp.files[0];if(!file)return;
+    const r=new FileReader();
+    r.onload=e=>{
+        _logoDataUrl=e.target.result;
+        document.getElementById("logo-img").src=_logoDataUrl;
+        document.getElementById("logo-preview").style.display="block";
+        const img=new Image();
+        img.onload=function(){_logoImageObj=this;};
+        img.onerror=function(){_logoImageObj=null;};
+        img.src=_logoDataUrl;
+        // Save to IndexedDB for this user
+        if(currentUser){
+            _saveLogoForUser(currentUser,_logoDataUrl).catch(()=>{});
+        }
     };
     r.readAsDataURL(file);
 }
 function clearLogo(){
-    _logoDataUrl = "";
-    _logoImageObj = null;
-    document.getElementById("logo-preview").style.display = "none";
-    document.getElementById("logo-img").src = "";
-    // Also hide in snap header
-    document.getElementById("snap-logo-box").style.display = "none";
+    _logoDataUrl="";_logoImageObj=null;
+    document.getElementById("logo-preview").style.display="none";
+    document.getElementById("logo-img").src="";
+    document.getElementById("snap-logo-box").style.display="none";
+    if(currentUser){
+        _deleteLogoForUser(currentUser).catch(()=>{});
+    }
 }
 
 function refreshSnapHeader(){
@@ -1008,12 +1034,7 @@ function refreshSnapHeader(){
     set("snap-sub-txt",website+(contact?" | "+contact:""));
     const ftr=document.getElementById("snap-footer-sub");if(ftr)ftr.textContent=(mfr||"OPTICA")+" | "+website+(contact?" | "+contact:"");
     const snapLogoBox=document.getElementById("snap-logo-box"),snapLogoImg=document.getElementById("snap-logo-img");
-    if(_logoDataUrl){
-        snapLogoBox.style.display="block";
-        snapLogoImg.src=_logoDataUrl;
-    } else {
-        snapLogoBox.style.display="none";
-    }
+    if(_logoDataUrl){snapLogoBox.style.display="block";snapLogoImg.src=_logoDataUrl;}else{snapLogoBox.style.display="none";}
 }
 
 let _fileDB=null;
@@ -1196,97 +1217,93 @@ function renderFilesLib(){
     }).catch(()=>{el.innerHTML='<div style="color:var(--red);font-size:.8rem;padding:12px">Error loading files.</div>';});
 }
 
-let _fvScale = 1;
-let _fvOriginX = 0, _fvOriginY = 0;
-let _fvPinchDist0 = 0, _fvPinchScale0 = 1;
-let _fvPanStart = null, _fvPanOffset0 = {x:0, y:0};
-let _fvIsImage = false;
-
+let _fvScale=1;
+let _fvOriginX=0,_fvOriginY=0;
+let _fvPinchDist0=0,_fvPinchScale0=1;
+let _fvPanStart=null,_fvPanOffset0={x:0,y:0};
 function _applyTransform(){
-    const container = document.getElementById('fv-img-container');
-    if(!container) return;
-    container.style.transform = `translate(${_fvOriginX}px, ${_fvOriginY}px) scale(${_fvScale})`;
-    document.getElementById('zoom-level').textContent = _fvScale.toFixed(1)+'×';
+    const container=document.getElementById('fv-img-container');
+    if(!container)return;
+    container.style.transform=`translate(${_fvOriginX}px,${_fvOriginY}px) scale(${_fvScale})`;
+    document.getElementById('zoom-level').textContent=_fvScale.toFixed(1)+'×';
 }
-function zoomStep(delta){_fvScale = Math.max(0.2, Math.min(8, _fvScale + delta));_applyTransform();}
-function resetZoom(){_fvScale = 1; _fvOriginX = 0; _fvOriginY = 0;_applyTransform();}
-function _getTouchDist(touches){const dx = touches[0].clientX - touches[1].clientX;const dy = touches[0].clientY - touches[1].clientY;return Math.sqrt(dx*dx + dy*dy);}
-function _initImageViewer(src, title){
-    const overlay = document.getElementById('file-viewer-overlay');
-    const viewport = document.getElementById('file-viewer-viewport');
-    const content  = document.getElementById('file-viewer-content');
-    const zoomBar  = document.getElementById('file-viewer-zoom');
-    document.getElementById('file-viewer-title').textContent = title;
-    viewport.style.display = 'block';
-    content.style.display  = 'none';
-    zoomBar.style.display  = 'flex';
-    _fvScale = 1; _fvOriginX = 0; _fvOriginY = 0;
-    _fvIsImage = true;
-    const img = document.getElementById('fv-img');
-    img.src = src;
-    const container = document.getElementById('fv-img-container');
-    container.style.transform = 'translate(0,0) scale(1)';
-    document.getElementById('zoom-level').textContent = '1.0×';
-    overlay.style.display = 'flex';
-    viewport.ontouchstart = _fvTouchStart;
-    viewport.ontouchmove  = _fvTouchMove;
-    viewport.ontouchend   = _fvTouchEnd;
+function zoomStep(delta){_fvScale=Math.max(0.2,Math.min(8,_fvScale+delta));_applyTransform();}
+function resetZoom(){_fvScale=1;_fvOriginX=0;_fvOriginY=0;_applyTransform();}
+function _getTouchDist(touches){const dx=touches[0].clientX-touches[1].clientX;const dy=touches[0].clientY-touches[1].clientY;return Math.sqrt(dx*dx+dy*dy);}
+function _initImageViewer(src,title){
+    const overlay=document.getElementById('file-viewer-overlay');
+    const viewport=document.getElementById('file-viewer-viewport');
+    const content=document.getElementById('file-viewer-content');
+    const zoomBar=document.getElementById('file-viewer-zoom');
+    document.getElementById('file-viewer-title').textContent=title;
+    viewport.style.display='block';
+    content.style.display='none';
+    zoomBar.style.display='flex';
+    _fvScale=1;_fvOriginX=0;_fvOriginY=0;
+    const img=document.getElementById('fv-img');
+    img.src=src;
+    const container=document.getElementById('fv-img-container');
+    container.style.transform='translate(0,0) scale(1)';
+    document.getElementById('zoom-level').textContent='1.0×';
+    overlay.style.display='flex';
+    viewport.ontouchstart=_fvTouchStart;
+    viewport.ontouchmove=_fvTouchMove;
+    viewport.ontouchend=_fvTouchEnd;
 }
 function _fvTouchStart(e){
-    if(e.touches.length === 2){e.preventDefault();_fvPinchDist0  = _getTouchDist(e.touches);_fvPinchScale0 = _fvScale;}
-    else if(e.touches.length === 1){_fvPanStart  = {x: e.touches[0].clientX, y: e.touches[0].clientY};_fvPanOffset0 = {x: _fvOriginX, y: _fvOriginY};}
+    if(e.touches.length===2){e.preventDefault();_fvPinchDist0=_getTouchDist(e.touches);_fvPinchScale0=_fvScale;}
+    else if(e.touches.length===1){_fvPanStart={x:e.touches[0].clientX,y:e.touches[0].clientY};_fvPanOffset0={x:_fvOriginX,y:_fvOriginY};}
 }
 function _fvTouchMove(e){
-    if(e.touches.length === 2){e.preventDefault();const dist = _getTouchDist(e.touches);_fvScale = Math.max(0.2, Math.min(8, _fvPinchScale0 * (dist / _fvPinchDist0)));_applyTransform();}
-    else if(e.touches.length === 1 && _fvPanStart && _fvScale > 1){e.preventDefault();_fvOriginX = _fvPanOffset0.x + (e.touches[0].clientX - _fvPanStart.x);_fvOriginY = _fvPanOffset0.y + (e.touches[0].clientY - _fvPanStart.y);_applyTransform();}
+    if(e.touches.length===2){e.preventDefault();const dist=_getTouchDist(e.touches);_fvScale=Math.max(0.2,Math.min(8,_fvPinchScale0*(dist/_fvPinchDist0)));_applyTransform();}
+    else if(e.touches.length===1&&_fvPanStart&&_fvScale>1){e.preventDefault();_fvOriginX=_fvPanOffset0.x+(e.touches[0].clientX-_fvPanStart.x);_fvOriginY=_fvPanOffset0.y+(e.touches[0].clientY-_fvPanStart.y);_applyTransform();}
 }
-function _fvTouchEnd(e){if(e.touches.length < 2) _fvPinchDist0 = 0;if(e.touches.length === 0) _fvPanStart = null;}
+function _fvTouchEnd(e){if(e.touches.length<2)_fvPinchDist0=0;if(e.touches.length===0)_fvPanStart=null;}
 
 function viewStoredFile(fname){
     _getStoredFile(fname).then(rec=>{
         if(!rec){showModal('Error','File not found.');return;}
-        const overlay  = document.getElementById('file-viewer-overlay');
-        const viewport = document.getElementById('file-viewer-viewport');
-        const content  = document.getElementById('file-viewer-content');
-        const zoomBar  = document.getElementById('file-viewer-zoom');
-        document.getElementById('file-viewer-title').textContent = rec.fname;
-        if(rec.mime.startsWith('image/')){_initImageViewer(rec.data, rec.fname);return;}
-        viewport.style.display = 'none';
-        content.style.display  = 'flex';
-        content.innerHTML = '';
-        zoomBar.style.display = 'none';
-        _fvIsImage = false;
-        if(rec.mime.startsWith('text/') || rec.fname.endsWith('.csv')){
-            try{const b64 = rec.data.split(',')[1];const txt = decodeURIComponent(escape(atob(b64)));const pre = document.createElement('pre');pre.textContent = txt.slice(0,50000)+(txt.length>50000?'\n\n… (truncated)':'');content.appendChild(pre);overlay.style.display = 'flex';}
-            catch(e){ _downloadFallback(rec); }
+        const overlay=document.getElementById('file-viewer-overlay');
+        const viewport=document.getElementById('file-viewer-viewport');
+        const content=document.getElementById('file-viewer-content');
+        const zoomBar=document.getElementById('file-viewer-zoom');
+        document.getElementById('file-viewer-title').textContent=rec.fname;
+        if(rec.mime.startsWith('image/')){_initImageViewer(rec.data,rec.fname);return;}
+        viewport.style.display='none';
+        content.style.display='flex';
+        content.innerHTML='';
+        zoomBar.style.display='none';
+        if(rec.mime.startsWith('text/')||rec.fname.endsWith('.csv')){
+            try{const b64=rec.data.split(',')[1];const txt=decodeURIComponent(escape(atob(b64)));const pre=document.createElement('pre');pre.textContent=txt.slice(0,50000)+(txt.length>50000?'\n\n… (truncated)':'');content.appendChild(pre);overlay.style.display='flex';}
+            catch(e){_downloadFallback(rec);}
             return;
         }
-        if(rec.fname.endsWith('.doc') || rec.mime.includes('word')){
-            try{const iframe = document.createElement('iframe');iframe.src = rec.data;iframe.style.cssText = 'width:100%;height:100%;border:none;border-radius:8px;flex:1';content.style.padding = '0';content.appendChild(iframe);overlay.style.display = 'flex';}
-            catch(e){ _downloadFallback(rec); }
+        if(rec.fname.endsWith('.doc')||rec.mime.includes('word')){
+            try{const iframe=document.createElement('iframe');iframe.src=rec.data;iframe.style.cssText='width:100%;height:100%;border:none;border-radius:8px;flex:1';content.style.padding='0';content.appendChild(iframe);overlay.style.display='flex';}
+            catch(e){_downloadFallback(rec);}
             return;
         }
         _downloadFallback(rec);
     }).catch(e=>showModal('Error',e.message));
 }
-function _downloadFallback(rec){try{const blob = _blobFromDataUri(rec.data, rec.mime);_fallbackDownload(blob, rec.fname);}catch(e){ showModal('Error','Cannot open: '+e.message); }}
+function _downloadFallback(rec){try{const blob=_blobFromDataUri(rec.data,rec.mime);_fallbackDownload(blob,rec.fname);}catch(e){showModal('Error','Cannot open: '+e.message);}}
 function closeFileViewer(){
-    const overlay = document.getElementById('file-viewer-overlay');
-    overlay.style.display = 'none';
-    document.getElementById('file-viewer-viewport').style.display = 'none';
-    const content = document.getElementById('file-viewer-content');
-    content.style.display = 'none';
-    content.innerHTML = '';
-    document.getElementById('fv-img').src = '';
+    const overlay=document.getElementById('file-viewer-overlay');
+    overlay.style.display='none';
+    document.getElementById('file-viewer-viewport').style.display='none';
+    const content=document.getElementById('file-viewer-content');
+    content.style.display='none';
+    content.innerHTML='';
+    document.getElementById('fv-img').src='';
     resetZoom();
 }
 function shareStoredFile(fname){
     _getStoredFile(fname).then(rec=>{
         if(!rec){showToast('❌ File not found.','error');return;}
-        const blob = _blobFromDataUri(rec.data, rec.mime);
-        if(navigator.share){try{const file = new File([blob], rec.fname, {type: rec.mime});if(!navigator.canShare || navigator.canShare({files:[file]})){navigator.share({files:[file], title: rec.fname}).then(()=>showToast('✅ Shared: '+rec.fname,'success')).catch(()=>_fallbackDownload(blob, rec.fname));return;}}catch(e){}}
-        if(window.Android && typeof window.Android.saveFile === 'function'){try{const reader = new FileReader();reader.onload = e=>{window.Android.saveFile(rec.fname, rec.mime, e.target.result.split(',')[1]); showToast('✅ Saved: '+rec.fname,'success');};reader.readAsDataURL(blob);return;}catch(e){}}
-        _fallbackDownload(blob, rec.fname);
+        const blob=_blobFromDataUri(rec.data,rec.mime);
+        if(navigator.share){try{const file=new File([blob],rec.fname,{type:rec.mime});if(!navigator.canShare||navigator.canShare({files:[file]})){navigator.share({files:[file],title:rec.fname}).then(()=>showToast('✅ Shared: '+rec.fname,'success')).catch(()=>_fallbackDownload(blob,rec.fname));return;}}catch(e){}}
+        if(window.Android&&typeof window.Android.saveFile==='function'){try{const reader=new FileReader();reader.onload=e=>{window.Android.saveFile(rec.fname,rec.mime,e.target.result.split(',')[1]);showToast('✅ Saved: '+rec.fname,'success');};reader.readAsDataURL(blob);return;}catch(e){}}
+        _fallbackDownload(blob,rec.fname);
     }).catch(e=>showToast('❌ '+e.message,'error'));
 }
 function deleteStoredFile(fname){showConfirm('Delete',"Remove '"+fname+"'?",()=>{_deleteFileDB(fname).then(()=>renderFilesLib()).catch(()=>renderFilesLib());});}
@@ -1310,292 +1327,252 @@ function doReset(){
     });
 }
 
-// ═══════════════════════════════════════════════════════════════
-// LENS CANVAS — v3: Smooth, theme-adaptive, CA1/CA2/OD always shown
-// ═══════════════════════════════════════════════════════════════
-function drawLensCanvas(id, p, preview=false){
-    const canvas = document.getElementById(id);
-    if(!canvas) return;
-    const CW = canvas.offsetWidth || 320;
-    const {OD, CT, CA1, CA2, s1, s2, g1, g2} = p;
-    const roc1 = parseFloat(document.getElementById("s1ri").value)||0;
-    const roc2 = parseFloat(document.getElementById("s2ri").value)||0;
-
-    // Read theme colors from CSS
-    const cs = getComputedStyle(document.documentElement);
-    const accent = cs.getPropertyValue('--accent').trim() || '#22d3ee';
-    const accent2 = cs.getPropertyValue('--accent2').trim() || '#c084fc';
-    const text = cs.getPropertyValue('--text').trim() || '#e8f4ff';
-    const muted = cs.getPropertyValue('--muted').trim() || '#7db0cc';
-    const surface = cs.getPropertyValue('--surface').trim() || '#0c1d30';
-    const bg = cs.getPropertyValue('--bg').trim() || '#060e18';
-
-    // Derive lens colours from theme
-    const cBody = preview ? 'rgba(30,58,138,0.85)' : 'rgba(40,44,52,0.88)';
-    const cBody2 = preview ? 'rgba(99,102,241,0.70)' : 'rgba(160,168,180,0.78)';
-    const cOutline = preview ? 'rgba(30,58,138,0.9)' : 'rgba(200,210,220,0.85)';
-    const cCA1 = '#4f46e5';
-    const cCA2 = '#6366f1';
-    const cOD = '#b45309';
-    const cCT = preview ? '#1a3a6e' : '#a0b0c0';
-    const cET = preview ? '#92400e' : '#8899aa';
+// ─── LENS CANVAS ──────────────────────────────────────────────
+function drawLensCanvas(id,p,preview=false){
+    const canvas=document.getElementById(id);
+    if(!canvas)return;
+    const CW=canvas.offsetWidth||320;
+    const {OD,CT,CA1,CA2,s1,s2,g1,g2}=p;
+    const roc1=parseFloat(document.getElementById("s1ri").value)||0;
+    const roc2=parseFloat(document.getElementById("s2ri").value)||0;
+    const cs=getComputedStyle(document.documentElement);
+    const accent=cs.getPropertyValue('--accent').trim()||'#22d3ee';
+    const accent2=cs.getPropertyValue('--accent2').trim()||'#c084fc';
+    const text=cs.getPropertyValue('--text').trim()||'#e8f4ff';
+    const muted=cs.getPropertyValue('--muted').trim()||'#7db0cc';
+    const surface=cs.getPropertyValue('--surface').trim()||'#0c1d30';
+    const bg=cs.getPropertyValue('--bg').trim()||'#060e18';
+    const cBody=preview?'rgba(30,58,138,0.85)':'rgba(40,44,52,0.88)';
+    const cBody2=preview?'rgba(99,102,241,0.70)':'rgba(160,168,180,0.78)';
+    const cOutline=preview?'rgba(30,58,138,0.9)':'rgba(200,210,220,0.85)';
+    const cCA1='#4f46e5';
+    const cCA2='#6366f1';
+    const cOD='#b45309';
+    const cCT=preview?'#1a3a6e':'#a0b0c0';
+    const cET=preview?'#92400e':'#8899aa';
 
     function errOverlay(msg){
-        const CH = Math.max(CW,200); canvas.width=CW; canvas.height=CH;
-        const ctx=canvas.getContext("2d"); ctx.clearRect(0,0,CW,CH);
-        ctx.fillStyle="rgba(248,113,113,0.13)"; ctx.fillRect(0,0,CW,CH);
-        ctx.strokeStyle="#f87171"; ctx.lineWidth=1.5; ctx.setLineDash([6,4]);
-        ctx.strokeRect(4,4,CW-8,CH-8); ctx.setLineDash([]);
-        ctx.fillStyle="#f87171"; ctx.textAlign="center";
+        const CH=Math.max(CW,200);canvas.width=CW;canvas.height=CH;
+        const ctx=canvas.getContext("2d");ctx.clearRect(0,0,CW,CH);
+        ctx.fillStyle="rgba(248,113,113,0.13)";ctx.fillRect(0,0,CW,CH);
+        ctx.strokeStyle="#f87171";ctx.lineWidth=1.5;ctx.setLineDash([6,4]);
+        ctx.strokeRect(4,4,CW-8,CH-8);ctx.setLineDash([]);
+        ctx.fillStyle="#f87171";ctx.textAlign="center";
         ctx.font="bold 13px 'Nunito',sans-serif";
         ctx.fillText("⚠ Impossible Geometry",CW/2,CH/2-14);
         ctx.font="11px 'Nunito',sans-serif";
         ctx.fillText((msg||"").length>52?(msg||"").slice(0,50)+"…":(msg||""),CW/2,CH/2+6);
         ctx.textAlign="left";
     }
-
-    if(OD<=0||CT<=0) return;
+    if(OD<=0||CT<=0)return;
     if(s1!=="plano"&&roc1>0&&roc1<OD/2){errOverlay("S1 ROC "+roc1.toFixed(2)+" < OD/2 "+(OD/2).toFixed(2));return;}
     if(s2!=="plano"&&roc2>0&&roc2<OD/2){errOverlay("S2 ROC "+roc2.toFixed(2)+" < OD/2 "+(OD/2).toFixed(2));return;}
 
-    function getSag(roc, hChord, gMax, absY){
-        const aY = Math.min(absY, hChord);
-        if(gMax <= 0) return 0;
-        if(roc > 0 && roc >= aY) return roc - Math.sqrt(Math.max(0, roc*roc - aY*aY));
-        return gMax * (aY / hChord) ** 2;
+    function getSag(roc,hChord,gMax,absY){
+        const aY=Math.min(absY,hChord);
+        if(gMax<=0)return 0;
+        if(roc>0&&roc>=aY)return roc-Math.sqrt(Math.max(0,roc*roc-aY*aY));
+        return gMax*(aY/hChord)**2;
     }
-
-    const hOD=OD/2, hCA1=CA1/2, hCA2=CA2/2;
-
+    const hOD=OD/2,hCA1=CA1/2,hCA2=CA2/2;
     function xS1(y){
-        const sg = getSag(roc1, hCA1, g1, Math.abs(y));
-        if(s1==="convex")  return -CT/2 - g1 + sg;
-        if(s1==="concave") return -CT/2 - sg;
+        const sg=getSag(roc1,hCA1,g1,Math.abs(y));
+        if(s1==="convex")return -CT/2-g1+sg;
+        if(s1==="concave")return -CT/2-sg;
         return -CT/2;
     }
     function xS2(y){
-        const sg = getSag(roc2, hCA2, g2, Math.abs(y));
-        if(s2==="convex")  return  CT/2 + g2 - sg;
-        if(s2==="concave") return  CT/2 + sg;
+        const sg=getSag(roc2,hCA2,g2,Math.abs(y));
+        if(s2==="convex")return CT/2+g2-sg;
+        if(s2==="concave")return CT/2+sg;
         return CT/2;
     }
-
-    const xs1_apex = xS1(0),   xs2_apex = xS2(0);
-    const xs1_rim  = xS1(hOD), xs2_rim  = xS2(hOD);
-    const xMin = Math.min(xs1_apex, xs1_rim) - 0.3;
-    const xMax = Math.max(xs2_apex, xs2_rim) + 0.3;
-
-    // Fixed pixel zones: left=58 (CA1), right=92 (CA2+OD)
-    const Z_CA1 = 54, Z_GAPL = 4;
-    const Z_GAPR = 6, Z_CA2 = 36, Z_GAPCA = 6, Z_OD = 38, Z_RPAD = 6;
-    const fixedL = Z_CA1 + Z_GAPL;
-    const fixedR = Z_GAPR + Z_CA2 + Z_GAPCA + Z_OD + Z_RPAD;
-    const drawableW = CW - fixedL - fixedR;
-    const physW = xMax - xMin;
-    const physH = OD;
-    const sX  = drawableW / Math.max(physW, 0.001);
-    const padY = Math.max(Math.round(physH * sX * 0.14), 32);
-    const sY  = (400 - padY * 2) / Math.max(physH, 0.001);
-    const s   = Math.min(sX, sY, 5);
-    if(s <= 0) return;
-
-    const CH = Math.max(Math.min(Math.round(physH * s + padY * 2), 430), 200);
-    canvas.width = CW; canvas.height = CH;
-    const ctx = canvas.getContext("2d");
+    const xs1_apex=xS1(0),xs2_apex=xS2(0);
+    const xs1_rim=xS1(hOD),xs2_rim=xS2(hOD);
+    const xMin=Math.min(xs1_apex,xs1_rim)-0.3;
+    const xMax=Math.max(xs2_apex,xs2_rim)+0.3;
+    const Z_CA1=54,Z_GAPL=4;
+    const Z_GAPR=6,Z_CA2=36,Z_GAPCA=6,Z_OD=38,Z_RPAD=6;
+    const fixedL=Z_CA1+Z_GAPL;
+    const fixedR=Z_GAPR+Z_CA2+Z_GAPCA+Z_OD+Z_RPAD;
+    const drawableW=CW-fixedL-fixedR;
+    const physW=xMax-xMin;
+    const physH=OD;
+    const sX=drawableW/Math.max(physW,0.001);
+    const padY=Math.max(Math.round(physH*sX*0.14),32);
+    const sY=(400-padY*2)/Math.max(physH,0.001);
+    const s=Math.min(sX,sY,5);
+    if(s<=0)return;
+    const CH=Math.max(Math.min(Math.round(physH*s+padY*2),430),200);
+    canvas.width=CW;canvas.height=CH;
+    const ctx=canvas.getContext("2d");
     ctx.clearRect(0,0,CW,CH);
+    const bodyCenter=fixedL+drawableW/2;
+    const lensPhysCenter=(xMin+xMax)/2;
+    const ox=bodyCenter-lensPhysCenter*s;
+    const cy=CH/2;
+    const px=xmm=>ox+xmm*s;
+    const py=ymm=>cy-ymm*s;
+    const N=260;
+    const ys=[];for(let i=0;i<=N;i++)ys.push(hOD-OD*i/N);
+    const LP=ys.map(y=>[px(xS1(y)),py(y)]);
+    const RP=ys.map(y=>[px(xS2(y)),py(y)]);
 
-    const bodyCenter    = fixedL + drawableW / 2;
-    const lensPhysCenter = (xMin + xMax) / 2;
-    const ox = bodyCenter - lensPhysCenter * s;
-    const cy = CH / 2;
-    const px = xmm => ox + xmm * s;
-    const py = ymm => cy  - ymm * s;
-
-    const N = 260;
-    const ys = [];
-    for(let i=0; i<=N; i++) ys.push(hOD - OD * i / N);
-    const LP = ys.map(y => [px(xS1(y)), py(y)]);
-    const RP = ys.map(y => [px(xS2(y)), py(y)]);
-
-    // ── Fill lens body with smooth gradient ────────────────────
     ctx.beginPath();
-    LP.forEach((pt,i) => i ? ctx.lineTo(...pt) : ctx.moveTo(...pt));
-    [...RP].reverse().forEach(pt => ctx.lineTo(...pt));
+    LP.forEach((pt,i)=>i?ctx.lineTo(...pt):ctx.moveTo(...pt));
+    [...RP].reverse().forEach(pt=>ctx.lineTo(...pt));
     ctx.closePath();
-    const grd = ctx.createLinearGradient(px(xs1_apex),0,px(xs2_apex),0);
+    const grd=ctx.createLinearGradient(px(xs1_apex),0,px(xs2_apex),0);
     grd.addColorStop(0,cBody);
     grd.addColorStop(0.45,cBody2);
     grd.addColorStop(0.55,cBody2);
     grd.addColorStop(1,cBody);
-    ctx.fillStyle = grd;
-    ctx.fill();
+    ctx.fillStyle=grd;ctx.fill();
 
-    // Sheen highlight
     ctx.save();
     ctx.beginPath();
-    LP.forEach((pt,i) => i ? ctx.lineTo(...pt) : ctx.moveTo(...pt));
-    [...RP].reverse().forEach(pt => ctx.lineTo(...pt));
-    ctx.closePath(); ctx.clip();
-    const sh = ctx.createLinearGradient(0,py(hOD),0,py(-hOD));
+    LP.forEach((pt,i)=>i?ctx.lineTo(...pt):ctx.moveTo(...pt));
+    [...RP].reverse().forEach(pt=>ctx.lineTo(...pt));
+    ctx.closePath();ctx.clip();
+    const sh=ctx.createLinearGradient(0,py(hOD),0,py(-hOD));
     sh.addColorStop(0,"rgba(255,255,255,0.08)");
     sh.addColorStop(0.30,"rgba(255,255,255,0.28)");
     sh.addColorStop(0.50,"rgba(255,255,255,0.32)");
     sh.addColorStop(0.70,"rgba(255,255,255,0.28)");
     sh.addColorStop(1,"rgba(255,255,255,0.08)");
-    ctx.fillStyle=sh; ctx.fill();
+    ctx.fillStyle=sh;ctx.fill();
     ctx.restore();
 
-    // ── Outline ────────────────────────────────────────────────
-    ctx.lineJoin="round"; ctx.lineCap="round";
-    ctx.beginPath(); LP.forEach((pt,i)=>i?ctx.lineTo(...pt):ctx.moveTo(...pt));
-    ctx.strokeStyle=cOutline; ctx.lineWidth=2.2; ctx.stroke();
-    ctx.beginPath(); RP.forEach((pt,i)=>i?ctx.lineTo(...pt):ctx.moveTo(...pt));
-    ctx.strokeStyle=cOutline; ctx.lineWidth=2.2; ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(...LP[0]);  ctx.lineTo(...RP[0]);
-    ctx.strokeStyle=cOutline; ctx.lineWidth=1.6; ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(...LP[N]);  ctx.lineTo(...RP[N]);
-    ctx.strokeStyle=cOutline; ctx.lineWidth=1.6; ctx.stroke();
+    ctx.lineJoin="round";ctx.lineCap="round";
+    ctx.beginPath();LP.forEach((pt,i)=>i?ctx.lineTo(...pt):ctx.moveTo(...pt));
+    ctx.strokeStyle=cOutline;ctx.lineWidth=2.2;ctx.stroke();
+    ctx.beginPath();RP.forEach((pt,i)=>i?ctx.lineTo(...pt):ctx.moveTo(...pt));
+    ctx.strokeStyle=cOutline;ctx.lineWidth=2.2;ctx.stroke();
+    ctx.beginPath();ctx.moveTo(...LP[0]);ctx.lineTo(...RP[0]);
+    ctx.strokeStyle=cOutline;ctx.lineWidth=1.6;ctx.stroke();
+    ctx.beginPath();ctx.moveTo(...LP[N]);ctx.lineTo(...RP[N]);
+    ctx.strokeStyle=cOutline;ctx.lineWidth=1.6;ctx.stroke();
 
-    // ── Double-headed arrow helper ─────────────────────────────
-    function drawVArrow(arrowX, topPx, botPx, labelText, color, side){
-        const span = Math.abs(botPx - topPx);
+    function drawVArrow(arrowX,topPx,botPx,labelText,color,side){
+        const span=Math.abs(botPx-topPx);
         ctx.save();
-        ctx.strokeStyle = color; ctx.lineWidth = 1.4;
-        ctx.beginPath(); ctx.moveTo(arrowX, topPx); ctx.lineTo(arrowX, botPx); ctx.stroke();
-        const ah = 5;
+        ctx.strokeStyle=color;ctx.lineWidth=1.4;
+        ctx.beginPath();ctx.moveTo(arrowX,topPx);ctx.lineTo(arrowX,botPx);ctx.stroke();
+        const ah=5;
         ctx.beginPath();
-        ctx.moveTo(arrowX-ah, topPx+ah); ctx.lineTo(arrowX, topPx); ctx.lineTo(arrowX+ah, topPx+ah);
+        ctx.moveTo(arrowX-ah,topPx+ah);ctx.lineTo(arrowX,topPx);ctx.lineTo(arrowX+ah,topPx+ah);
         ctx.stroke();
         ctx.beginPath();
-        ctx.moveTo(arrowX-ah, botPx-ah); ctx.lineTo(arrowX, botPx); ctx.lineTo(arrowX+ah, botPx-ah);
+        ctx.moveTo(arrowX-ah,botPx-ah);ctx.lineTo(arrowX,botPx);ctx.lineTo(arrowX+ah,botPx-ah);
         ctx.stroke();
-        if(span >= 14){
-            const midY    = (topPx + botPx) / 2;
-            const offX    = side === 'left' ? -12 : 12;
-            ctx.font      = "bold 9.5px 'Nunito',sans-serif";
-            ctx.fillStyle = color;
-            ctx.translate(arrowX + offX, midY);
-            ctx.rotate(side === 'left' ? -Math.PI/2 : Math.PI/2);
-            ctx.textAlign = "center";
-            ctx.fillText(labelText, 0, 4);
+        if(span>=14){
+            const midY=(topPx+botPx)/2;
+            const offX=side==='left'?-12:12;
+            ctx.font="bold 9.5px 'Nunito',sans-serif";
+            ctx.fillStyle=color;
+            ctx.translate(arrowX+offX,midY);
+            ctx.rotate(side==='left'?-Math.PI/2:Math.PI/2);
+            ctx.textAlign="center";
+            ctx.fillText(labelText,0,4);
         }
         ctx.restore();
     }
 
-    // ── CT annotation ───────────────────────────────────────────
-    const ctX1 = px(xs1_apex), ctX2 = px(xs2_apex);
-    const ctArrY = Math.min(cy + Math.min(26, CH/2 - 20), CH - 24);
-    if(Math.abs(ctX2 - ctX1) > 8){
+    const ctX1=px(xs1_apex),ctX2=px(xs2_apex);
+    const ctArrY=Math.min(cy+Math.min(26,CH/2-20),CH-24);
+    if(Math.abs(ctX2-ctX1)>8){
         ctx.save();
-        ctx.strokeStyle = cCT; ctx.lineWidth = 1.2;
-        ctx.beginPath(); ctx.moveTo(ctX1, cy-3); ctx.lineTo(ctX1, ctArrY+4); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(ctX2, cy-3); ctx.lineTo(ctX2, ctArrY+4); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(ctX1, ctArrY); ctx.lineTo(ctX2, ctArrY); ctx.stroke();
+        ctx.strokeStyle=cCT;ctx.lineWidth=1.2;
+        ctx.beginPath();ctx.moveTo(ctX1,cy-3);ctx.lineTo(ctX1,ctArrY+4);ctx.stroke();
+        ctx.beginPath();ctx.moveTo(ctX2,cy-3);ctx.lineTo(ctX2,ctArrY+4);ctx.stroke();
+        ctx.beginPath();ctx.moveTo(ctX1,ctArrY);ctx.lineTo(ctX2,ctArrY);ctx.stroke();
         const ah=5;
-        ctx.beginPath(); ctx.moveTo(ctX1+ah,ctArrY-3); ctx.lineTo(ctX1,ctArrY); ctx.lineTo(ctX1+ah,ctArrY+3); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(ctX2-ah,ctArrY-3); ctx.lineTo(ctX2,ctArrY); ctx.lineTo(ctX2-ah,ctArrY+3); ctx.stroke();
-        ctx.font="bold 10.5px 'Nunito',sans-serif"; ctx.fillStyle=cCT; ctx.textAlign="center";
-        ctx.fillText("CT="+CT.toFixed(2)+"mm", (ctX1+ctX2)/2, ctArrY+13);
+        ctx.beginPath();ctx.moveTo(ctX1+ah,ctArrY-3);ctx.lineTo(ctX1,ctArrY);ctx.lineTo(ctX1+ah,ctArrY+3);ctx.stroke();
+        ctx.beginPath();ctx.moveTo(ctX2-ah,ctArrY-3);ctx.lineTo(ctX2,ctArrY);ctx.lineTo(ctX2-ah,ctArrY+3);ctx.stroke();
+        ctx.font="bold 10.5px 'Nunito',sans-serif";ctx.fillStyle=cCT;ctx.textAlign="center";
+        ctx.fillText("CT="+CT.toFixed(2)+"mm",(ctX1+ctX2)/2,ctArrY+13);
         ctx.restore();
     }
 
-    // ── ET@CA annotation ────────────────────────────────────────
-    const etCA = edgeThicknessAt(s1,s2,CT,g1,g2);
-    if(!isNaN(etCA) && etCA > 0){
-        const etLeft  = px(xS1(hCA1));
-        const etRight = px(xS2(hCA2));
-        if(Math.abs(etRight-etLeft) > 12){
-            const etY = py(hOD) - 14;
+    const etCA=edgeThicknessAt(s1,s2,CT,g1,g2);
+    if(!isNaN(etCA)&&etCA>0){
+        const etLeft=px(xS1(hCA1));
+        const etRight=px(xS2(hCA2));
+        if(Math.abs(etRight-etLeft)>12){
+            const etY=py(hOD)-14;
             ctx.save();
-            ctx.strokeStyle = cET; ctx.lineWidth=1.1;
-            ctx.beginPath(); ctx.moveTo(etLeft, etY); ctx.lineTo(etRight, etY); ctx.stroke();
+            ctx.strokeStyle=cET;ctx.lineWidth=1.1;
+            ctx.beginPath();ctx.moveTo(etLeft,etY);ctx.lineTo(etRight,etY);ctx.stroke();
             const ah=5;
-            ctx.beginPath(); ctx.moveTo(etLeft+ah,etY-3); ctx.lineTo(etLeft,etY); ctx.lineTo(etLeft+ah,etY+3); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(etRight-ah,etY-3); ctx.lineTo(etRight,etY); ctx.lineTo(etRight-ah,etY+3); ctx.stroke();
-            ctx.font="bold 9.5px 'Nunito',sans-serif"; ctx.fillStyle=cET; ctx.textAlign="center";
-            ctx.fillText("ET@CA="+etCA.toFixed(2)+"mm", (etLeft+etRight)/2, etY-5);
+            ctx.beginPath();ctx.moveTo(etLeft+ah,etY-3);ctx.lineTo(etLeft,etY);ctx.lineTo(etLeft+ah,etY+3);ctx.stroke();
+            ctx.beginPath();ctx.moveTo(etRight-ah,etY-3);ctx.lineTo(etRight,etY);ctx.lineTo(etRight-ah,etY+3);ctx.stroke();
+            ctx.font="bold 9.5px 'Nunito',sans-serif";ctx.fillStyle=cET;ctx.textAlign="center";
+            ctx.fillText("ET@CA="+etCA.toFixed(2)+"mm",(etLeft+etRight)/2,etY-5);
             ctx.restore();
         }
     }
 
-    // ── S1 / S2 / ROC labels ────────────────────────────────────
-    ctx.font="bold 12px 'Nunito',sans-serif"; ctx.fillStyle=cOutline;
-    const s1LblPt = LP[Math.round(N*0.12)];
-    const s2LblPt = RP[Math.round(N*0.12)];
-    ctx.textAlign="right"; ctx.fillText("S1", s1LblPt[0]-5, s1LblPt[1]-7);
-    ctx.textAlign="left";  ctx.fillText("S2", s2LblPt[0]+5, s2LblPt[1]-7);
+    ctx.font="bold 12px 'Nunito',sans-serif";ctx.fillStyle=cOutline;
+    const s1LblPt=LP[Math.round(N*0.12)];
+    const s2LblPt=RP[Math.round(N*0.12)];
+    ctx.textAlign="right";ctx.fillText("S1",s1LblPt[0]-5,s1LblPt[1]-7);
+    ctx.textAlign="left";ctx.fillText("S2",s2LblPt[0]+5,s2LblPt[1]-7);
     ctx.font="bold 10px 'Nunito',sans-serif";
     if(s1!=="plano"&&roc1>0){
         const pt=LP[Math.round(N*0.28)];
-        ctx.fillStyle=cOD; ctx.textAlign="right";
-        ctx.fillText("R1="+roc1.toFixed(1), pt[0]-4, pt[1]+4);
+        ctx.fillStyle=cOD;ctx.textAlign="right";
+        ctx.fillText("R1="+roc1.toFixed(1),pt[0]-4,pt[1]+4);
     }
     if(s2!=="plano"&&roc2>0){
         const pt=RP[Math.round(N*0.28)];
-        ctx.fillStyle=cOD; ctx.textAlign="left";
-        ctx.fillText("R2="+roc2.toFixed(1), pt[0]+4, pt[1]+4);
+        ctx.fillStyle=cOD;ctx.textAlign="left";
+        ctx.fillText("R2="+roc2.toFixed(1),pt[0]+4,pt[1]+4);
     }
     ctx.textAlign="left";
 
-    // ── Dashed extension lines ──────────────────────────────────
-    ctx.save(); ctx.setLineDash([3,4]); ctx.lineWidth=0.7;
+    ctx.save();ctx.setLineDash([3,4]);ctx.lineWidth=0.7;
+    const ca1ArrowX=Z_CA1-10;
+    const xs1_ca1_top=px(xS1(hCA1));
+    const xs1_ca1_bot=px(xS1(-hCA1));
+    ctx.strokeStyle=cCA1;
+    ctx.beginPath();ctx.moveTo(xs1_ca1_top-2,py(hCA1));ctx.lineTo(ca1ArrowX+2,py(hCA1));ctx.stroke();
+    ctx.beginPath();ctx.moveTo(xs1_ca1_bot-2,py(-hCA1));ctx.lineTo(ca1ArrowX+2,py(-hCA1));ctx.stroke();
 
-    // CA1 ticks
-    const ca1ArrowX = Z_CA1 - 10;
-    const xs1_ca1_top = px(xS1(hCA1));
-    const xs1_ca1_bot = px(xS1(-hCA1));
-    ctx.strokeStyle = cCA1;
-    ctx.beginPath(); ctx.moveTo(xs1_ca1_top-2, py(hCA1));  ctx.lineTo(ca1ArrowX+2, py(hCA1));  ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(xs1_ca1_bot-2, py(-hCA1)); ctx.lineTo(ca1ArrowX+2, py(-hCA1)); ctx.stroke();
+    const ca2ZoneL=CW-fixedR+Z_GAPR;
+    const ca2ArrowX=ca2ZoneL+Z_CA2/2;
+    const odArrowX=ca2ZoneL+Z_CA2+Z_GAPCA+Z_OD/2;
+    const xRimTop=Math.max(px(xS2(hOD)),px(xS1(hOD)));
+    const xRimBot=Math.max(px(xS2(-hOD)),px(xS1(-hOD)));
+    ctx.strokeStyle=cOD;
+    ctx.beginPath();ctx.moveTo(xRimTop+2,py(hOD));ctx.lineTo(odArrowX-2,py(hOD));ctx.stroke();
+    ctx.beginPath();ctx.moveTo(xRimBot+2,py(-hOD));ctx.lineTo(odArrowX-2,py(-hOD));ctx.stroke();
 
-    // OD ticks
-    const ca2ZoneL  = CW - fixedR + Z_GAPR;
-    const ca2ArrowX = ca2ZoneL + Z_CA2 / 2;
-    const odArrowX  = ca2ZoneL + Z_CA2 + Z_GAPCA + Z_OD / 2;
-    const xRimTop = Math.max(px(xS2(hOD)), px(xS1(hOD)));
-    const xRimBot = Math.max(px(xS2(-hOD)), px(xS1(-hOD)));
-    ctx.strokeStyle = cOD;
-    ctx.beginPath(); ctx.moveTo(xRimTop+2, py(hOD));  ctx.lineTo(odArrowX-2, py(hOD));  ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(xRimBot+2, py(-hOD)); ctx.lineTo(odArrowX-2, py(-hOD)); ctx.stroke();
-
-    // CA2 ticks — ALWAYS drawn now (fix: CA2 missing)
-    const xs2_ca2_top = px(xS2(hCA2));
-    const xs2_ca2_bot = px(xS2(-hCA2));
-    ctx.strokeStyle = cCA2;
-    ctx.beginPath(); ctx.moveTo(xs2_ca2_top+2, py(hCA2));  ctx.lineTo(ca2ArrowX-2, py(hCA2));  ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(xs2_ca2_bot+2, py(-hCA2)); ctx.lineTo(ca2ArrowX-2, py(-hCA2)); ctx.stroke();
-
+    const xs2_ca2_top=px(xS2(hCA2));
+    const xs2_ca2_bot=px(xS2(-hCA2));
+    ctx.strokeStyle=cCA2;
+    ctx.beginPath();ctx.moveTo(xs2_ca2_top+2,py(hCA2));ctx.lineTo(ca2ArrowX-2,py(hCA2));ctx.stroke();
+    ctx.beginPath();ctx.moveTo(xs2_ca2_bot+2,py(-hCA2));ctx.lineTo(ca2ArrowX-2,py(-hCA2));ctx.stroke();
     ctx.restore();
 
-    // ── CA1 arrow (always) ──────────────────────────────────────
-    drawVArrow(ca1ArrowX, py(hCA1), py(-hCA1),
-               "⌀CA1="+CA1.toFixed(2)+"mm", cCA1, 'left');
-
-    // ── CA2 arrow (ALWAYS drawn — fix applied) ─────────────────
-    // Always show CA2; if very close to OD, still show but with a slight offset
-    const isCA2CloseToOD = Math.abs(hCA2 - hOD) < 0.2;
-    const ca2Label = isCA2CloseToOD ? "⌀CA2≈OD" : "⌀CA2="+CA2.toFixed(2)+"mm";
-    // Use slightly different X if close to OD to avoid overlap
-    const ca2ArrowXAdj = isCA2CloseToOD ? ca2ArrowX - 4 : ca2ArrowX;
-    drawVArrow(ca2ArrowXAdj, py(hCA2), py(-hCA2),
-               ca2Label, cCA2, 'right');
-
-    // ── OD arrow (always) ──────────────────────────────────────
-    drawVArrow(odArrowX, py(hOD), py(-hOD),
-               "⌀OD="+OD.toFixed(2)+"mm", cOD, 'right');
+    drawVArrow(ca1ArrowX,py(hCA1),py(-hCA1),"⌀CA1="+CA1.toFixed(2)+"mm",cCA1,'left');
+    const isCA2CloseToOD=Math.abs(hCA2-hOD)<0.2;
+    const ca2Label=isCA2CloseToOD?"⌀CA2≈OD":"⌀CA2="+CA2.toFixed(2)+"mm";
+    const ca2ArrowXAdj=isCA2CloseToOD?ca2ArrowX-4:ca2ArrowX;
+    drawVArrow(ca2ArrowXAdj,py(hCA2),py(-hCA2),ca2Label,cCA2,'right');
+    drawVArrow(odArrowX,py(hOD),py(-hOD),"⌀OD="+OD.toFixed(2)+"mm",cOD,'right');
 }
 
 function liveDrawLens(){
-    const od=parseFloat(document.getElementById("c-od").value), ct=getCTVal(), summary=document.getElementById("live-summary");
+    const od=parseFloat(document.getElementById("c-od").value),ct=getCTVal(),summary=document.getElementById("live-summary");
     if(!(od>0)||!(ct>0)){if(summary)summary.style.display="none";return;}
     try{
-        const s1=document.getElementById("s1t").value.toLowerCase(), s2=document.getElementById("s2t").value.toLowerCase();
-        const ca1=parseFloat(document.getElementById("c-ca1").value)||od, ca2=parseFloat(document.getElementById("c-ca2").value)||od;
+        const s1=document.getElementById("s1t").value.toLowerCase(),s2=document.getElementById("s2t").value.toLowerCase();
+        const ca1=parseFloat(document.getElementById("c-ca1").value)||od,ca2=parseFloat(document.getElementById("c-ca2").value)||od;
         if(ca1>od||ca2>od){if(summary)summary.style.display="none";return;}
         const roc1=parseFloat(document.getElementById("s1ri").value)||0;
         const roc2=parseFloat(document.getElementById("s2ri").value)||0;
-        const sag1ca=calcSag(s1,roc1,ca1), sag2ca=calcSag(s2,roc2,ca2);
-        const sag1od=calcSag(s1,roc1,od), sag2od=calcSag(s2,roc2,od);
+        const sag1ca=calcSag(s1,roc1,ca1),sag2ca=calcSag(s2,roc2,ca2);
+        const sag1od=calcSag(s1,roc1,od),sag2od=calcSag(s2,roc2,od);
         const ETca=edgeThicknessAt(s1,s2,ct,sag1ca,sag2ca);
         if(ETca<0){if(summary)summary.style.display="none";_showCanvasErr("c-canvas","ET@CA="+ETca.toFixed(2)+"mm — sags exceed CT");return;}
         window._lastLensParams={id:"c-canvas",p:{OD:od,CT:ct,CA1:ca1,CA2:ca2,s1,s2,g1:sag1ca,g2:sag2ca}};
@@ -1606,17 +1583,17 @@ function liveDrawLens(){
             const Vt=lensVolumeCA(od,ca1,ca2,s1,s2,ct,sag1ca,sag2ca);
             const blkTh=blankThickness(s1,s2,ct,sag1od,sag2od);
             const Vb=Math.PI*(od/2)*(od/2)*blkTh;
-            const lWt=Vt/1000*dens, bWt=Vb/1000*dens;
+            const lWt=Vt/1000*dens,bWt=Vb/1000*dens;
             document.getElementById("lw-lens-wt").textContent=lWt.toFixed(3)+" g";
             document.getElementById("lw-blank-wt").textContent=bWt.toFixed(3)+" g";
             summary.style.display="block";
-        }else if(summary) summary.style.display="none";
+        }else if(summary)summary.style.display="none";
     }catch(e){if(summary)summary.style.display="none";_showCanvasErr("c-canvas",e.message);}
 }
 
 function _showCanvasErr(id,msg){
     const canvas=document.getElementById(id);if(!canvas)return;
-    const CW=canvas.offsetWidth||320, CH=Math.max(CW,200);
+    const CW=canvas.offsetWidth||320,CH=Math.max(CW,200);
     canvas.width=CW;canvas.height=CH;
     const ctx=canvas.getContext("2d");ctx.clearRect(0,0,CW,CH);
     ctx.fillStyle="rgba(248,113,113,0.13)";ctx.fillRect(0,0,CW,CH);
@@ -1626,77 +1603,76 @@ function _showCanvasErr(id,msg){
 }
 
 function liveDrawRect(){
-    const L=parseFloat(document.getElementById("r-L").value), W=parseFloat(document.getElementById("r-W").value), H=parseFloat(document.getElementById("r-H").value), summary=document.getElementById("r-live-summary");
-    if(L>0&&H>0) drawRectCanvas("r-canvas",{L,W,H});
+    const L=parseFloat(document.getElementById("r-L").value),W=parseFloat(document.getElementById("r-W").value),H=parseFloat(document.getElementById("r-H").value),summary=document.getElementById("r-live-summary");
+    if(L>0&&H>0)drawRectCanvas("r-canvas",{L,W,H});
     if(!(L>0)||!(W>0)||!(H>0)){if(summary)summary.style.display="none";return;}
-    const matSel=document.getElementById("r-mat").value, dens=matSel==="Custom Density"?parseFloat(document.getElementById("r-cd").value)||0:getDens(matSel)||0;
-    if(dens>0&&summary){const vol=L*W*H/1000, wt=vol*dens;document.getElementById("r-lw-wt").textContent=wt.toFixed(3)+" g";document.getElementById("r-lw-vol").textContent=vol.toFixed(4)+" cm³";summary.style.display="block";}else if(summary) summary.style.display="none";
+    const matSel=document.getElementById("r-mat").value,dens=matSel==="Custom Density"?parseFloat(document.getElementById("r-cd").value)||0:getDens(matSel)||0;
+    if(dens>0&&summary){const vol=L*W*H/1000,wt=vol*dens;document.getElementById("r-lw-wt").textContent=wt.toFixed(3)+" g";document.getElementById("r-lw-vol").textContent=vol.toFixed(4)+" cm³";summary.style.display="block";}else if(summary)summary.style.display="none";
 }
 
 function clearCanvas(id){const c=document.getElementById(id);c.width=c.offsetWidth||320;c.getContext("2d").clearRect(0,0,c.width,c.height);}
 
-// ── Rectangular preview ──────────────────────────────────────
 function drawRectCanvas(id,{L,W,H}){
     const canvas=document.getElementById(id);
     const cW=canvas.offsetWidth||320;
     const cH=parseInt(canvas.getAttribute("height"))||130;
-    canvas.width=cW; canvas.height=cH;
-    const ctx=canvas.getContext("2d"); ctx.clearRect(0,0,cW,cH);
-    if(L<=0||H<=0) return;
+    canvas.width=cW;canvas.height=cH;
+    const ctx=canvas.getContext("2d");ctx.clearRect(0,0,cW,cH);
+    if(L<=0||H<=0)return;
     const PAD=22;
-    const maxW=cW-PAD*2, maxH=cH-PAD*2;
+    const maxW=cW-PAD*2,maxH=cH-PAD*2;
     const depthRatio=0.28;
-    const sc=Math.min(maxW/(L*(1+depthRatio*0.6)), maxH/(H+L*depthRatio*0.35));
-    const dw=L*sc, dh=H*sc;
-    const dxW=W*sc*depthRatio*0.7, dyW=W*sc*depthRatio*0.4;
-    const fx=(cW-dw-dxW)/2, fy=(cH-dh-dyW)/2+dyW;
+    const sc=Math.min(maxW/(L*(1+depthRatio*0.6)),maxH/(H+L*depthRatio*0.35));
+    const dw=L*sc,dh=H*sc;
+    const dxW=W*sc*depthRatio*0.7,dyW=W*sc*depthRatio*0.4;
+    const fx=(cW-dw-dxW)/2,fy=(cH-dh-dyW)/2+dyW;
 
-    ctx.shadowColor="rgba(0,0,0,0.3)"; ctx.shadowBlur=8; ctx.shadowOffsetX=3; ctx.shadowOffsetY=3;
+    ctx.shadowColor="rgba(0,0,0,0.3)";ctx.shadowBlur=8;ctx.shadowOffsetX=3;ctx.shadowOffsetY=3;
     ctx.beginPath();
     ctx.moveTo(fx+dw,fy);
     ctx.lineTo(fx+dw+dxW,fy-dyW);
     ctx.lineTo(fx+dw+dxW,fy-dyW+dh);
     ctx.lineTo(fx+dw,fy+dh);
     ctx.closePath();
-    ctx.fillStyle="rgba(0,60,120,0.30)"; ctx.fill();
+    ctx.fillStyle="rgba(0,60,120,0.30)";ctx.fill();
     ctx.beginPath();
     ctx.moveTo(fx,fy);
     ctx.lineTo(fx+dxW,fy-dyW);
     ctx.lineTo(fx+dw+dxW,fy-dyW);
     ctx.lineTo(fx+dw,fy);
     ctx.closePath();
-    ctx.fillStyle="rgba(30,80,150,0.35)"; ctx.fill();
+    ctx.fillStyle="rgba(30,80,150,0.35)";ctx.fill();
     ctx.shadowColor="transparent";
-    ctx.beginPath(); ctx.roundRect(fx,fy,dw,dh,5); ctx.fillStyle="rgba(4,40,86,0.50)"; ctx.fill();
-    ctx.strokeStyle="#22d3ee"; ctx.lineWidth=1.8;
-    ctx.beginPath(); ctx.roundRect(fx,fy,dw,dh,5); ctx.stroke();
+    ctx.beginPath();ctx.roundRect(fx,fy,dw,dh,5);ctx.fillStyle="rgba(4,40,86,0.50)";ctx.fill();
+    ctx.strokeStyle="#22d3ee";ctx.lineWidth=1.8;
+    ctx.beginPath();ctx.roundRect(fx,fy,dw,dh,5);ctx.stroke();
     ctx.beginPath();
-    ctx.moveTo(fx,fy); ctx.lineTo(fx+dxW,fy-dyW);
-    ctx.lineTo(fx+dw+dxW,fy-dyW); ctx.lineTo(fx+dw,fy);
+    ctx.moveTo(fx,fy);ctx.lineTo(fx+dxW,fy-dyW);
+    ctx.lineTo(fx+dw+dxW,fy-dyW);ctx.lineTo(fx+dw,fy);
     ctx.stroke();
     ctx.beginPath();
-    ctx.moveTo(fx+dw+dxW,fy-dyW); ctx.lineTo(fx+dw+dxW,fy-dyW+dh);
+    ctx.moveTo(fx+dw+dxW,fy-dyW);ctx.lineTo(fx+dw+dxW,fy-dyW+dh);
     ctx.stroke();
     ctx.beginPath();
-    ctx.moveTo(fx+dw+dxW,fy-dyW+dh); ctx.lineTo(fx+dw,fy+dh);
+    ctx.moveTo(fx+dw+dxW,fy-dyW+dh);ctx.lineTo(fx+dw,fy+dh);
     ctx.stroke();
     const mY=fy+dh/2;
-    ctx.save(); ctx.setLineDash([7,7]); ctx.strokeStyle="rgba(248,113,113,0.80)";
-    ctx.lineWidth=1.3; ctx.beginPath(); ctx.moveTo(fx,mY); ctx.lineTo(fx+dw,mY); ctx.stroke();
+    ctx.save();ctx.setLineDash([7,7]);ctx.strokeStyle="rgba(248,113,113,0.80)";
+    ctx.lineWidth=1.3;ctx.beginPath();ctx.moveTo(fx,mY);ctx.lineTo(fx+dw,mY);ctx.stroke();
     ctx.restore();
 
-    ctx.font="bold 9.5px 'Nunito',sans-serif"; ctx.fillStyle="#fbbf24"; ctx.textAlign="center";
-    const lLblY = Math.min(fy+dh+13, cH-4);
-    ctx.fillText("L="+L.toFixed(2)+"mm", fx+dw/2, lLblY);
+    ctx.font="bold 9.5px 'Nunito',sans-serif";ctx.fillStyle="#fbbf24";ctx.textAlign="center";
+    const lLblY=Math.min(fy+dh+13,cH-4);
+    ctx.fillText("L="+L.toFixed(2)+"mm",fx+dw/2,lLblY);
     ctx.save();
-    ctx.translate(Math.max(fx-8,12), fy+dh/2);
+    ctx.translate(Math.max(fx-8,12),fy+dh/2);
     ctx.rotate(-Math.PI/2);
-    ctx.fillText("H="+H.toFixed(2)+"mm", 0, 0);
+    ctx.fillText("H="+H.toFixed(2)+"mm",0,0);
     ctx.restore();
     if(W>0){
         ctx.fillStyle="#22d3ee";
         ctx.save();
-        ctx.translate(fx+dw+dxW/2+4, fy-dyW/2-4);
+        ctx.translate(fx+dw+dxW/2+4,fy-dyW/2-4);
         ctx.rotate(Math.atan2(-dyW,dxW));
         ctx.textAlign="center";
         ctx.fillText("W="+W.toFixed(2)+"mm",0,0);
@@ -1709,13 +1685,13 @@ if(!CanvasRenderingContext2D.prototype.roundRect){
     CanvasRenderingContext2D.prototype.roundRect=function(x,y,w,h,r){if(r>w/2)r=w/2;if(r>h/2)r=h/2;this.moveTo(x+r,y);this.lineTo(x+w-r,y);this.quadraticCurveTo(x+w,y,x+w,y+r);this.lineTo(x+w,y+h-r);this.quadraticCurveTo(x+w,y+h,x+w-r,y+h);this.lineTo(x+r,y+h);this.quadraticCurveTo(x,y+h,x,y+h-r);this.lineTo(x,y+r);this.quadraticCurveTo(x,y,x+r,y);return this;};
 }
 
-// ─── BUILD HIGH-RES PNG REPORT (SC=5 for ultra crisp) ──────
+// ─── HIGH‑RES PNG REPORT (SC=8 for ultra crisp, no PAD scoping issues) ───
 function _buildReportCanvas(callback){
     refreshSnapHeader();
     const g=id=>(document.getElementById(id)||{}).textContent||(document.getElementById(id)||{}).value||'';
     const mfr=g('snap-mfr-txt')||'Optics & Allied Engg. Pvt. Ltd. (OPTICA)';
-    const vendor=g('snap-vendor-txt')||'—', titleTxt=g('snap-title-txt')||'Lens Cost Estimation';
-    const partno=g('snap-partno-txt')||'—', dateVal=g('snap-date-txt')||new Date().toLocaleDateString();
+    const vendor=g('snap-vendor-txt')||'—',titleTxt=g('snap-title-txt')||'Lens Cost Estimation';
+    const partno=g('snap-partno-txt')||'—',dateVal=g('snap-date-txt')||new Date().toLocaleDateString();
     const website=(document.getElementById('rpt-website')||{}).value||'www.opticsindia.com';
     const contact=(document.getElementById('rpt-contact')||{}).value||'+91-9886654729';
     const sections=[];
@@ -1727,97 +1703,99 @@ function _buildReportCanvas(callback){
     const srcCanvas=document.getElementById('res-canvas');
     const hasCanvas=srcCanvas&&srcCanvas.width>0&&srcCanvas.height>0;
 
-    // Ultra‑high resolution: scale factor 5
-    const SC=5;
-    const W=1100, PAD=24, HDR_H=110, FOOTER_H=40, ROW_H=32, SEC_H=30, GAP=10, TITLE_ROW=36;
+    // Ultra‑high resolution: SC=8 for crisp A4 prints
+    const SC=8;
+    const W=1200, P=28, HDR_H=120, FOOTER_H=48, ROW_H=34, SEC_H=32, GAP=12, TITLE_ROW=40;
     let dataH=TITLE_ROW+8;sections.forEach(s=>{dataH+=SEC_H;s.rows.forEach(()=>dataH+=ROW_H);dataH+=GAP;});
     const SPLIT_W=hasCanvas?Math.round(W*0.38):0;
-    const DATA_W=W-SPLIT_W-PAD*3;
-    const CONTENT_H=Math.max(hasCanvas?Math.round(SPLIT_W*srcCanvas.height/srcCanvas.width):0,dataH)+PAD;
+    const DATA_W=W-SPLIT_W-P*3;
+    const CONTENT_H=Math.max(hasCanvas?Math.round(SPLIT_W*srcCanvas.height/srcCanvas.width):0,dataH)+P;
     const H=HDR_H+CONTENT_H+FOOTER_H;
     const cv=document.createElement('canvas');cv.width=W*SC;cv.height=H*SC;
     const ctx=cv.getContext('2d');ctx.scale(SC,SC);ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
     ctx.fillStyle='#ffffff';ctx.fillRect(0,0,W,H);
 
-    // ── HEADER: Logo on LEFT, company name right ──────────────
-    const logoW = 70, logoH = 40;
-    const logoX = PAD;
-    const logoY = 8;
+    const logoW=80,logoH=46;
+    const logoX=P,logoY=8;
+
+    function drawHeaderText(cx, ox, oy, oh, mf, ws, ct){
+        cx.fillStyle='#111827';
+        cx.font='bold 20px Arial';
+        cx.fillText(mf.substring(0,60), ox, oy+20);
+        cx.fillStyle='#4b5563';
+        cx.font='13px Arial';
+        cx.fillText((ws+(ct?' | '+ct:'')).substring(0,90), ox, oy+40);
+        cx.strokeStyle='#e5e7eb';
+        cx.lineWidth=1;
+        cx.beginPath();
+        cx.moveTo(P,64);
+        cx.lineTo(W-P,64);
+        cx.stroke();
+    }
+
+    function drawBody(cx, hasC, srcC, splitW, dataW, contH, hdrH, pad, secs, tTxt, vend, pno, dVal, mf, ws, ct, Htot, footH, Wtot){
+        const bodyY=hdrH;
+        const fW=Math.floor((Wtot-pad*2)/4);
+        [['TO / VENDOR',vend],['TITLE',tTxt],['PART NO.',pno],['DATE',dVal]].forEach(([lbl,val],i)=>{
+            const fx=pad+i*fW;
+            cx.font='bold 11px Arial';cx.fillStyle='#6b7280';cx.fillText(lbl,fx,80);
+            cx.font='bold 14px Arial';cx.fillStyle=lbl==='PART NO.'?'#b45309':'#111827';
+            cx.fillText((val||'—').substring(0,Math.floor(fW/7)),fx,100);
+        });
+        if(hasC&&srcC){
+            cx.fillStyle='#f1f3f5';cx.fillRect(0,bodyY,splitW,contH);
+            cx.fillStyle='#374151';cx.font='bold 11px Arial';cx.textAlign='center';cx.fillText('CROSS-SECTION PREVIEW',splitW/2,bodyY+18);cx.textAlign='left';
+            const cw=splitW-20,ch=Math.round(cw*srcC.height/srcC.width);
+            const cOffY=Math.max(0,Math.round((contH-ch)/2));
+            cx.drawImage(srcC,0,0,srcC.width,srcC.height,10,bodyY+26+cOffY,cw,ch);
+            cx.fillStyle='#c8d8e8';cx.fillRect(splitW,bodyY,1.5,contH);
+        }
+        const dataX=(hasC?splitW:0)+pad, dataRight=dataX+dataW;
+        let dy=bodyY+pad;
+        cx.fillStyle='#111827';cx.font='bold 18px Arial';cx.fillText(tTxt.substring(0,60),dataX,dy+20);dy+=TITLE_ROW;
+        secs.forEach(sec=>{
+            cx.fillStyle='#e8f0fb';cx.fillRect(dataX,dy,dataW,SEC_H-2);
+            cx.fillStyle='#1a3a6e';cx.font='bold 13px Arial';cx.fillText((sec.hdr||'').toUpperCase(),dataX+8,dy+SEC_H-10);dy+=SEC_H;
+            sec.rows.forEach(r=>{
+                const bg=r.green?'#f0fdf4':r.amber?'#fffbeb':'#ffffff';cx.fillStyle=bg;cx.fillRect(dataX,dy,dataW,ROW_H-1);
+                cx.fillStyle='#111827';cx.font='13px Arial';cx.fillText(r.lbl||'',dataX+8,dy+ROW_H-10);
+                const vc=r.green?'#16a34a':r.amber?'#92400e':'#111827';cx.fillStyle=vc;cx.font=r.green||r.amber?'bold 14px Arial':'13px Arial';
+                cx.textAlign='right';cx.fillText(r.val||'',dataRight,dy+ROW_H-10);cx.textAlign='left';
+                cx.strokeStyle='#e5e7eb';cx.lineWidth=0.5;cx.beginPath();cx.moveTo(dataX,dy+ROW_H-1);cx.lineTo(dataRight,dy+ROW_H-1);cx.stroke();
+                dy+=ROW_H;
+            });dy+=GAP;
+        });
+        const fy=Htot-footH;cx.fillStyle='#f3f4f6';cx.fillRect(0,fy,Wtot,footH);
+        cx.strokeStyle='#e5e7eb';cx.lineWidth=1;cx.beginPath();cx.moveTo(0,fy);cx.lineTo(Wtot,fy);cx.stroke();
+        cx.fillStyle='#374151';cx.font='12px Arial';cx.textAlign='center';
+        cx.fillText('Generated by OptiCost LRMCE v1.3  |  '+mf+'  |  '+ws+(ct?' | '+ct:''),Wtot/2,fy+footH/2+6);cx.textAlign='left';
+    }
+
     if(_logoImageObj && _logoImageObj.complete && _logoImageObj.naturalWidth>0){
-        // Use pre‑loaded image
         ctx.drawImage(_logoImageObj, logoX, logoY, logoW, logoH);
-        _drawHeaderText(ctx, PAD + logoW + 12, logoY, logoH, mfr, website, contact);
-        _drawBody(ctx, hasCanvas, srcCanvas, SPLIT_W, DATA_W, CONTENT_H, HDR_H, PAD, sections, titleTxt, vendor, partno, dateVal, mfr, website, contact, H, FOOTER_H, W);
+        drawHeaderText(ctx, P+logoW+16, logoY, logoH, mfr, website, contact);
+        drawBody(ctx, hasCanvas, srcCanvas, SPLIT_W, DATA_W, CONTENT_H, HDR_H, P, sections, titleTxt, vendor, partno, dateVal, mfr, website, contact, H, FOOTER_H, W);
         callback(cv);
     } else if(_logoDataUrl){
-        // Fallback: load and draw
         const li=new Image();
         li.onload=()=>{
-            _logoImageObj = li;
+            _logoImageObj=li;
             ctx.drawImage(li, logoX, logoY, logoW, logoH);
-            _drawHeaderText(ctx, PAD + logoW + 12, logoY, logoH, mfr, website, contact);
-            _drawBody(ctx, hasCanvas, srcCanvas, SPLIT_W, DATA_W, CONTENT_H, HDR_H, PAD, sections, titleTxt, vendor, partno, dateVal, mfr, website, contact, H, FOOTER_H, W);
+            drawHeaderText(ctx, P+logoW+16, logoY, logoH, mfr, website, contact);
+            drawBody(ctx, hasCanvas, srcCanvas, SPLIT_W, DATA_W, CONTENT_H, HDR_H, P, sections, titleTxt, vendor, partno, dateVal, mfr, website, contact, H, FOOTER_H, W);
             callback(cv);
         };
         li.onerror=()=>{
-            _drawHeaderText(ctx, PAD, logoY, logoH, mfr, website, contact);
-            _drawBody(ctx, hasCanvas, srcCanvas, SPLIT_W, DATA_W, CONTENT_H, HDR_H, PAD, sections, titleTxt, vendor, partno, dateVal, mfr, website, contact, H, FOOTER_H, W);
+            drawHeaderText(ctx, P, logoY, logoH, mfr, website, contact);
+            drawBody(ctx, hasCanvas, srcCanvas, SPLIT_W, DATA_W, CONTENT_H, HDR_H, P, sections, titleTxt, vendor, partno, dateVal, mfr, website, contact, H, FOOTER_H, W);
             callback(cv);
         };
         li.src=_logoDataUrl;
     } else {
-        _drawHeaderText(ctx, PAD, logoY, logoH, mfr, website, contact);
-        _drawBody(ctx, hasCanvas, srcCanvas, SPLIT_W, DATA_W, CONTENT_H, HDR_H, PAD, sections, titleTxt, vendor, partno, dateVal, mfr, website, contact, H, FOOTER_H, W);
+        drawHeaderText(ctx, P, logoY, logoH, mfr, website, contact);
+        drawBody(ctx, hasCanvas, srcCanvas, SPLIT_W, DATA_W, CONTENT_H, HDR_H, P, sections, titleTxt, vendor, partno, dateVal, mfr, website, contact, H, FOOTER_H, W);
         callback(cv);
     }
-}
-
-function _drawHeaderText(ctx, x, y, logoH, mfr, website, contact){
-    ctx.fillStyle='#111827';
-    ctx.font='bold 18px Arial';
-    ctx.fillText(mfr.substring(0,60), x, y + 18);
-    ctx.fillStyle='#4b5563';
-    ctx.font='12px Arial';
-    ctx.fillText((website+(contact?' | '+contact:'')).substring(0,90), x, y + 36);
-    ctx.strokeStyle='#e5e7eb';
-    ctx.lineWidth=0.8;
-    ctx.beginPath();
-    ctx.moveTo(PAD, 60);
-    ctx.lineTo(W-PAD, 60);
-    ctx.stroke();
-}
-
-function _drawBody(ctx, hasCanvas, srcCanvas, SPLIT_W, DATA_W, CONTENT_H, HDR_H, PAD, sections, titleTxt, vendor, partno, dateVal, mfr, website, contact, H, FOOTER_H, W){
-    const bodyY=HDR_H;
-    const fW=Math.floor((W-PAD*2)/4);
-    [['TO / VENDOR',vendor],['TITLE',titleTxt],['PART NO.',partno],['DATE',dateVal]].forEach(([lbl,val],i)=>{const fx=PAD+i*fW;ctx.font='bold 10px Arial';ctx.fillStyle='#6b7280';ctx.fillText(lbl,fx,76);ctx.font='bold 13px Arial';ctx.fillStyle=lbl==='PART NO.'?'#b45309':'#111827';ctx.fillText((val||'—').substring(0,Math.floor(fW/7)),fx,94);});
-    if(hasCanvas&&srcCanvas){
-        ctx.fillStyle='#f1f3f5';ctx.fillRect(0,bodyY,SPLIT_W,CONTENT_H);
-        ctx.fillStyle='#374151';ctx.font='bold 10px Arial';ctx.textAlign='center';ctx.fillText('CROSS-SECTION PREVIEW',SPLIT_W/2,bodyY+16);ctx.textAlign='left';
-        const cw=SPLIT_W-16, ch=Math.round(cw*srcCanvas.height/srcCanvas.width);
-        const cOffY=Math.max(0,Math.round((CONTENT_H-ch)/2));
-        ctx.drawImage(srcCanvas,0,0,srcCanvas.width,srcCanvas.height,8,bodyY+22+cOffY,cw,ch);
-        ctx.fillStyle='#c8d8e8';ctx.fillRect(SPLIT_W,bodyY,1,CONTENT_H);
-    }
-    const dataX=(hasCanvas?SPLIT_W:0)+PAD, dataRight=dataX+DATA_W;
-    let dy=bodyY+PAD;
-    ctx.fillStyle='#111827';ctx.font='bold 16px Arial';ctx.fillText(titleTxt.substring(0,60),dataX,dy+18);dy+=TITLE_ROW;
-    sections.forEach(sec=>{
-        ctx.fillStyle='#e8f0fb';ctx.fillRect(dataX,dy,DATA_W,SEC_H-2);
-        ctx.fillStyle='#1a3a6e';ctx.font='bold 12px Arial';ctx.fillText((sec.hdr||'').toUpperCase(),dataX+6,dy+SEC_H-9);dy+=SEC_H;
-        sec.rows.forEach(r=>{
-            const bg=r.green?'#f0fdf4':r.amber?'#fffbeb':'#ffffff';ctx.fillStyle=bg;ctx.fillRect(dataX,dy,DATA_W,ROW_H-1);
-            ctx.fillStyle='#111827';ctx.font='12px Arial';ctx.fillText(r.lbl||'',dataX+6,dy+ROW_H-9);
-            const vc=r.green?'#16a34a':r.amber?'#92400e':'#111827';ctx.fillStyle=vc;ctx.font=r.green||r.amber?'bold 13px Arial':'12px Arial';
-            ctx.textAlign='right';ctx.fillText(r.val||'',dataRight,dy+ROW_H-9);ctx.textAlign='left';
-            ctx.strokeStyle='#e5e7eb';ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(dataX,dy+ROW_H-1);ctx.lineTo(dataRight,dy+ROW_H-1);ctx.stroke();
-            dy+=ROW_H;
-        });dy+=GAP;
-    });
-    const fy=H-FOOTER_H;ctx.fillStyle='#f3f4f6';ctx.fillRect(0,fy,W,FOOTER_H);
-    ctx.strokeStyle='#e5e7eb';ctx.lineWidth=0.8;ctx.beginPath();ctx.moveTo(0,fy);ctx.lineTo(W,fy);ctx.stroke();
-    ctx.fillStyle='#374151';ctx.font='11px Arial';ctx.textAlign='center';
-    ctx.fillText('Generated by OptiCost LRMCE v1.3  |  '+mfr+'  |  '+website+(contact?' | '+contact:''),W/2,fy+FOOTER_H/2+5);ctx.textAlign='left';
 }
 
 let _modalOkCb=null;
@@ -1832,7 +1810,7 @@ const THEMES=['dark','light','white','warm','green','steel','purple','red'];
 function setTheme(t){document.documentElement.setAttribute('data-theme',t==='dark'?'':t);THEMES.forEach(x=>{const el=document.getElementById('sw-'+x);if(el)el.classList.toggle('active',x===t);});try{localStorage.setItem('opticost_theme',t);}catch(e){}liveDrawLens();}
 function toggleThemePanel(){document.getElementById('theme-panel').classList.toggle('open');}
 
-function showAbout(){showModal("About OptiCost LRMCE","OptiCost — LRMCE v1.3\n\nDeveloped by:\n  Priya Gavshinde\n  Sr. Optical Engineer\n  Optics & Allied Engg. Pvt. Ltd.\n\nContact:\n  www.opticsindia.com\n  +91-9886654729\n  info@opticsindia.com\n\n© 2025 Optics & Allied Engg. Pvt. Ltd.");}
+function showAbout(){showModal("About OptiCost LRMCE","OptiCost — LRMCE v1.4\n\nDeveloped by:\n  Priya Gavshinde\n  Sr. Optical Engineer\n  Optics & Allied Engg. Pvt. Ltd.\n\nContact:\n  www.opticsindia.com\n  +91-9886654729\n  info@opticsindia.com\n\n© 2025 Optics & Allied Engg. Pvt. Ltd.");}
 
 window.addEventListener('DOMContentLoaded',()=>{
     loadMaterials();
@@ -1843,7 +1821,17 @@ window.addEventListener('DOMContentLoaded',()=>{
     const de=document.getElementById('rpt-date');if(de)de.value=new Date().toISOString().slice(0,10);
     let _savedUser=null;try{_savedUser=sessionStorage.getItem("opticost_session");}catch(e){}
     if(_savedUser){
-        _getAllUsers().then(users=>{const rec=users[_savedUser.toLowerCase()];if(rec&&new Date()<=new Date(rec.expires)){currentUser=_savedUser;document.getElementById("logged-in-label").textContent="👤 "+_savedUser;showScreen("screen-main");}else{try{sessionStorage.removeItem("opticost_session");}catch(e){}showScreen("screen-login");}}).catch(()=>showScreen("screen-login"));
+        _getAllUsers().then(users=>{
+            const rec=users[_savedUser.toLowerCase()];
+            if(rec&&new Date()<=new Date(rec.expires)){
+                currentUser=_savedUser;
+                document.getElementById("logged-in-label").textContent="👤 "+_savedUser;
+                _getLogoForUser(_savedUser).then(data=>{
+                    if(data){_logoDataUrl=data;document.getElementById("logo-img").src=data;document.getElementById("logo-preview").style.display="block";const img=new Image();img.onload=()=>{_logoImageObj=img;};img.onerror=()=>{_logoImageObj=null;};img.src=data;}
+                    showScreen("screen-main");
+                }).catch(()=>{showScreen("screen-main");});
+            }else{try{sessionStorage.removeItem("opticost_session");}catch(e){}showScreen("screen-login");}
+        }).catch(()=>showScreen("screen-login"));
     }else showScreen("screen-login");
 
     let _didSave=false;

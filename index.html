@@ -162,8 +162,6 @@
         .file-item-meta{font-size:.64rem;color:var(--muted);margin-bottom:6px}
         .file-actions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px}
         .file-actions button{padding:9px 2px;border:none;border-radius:7px;font-size:.70rem;font-weight:700;cursor:pointer;font-family:var(--font);text-align:center}
-
-        /* ── FILE VIEWER OVERLAY ── */
         #file-viewer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.95);z-index:9998;display:none;flex-direction:column}
         #file-viewer-bar{background:#0c1d30;border-bottom:1px solid #0e2e4e;padding:8px 12px;display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap}
         #file-viewer-title{color:#22d3ee;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:.95rem;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -171,34 +169,15 @@
         #file-viewer-zoom button{background:var(--surf2);border:1px solid var(--border);color:var(--accent);border-radius:6px;padding:6px 14px;font-size:1.1rem;font-weight:700;cursor:pointer;min-width:40px;touch-action:manipulation}
         #zoom-level{color:#e8f4ff;font-size:.85rem;min-width:44px;text-align:center;font-weight:700}
         #file-viewer-close{background:#f87171;border:none;color:#fff;border-radius:8px;padding:6px 14px;font-weight:700;cursor:pointer;font-size:.82rem;flex-shrink:0;touch-action:manipulation}
-        /* Scrollable viewport for the image */
         #file-viewer-viewport{flex:1;overflow:hidden;position:relative;touch-action:none;user-select:none;-webkit-user-select:none}
         #fv-img-container{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;overflow:visible;transform-origin:center center}
         #fv-img-container img{max-width:90%;max-height:90%;border-radius:8px;display:block;pointer-events:none;user-select:none;-webkit-user-select:none}
         #file-viewer-content{flex:1;overflow:auto;display:flex;align-items:flex-start;justify-content:center;padding:12px;touch-action:pan-y}
         #file-viewer-content iframe{width:100%;height:100%;border:none;background:#fff;border-radius:8px}
         #file-viewer-content pre{color:#e8f4ff;font-family:'Share Tech Mono',monospace;font-size:.78rem;white-space:pre-wrap;word-break:break-word;background:#091624;padding:14px;border-radius:8px;width:100%}
-
         @media(min-width:480px){body{max-width:480px;margin:0 auto}.theme-fab{right:calc(50% - 240px)}.theme-panel{right:calc(50% - 240px + 20px)}}
-        @media(max-width:414px){
-            .tab{font-size:.76rem;padding:5px 10px}
-            main{padding:9px 9px 120px}
-            .card{padding:11px}
-            .actbar button{font-size:.79rem;padding:10px 3px}
-            .meta-grid{grid-template-columns:1fr}
-            #res-split-wrap{flex-direction:row}
-            #res-canvas-col{flex:0 0 38%;max-width:38%}
-            .export-grid{grid-template-columns:1fr}
-            .file-actions{grid-template-columns:1fr 1fr}
-            .res-row{flex-wrap:wrap}
-            .res-lbl{flex:1 1 60px;min-width:60px}
-            .res-val-inp{flex:1 1 80px;min-width:60px}
-        }
-        @media(max-width:320px){
-            #res-split-wrap{flex-direction:column}
-            #res-canvas-col{flex:0 0 auto;max-width:100%;border-right:none;border-bottom:1px solid #c8d8e8}
-        }
-        /* toast notification */
+        @media(max-width:414px){.tab{font-size:.76rem;padding:5px 10px}main{padding:9px 9px 120px}.card{padding:11px}.actbar button{font-size:.79rem;padding:10px 3px}.meta-grid{grid-template-columns:1fr}#res-split-wrap{flex-direction:row}#res-canvas-col{flex:0 0 38%;max-width:38%}.export-grid{grid-template-columns:1fr}.file-actions{grid-template-columns:1fr 1fr}.res-row{flex-wrap:wrap}.res-lbl{flex:1 1 60px;min-width:60px}.res-val-inp{flex:1 1 80px;min-width:60px}}
+        @media(max-width:320px){#res-split-wrap{flex-direction:column}#res-canvas-col{flex:0 0 auto;max-width:100%;border-right:none;border-bottom:1px solid #c8d8e8}}
         .toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:10px;padding:10px 20px;font-size:.85rem;font-weight:600;z-index:999;box-shadow:0 6px 24px rgba(0,0,0,0.6);max-width:90%;text-align:center;display:none;transition:opacity .25s}
         .toast.show{display:block;animation:toastIn .22s ease}
         .toast.success{border-color:var(--green);color:var(--green)}
@@ -621,7 +600,7 @@
 <!-- TOAST -->
 <div id="toast" class="toast"></div>
 
-<!-- ═══ INLINE FILE VIEWER — pinch-to-zoom + pan ═══ -->
+<!-- FILE VIEWER -->
 <div id="file-viewer-overlay">
     <div id="file-viewer-bar">
         <span id="file-viewer-title">File Viewer</span>
@@ -633,13 +612,11 @@
         </div>
         <button id="file-viewer-close" onclick="closeFileViewer()">✕ Close</button>
     </div>
-    <!-- Image viewer: separate pinch-zoom viewport -->
     <div id="file-viewer-viewport" style="display:none">
         <div id="fv-img-container">
             <img id="fv-img" src="" alt="" />
         </div>
     </div>
-    <!-- Text/iframe viewer -->
     <div id="file-viewer-content" style="display:none"></div>
 </div>
 
@@ -927,7 +904,7 @@ function calcCirc(){
     const signedSag2ca=s2==="convex"?sag2ca:(s2==="concave"?-sag2ca:0);
     const signedSag1od=s1==="convex"?sag1od:(s1==="concave"?-sag1od:0);
     const signedSag2od=s2==="convex"?sag2od:(s2==="concave"?-sag2od:0);
-    window._lastLensParams={id:"c-canvas",p:{OD,CT,CA1,CA2,s1,s2,g1:Math.abs(sag1ca),g2:Math.abs(sag2ca)}};
+    window._lastLensParams={type:'circ',id:"c-canvas",p:{OD,CT,CA1,CA2,s1,s2,g1:Math.abs(sag1ca),g2:Math.abs(sag2ca),roc1,roc2}};
     drawLensCanvas("c-canvas",window._lastLensParams.p,true);
     document.getElementById("result-text").innerHTML=
         resTitle("📐 Optic Cost Summary — Circular Lens")+
@@ -948,6 +925,7 @@ function calcRect(){
     const L=sf(v("r-L")), W=sf(v("r-W")), H=sf(v("r-H"));
     if(L<=0||W<=0||H<=0) throw new Error("Length, Width and Thickness must all be > 0.");
     const Vtcm3=L*W*H/1000, wt=Vtcm3*dens, cost=wt*ppg;
+    window._lastLensParams={type:'rect',id:"r-canvas",p:{L,W,H}};
     drawRectCanvas("r-canvas",{L,W,H});
     document.getElementById("result-text").innerHTML=resTitle("📐 Optic Cost Summary — Rectangular Block")+`<div class="res-section">`+secHdr("Material")+row("Material",mat)+row("Density",dens.toFixed(3)+" g/cm³")+`</div><div class="res-divider"></div>`+`<div class="res-section">`+secHdr("Dimensions")+row("Length (L)",L.toFixed(3)+" mm")+row("Width (W)",W.toFixed(3)+" mm")+row("Thickness (H)",H.toFixed(3)+" mm")+`</div><div class="res-divider"></div>`+`<div class="res-section">`+secHdr("Blank Weight & Cost")+row("Volume",Vtcm3.toFixed(6)+" cm³")+row("Weight",wt.toFixed(4)+" g")+row("COST",cur+" "+cost.toFixed(2),"green")+`</div>`;
     recs.push({"Aperture":"Rectangular","Block No":recs.length+1,"Material":mat,"Density(g/cm3)":dens.toFixed(3),"Price/gram":cur+" "+fmtPPG(ppg),"L(mm)":L.toFixed(3),"W(mm)":W.toFixed(3),"H(mm)":H.toFixed(3),"BlankVol(cm3)":Vtcm3.toFixed(6),"BlankWt(g)":wt.toFixed(4),"BlankCost":cur+" "+cost.toFixed(2)});
@@ -973,15 +951,20 @@ function mirrorCanvasToResults(srcId){
     if(!src||!dst||!col||src.width<=0||src.height<=0){if(col)col.style.display="none";return;}
     col.style.display="flex";
     requestAnimationFrame(()=>{requestAnimationFrame(()=>{
+        // ── FIX: copy at native pixel resolution, not CSS size ──
         const colW=col.clientWidth||140;
-        const aspect=src.height/src.width;
+        const srcNatW=src.width, srcNatH=src.height;
+        const aspect=srcNatH/srcNatW;
         const dstH=Math.min(Math.round(colW*aspect),320);
-        dst.width=colW*2; dst.height=dstH*2;
+        // dst is a display canvas — use 2x for sharpness on results panel
+        const outDpr=Math.min(window.devicePixelRatio||1,3);
+        dst.width=colW*outDpr; dst.height=dstH*outDpr;
         dst.style.width=colW+"px"; dst.style.height=dstH+"px";
         const ctx=dst.getContext("2d");
         ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality="high";
-        ctx.scale(2,2);ctx.clearRect(0,0,colW,dstH);
-        ctx.drawImage(src,0,0,src.width,src.height,0,0,colW,dstH);
+        ctx.scale(outDpr,outDpr);ctx.clearRect(0,0,colW,dstH);
+        // draw from native pixels of src
+        ctx.drawImage(src,0,0,srcNatW,srcNatH,0,0,colW,dstH);
     });});
 }
 
@@ -1029,13 +1012,10 @@ function showToast(msg,type){
 }
 
 // ═══════════════════════════════════════════════════════════════
-// SAVE / EXPORT — robust with toast feedback
+// SAVE / EXPORT
 // ═══════════════════════════════════════════════════════════════
 function _saveBlob(blob, defaultFname){
-    // 1) Store in IDB first (silent)
     _storeFile(defaultFname, blob).catch(()=>{});
-
-    // 2) Try Android bridge (APK)
     if(window.Android && typeof window.Android.saveFile === 'function'){
         try{
             const reader = new FileReader();
@@ -1047,10 +1027,8 @@ function _saveBlob(blob, defaultFname){
             reader.onerror = function(){ _fallbackDownload(blob, defaultFname); };
             reader.readAsDataURL(blob);
             return;
-        }catch(e){ /* fall through */ }
+        }catch(e){}
     }
-
-    // 3) Try Web Share API (mobile browsers)
     if(navigator.share){
         try{
             const file = new File([blob], defaultFname, {type: blob.type});
@@ -1063,10 +1041,8 @@ function _saveBlob(blob, defaultFname){
                     });
                 return;
             }
-        }catch(e){ /* fall through */ }
+        }catch(e){}
     }
-
-    // 4) Fallback: standard download
     _fallbackDownload(blob, defaultFname);
 }
 
@@ -1081,7 +1057,6 @@ function _fallbackDownload(blob, fname){
         showToast('⬇ Downloading: '+fname,'success');
         setTimeout(()=>URL.revokeObjectURL(url), 8000);
     }catch(e){
-        // Last resort: open in new tab
         try{
             const url = URL.createObjectURL(blob);
             window.open(url, '_blank');
@@ -1107,7 +1082,7 @@ function doSaveXLSX(){
 
 function saveReportImage(){
     if(!recs.length){showToast('⚠ No data — calculate first.','error');return;}
-    showToast('🖼 Building image…','');
+    showToast('🖼 Building high-res image…','');
     setTimeout(()=>{
         try{
             _buildReportCanvas(cv=>{
@@ -1171,7 +1146,7 @@ ${canvasCol}
 <td style="vertical-align:top"><table style="width:100%;border-collapse:collapse;border:1px solid #d1d9e2">
 <tr><th colspan="2" style="background:#1a2e44;color:#fff;padding:6px 10px;font-size:9.5pt;text-align:left;font-weight:700">📐 ${_escHtml(titleTxt)}</th></tr>
 ${trows}</table></td></tr></table>
-<div class="footer">Generated by OptiCost LRMCE v1.2 | ${_escHtml(mfr)} | ${_escHtml(website)}</div>
+<div class="footer">Generated by OptiCost LRMCE v1.2 | ${_escHtml(mfr)} | ${_escHtml(website)}${contact?' | '+_escHtml(contact):''}</div>
 </body></html>`;
     const blob=new Blob(['\uFEFF'+html],{type:'application/vnd.ms-word;charset=utf-8'});
     const ts=new Date().toISOString().slice(0,10);
@@ -1205,179 +1180,75 @@ function renderFilesLib(){
 }
 
 // ═══════════════════════════════════════════════════════════════
-// FILE VIEWER — pinch-to-zoom + pan (image), scroll (text/iframe)
+// FILE VIEWER — pinch-to-zoom + pan
 // ═══════════════════════════════════════════════════════════════
-let _fvScale = 1;
-let _fvOriginX = 0, _fvOriginY = 0;
-let _fvPinchDist0 = 0, _fvPinchScale0 = 1;
-let _fvPanStart = null, _fvPanOffset0 = {x:0, y:0};
-let _fvIsImage = false;
+let _fvScale=1, _fvOriginX=0, _fvOriginY=0;
+let _fvPinchDist0=0, _fvPinchScale0=1;
+let _fvPanStart=null, _fvPanOffset0={x:0,y:0};
 
 function _applyTransform(){
-    const container = document.getElementById('fv-img-container');
-    if(!container) return;
-    container.style.transform = `translate(${_fvOriginX}px, ${_fvOriginY}px) scale(${_fvScale})`;
-    document.getElementById('zoom-level').textContent = _fvScale.toFixed(1)+'×';
+    const container=document.getElementById('fv-img-container');if(!container)return;
+    container.style.transform=`translate(${_fvOriginX}px, ${_fvOriginY}px) scale(${_fvScale})`;
+    document.getElementById('zoom-level').textContent=_fvScale.toFixed(1)+'×';
 }
-
-function zoomStep(delta){
-    _fvScale = Math.max(0.2, Math.min(8, _fvScale + delta));
-    _applyTransform();
+function zoomStep(delta){_fvScale=Math.max(0.2,Math.min(8,_fvScale+delta));_applyTransform();}
+function resetZoom(){_fvScale=1;_fvOriginX=0;_fvOriginY=0;_applyTransform();}
+function _getTouchDist(touches){const dx=touches[0].clientX-touches[1].clientX,dy=touches[0].clientY-touches[1].clientY;return Math.sqrt(dx*dx+dy*dy);}
+function _initImageViewer(src,title){
+    const overlay=document.getElementById('file-viewer-overlay'),viewport=document.getElementById('file-viewer-viewport'),content=document.getElementById('file-viewer-content'),zoomBar=document.getElementById('file-viewer-zoom');
+    document.getElementById('file-viewer-title').textContent=title;
+    viewport.style.display='block';content.style.display='none';zoomBar.style.display='flex';
+    _fvScale=1;_fvOriginX=0;_fvOriginY=0;
+    const img=document.getElementById('fv-img');img.src=src;
+    document.getElementById('fv-img-container').style.transform='translate(0,0) scale(1)';
+    document.getElementById('zoom-level').textContent='1.0×';
+    overlay.style.display='flex';
+    viewport.ontouchstart=_fvTouchStart;viewport.ontouchmove=_fvTouchMove;viewport.ontouchend=_fvTouchEnd;
 }
-function resetZoom(){
-    _fvScale = 1; _fvOriginX = 0; _fvOriginY = 0;
-    _applyTransform();
-}
-
-function _getTouchDist(touches){
-    const dx = touches[0].clientX - touches[1].clientX;
-    const dy = touches[0].clientY - touches[1].clientY;
-    return Math.sqrt(dx*dx + dy*dy);
-}
-
-function _initImageViewer(src, title){
-    const overlay = document.getElementById('file-viewer-overlay');
-    const viewport = document.getElementById('file-viewer-viewport');
-    const content  = document.getElementById('file-viewer-content');
-    const zoomBar  = document.getElementById('file-viewer-zoom');
-    document.getElementById('file-viewer-title').textContent = title;
-    viewport.style.display = 'block';
-    content.style.display  = 'none';
-    zoomBar.style.display  = 'flex';
-    _fvScale = 1; _fvOriginX = 0; _fvOriginY = 0;
-    _fvIsImage = true;
-    const img = document.getElementById('fv-img');
-    img.src = src;
-    const container = document.getElementById('fv-img-container');
-    container.style.transform = 'translate(0,0) scale(1)';
-    document.getElementById('zoom-level').textContent = '1.0×';
-    overlay.style.display = 'flex';
-    viewport.ontouchstart = _fvTouchStart;
-    viewport.ontouchmove  = _fvTouchMove;
-    viewport.ontouchend   = _fvTouchEnd;
-}
-
 function _fvTouchStart(e){
-    if(e.touches.length === 2){
-        e.preventDefault();
-        _fvPinchDist0  = _getTouchDist(e.touches);
-        _fvPinchScale0 = _fvScale;
-    } else if(e.touches.length === 1){
-        _fvPanStart  = {x: e.touches[0].clientX, y: e.touches[0].clientY};
-        _fvPanOffset0 = {x: _fvOriginX, y: _fvOriginY};
-    }
+    if(e.touches.length===2){e.preventDefault();_fvPinchDist0=_getTouchDist(e.touches);_fvPinchScale0=_fvScale;}
+    else if(e.touches.length===1){_fvPanStart={x:e.touches[0].clientX,y:e.touches[0].clientY};_fvPanOffset0={x:_fvOriginX,y:_fvOriginY};}
 }
 function _fvTouchMove(e){
-    if(e.touches.length === 2){
-        e.preventDefault();
-        const dist = _getTouchDist(e.touches);
-        _fvScale = Math.max(0.2, Math.min(8, _fvPinchScale0 * (dist / _fvPinchDist0)));
-        _applyTransform();
-    } else if(e.touches.length === 1 && _fvPanStart && _fvScale > 1){
-        e.preventDefault();
-        _fvOriginX = _fvPanOffset0.x + (e.touches[0].clientX - _fvPanStart.x);
-        _fvOriginY = _fvPanOffset0.y + (e.touches[0].clientY - _fvPanStart.y);
-        _applyTransform();
-    }
+    if(e.touches.length===2){e.preventDefault();const dist=_getTouchDist(e.touches);_fvScale=Math.max(0.2,Math.min(8,_fvPinchScale0*(dist/_fvPinchDist0)));_applyTransform();}
+    else if(e.touches.length===1&&_fvPanStart&&_fvScale>1){e.preventDefault();_fvOriginX=_fvPanOffset0.x+(e.touches[0].clientX-_fvPanStart.x);_fvOriginY=_fvPanOffset0.y+(e.touches[0].clientY-_fvPanStart.y);_applyTransform();}
 }
-function _fvTouchEnd(e){
-    if(e.touches.length < 2) _fvPinchDist0 = 0;
-    if(e.touches.length === 0) _fvPanStart = null;
-}
+function _fvTouchEnd(e){if(e.touches.length<2)_fvPinchDist0=0;if(e.touches.length===0)_fvPanStart=null;}
 
 function viewStoredFile(fname){
     _getStoredFile(fname).then(rec=>{
         if(!rec){showModal('Error','File not found.');return;}
-        const overlay  = document.getElementById('file-viewer-overlay');
-        const viewport = document.getElementById('file-viewer-viewport');
-        const content  = document.getElementById('file-viewer-content');
-        const zoomBar  = document.getElementById('file-viewer-zoom');
-        document.getElementById('file-viewer-title').textContent = rec.fname;
-
-        if(rec.mime.startsWith('image/')){
-            _initImageViewer(rec.data, rec.fname);
+        const overlay=document.getElementById('file-viewer-overlay'),viewport=document.getElementById('file-viewer-viewport'),content=document.getElementById('file-viewer-content'),zoomBar=document.getElementById('file-viewer-zoom');
+        document.getElementById('file-viewer-title').textContent=rec.fname;
+        if(rec.mime.startsWith('image/')){_initImageViewer(rec.data,rec.fname);return;}
+        viewport.style.display='none';content.style.display='flex';content.innerHTML='';zoomBar.style.display='none';
+        if(rec.mime.startsWith('text/')||rec.fname.endsWith('.csv')){
+            try{const b64=rec.data.split(',')[1];const txt=decodeURIComponent(escape(atob(b64)));const pre=document.createElement('pre');pre.textContent=txt.slice(0,50000)+(txt.length>50000?'\n\n… (truncated)':'');content.appendChild(pre);overlay.style.display='flex';}catch(e){_downloadFallback(rec);}
             return;
         }
-
-        viewport.style.display = 'none';
-        content.style.display  = 'flex';
-        content.innerHTML = '';
-        zoomBar.style.display = 'none';
-        _fvIsImage = false;
-
-        if(rec.mime.startsWith('text/') || rec.fname.endsWith('.csv')){
-            try{
-                const b64 = rec.data.split(',')[1];
-                const txt = decodeURIComponent(escape(atob(b64)));
-                const pre = document.createElement('pre');
-                pre.textContent = txt.slice(0,50000)+(txt.length>50000?'\n\n… (truncated)':'');
-                content.appendChild(pre);
-                overlay.style.display = 'flex';
-            }catch(e){ _downloadFallback(rec); }
+        if(rec.fname.endsWith('.doc')||rec.mime.includes('word')){
+            try{const iframe=document.createElement('iframe');iframe.src=rec.data;iframe.style.cssText='width:100%;height:100%;border:none;border-radius:8px;flex:1';content.style.padding='0';content.appendChild(iframe);overlay.style.display='flex';}catch(e){_downloadFallback(rec);}
             return;
         }
-
-        if(rec.fname.endsWith('.doc') || rec.mime.includes('word')){
-            try{
-                const iframe = document.createElement('iframe');
-                iframe.src = rec.data;
-                iframe.style.cssText = 'width:100%;height:100%;border:none;border-radius:8px;flex:1';
-                content.style.padding = '0';
-                content.appendChild(iframe);
-                overlay.style.display = 'flex';
-            }catch(e){ _downloadFallback(rec); }
-            return;
-        }
-
         _downloadFallback(rec);
     }).catch(e=>showModal('Error',e.message));
 }
-
-function _downloadFallback(rec){
-    try{
-        const blob = _blobFromDataUri(rec.data, rec.mime);
-        _fallbackDownload(blob, rec.fname);
-    }catch(e){ showModal('Error','Cannot open: '+e.message); }
-}
-
+function _downloadFallback(rec){try{const blob=_blobFromDataUri(rec.data,rec.mime);_fallbackDownload(blob,rec.fname);}catch(e){showModal('Error','Cannot open: '+e.message);}}
 function closeFileViewer(){
-    const overlay = document.getElementById('file-viewer-overlay');
-    overlay.style.display = 'none';
-    document.getElementById('file-viewer-viewport').style.display = 'none';
-    const content = document.getElementById('file-viewer-content');
-    content.style.display = 'none';
-    content.innerHTML = '';
-    document.getElementById('fv-img').src = '';
-    resetZoom();
+    const overlay=document.getElementById('file-viewer-overlay');overlay.style.display='none';
+    document.getElementById('file-viewer-viewport').style.display='none';
+    const content=document.getElementById('file-viewer-content');content.style.display='none';content.innerHTML='';
+    document.getElementById('fv-img').src='';resetZoom();
 }
-
 function shareStoredFile(fname){
     _getStoredFile(fname).then(rec=>{
         if(!rec){showToast('❌ File not found.','error');return;}
-        const blob = _blobFromDataUri(rec.data, rec.mime);
-        if(navigator.share){
-            try{
-                const file = new File([blob], rec.fname, {type: rec.mime});
-                if(!navigator.canShare || navigator.canShare({files:[file]})){
-                    navigator.share({files:[file], title: rec.fname})
-                        .then(()=>showToast('✅ Shared: '+rec.fname,'success'))
-                        .catch(()=>_fallbackDownload(blob, rec.fname));
-                    return;
-                }
-            }catch(e){}
-        }
-        if(window.Android && typeof window.Android.saveFile === 'function'){
-            try{
-                const reader = new FileReader();
-                reader.onload = e=>{ window.Android.saveFile(rec.fname, rec.mime, e.target.result.split(',')[1]); showToast('✅ Saved: '+rec.fname,'success'); };
-                reader.readAsDataURL(blob);
-                return;
-            }catch(e){}
-        }
-        _fallbackDownload(blob, rec.fname);
+        const blob=_blobFromDataUri(rec.data,rec.mime);
+        if(navigator.share){try{const file=new File([blob],rec.fname,{type:rec.mime});if(!navigator.canShare||navigator.canShare({files:[file]})){navigator.share({files:[file],title:rec.fname}).then(()=>showToast('✅ Shared: '+rec.fname,'success')).catch(()=>_fallbackDownload(blob,rec.fname));return;}}catch(e){}}
+        if(window.Android&&typeof window.Android.saveFile==='function'){try{const reader=new FileReader();reader.onload=e=>{window.Android.saveFile(rec.fname,rec.mime,e.target.result.split(',')[1]);showToast('✅ Saved: '+rec.fname,'success');};reader.readAsDataURL(blob);return;}catch(e){}}
+        _fallbackDownload(blob,rec.fname);
     }).catch(e=>showToast('❌ '+e.message,'error'));
 }
-
 function deleteStoredFile(fname){showConfirm('Delete',"Remove '"+fname+"'?",()=>{_deleteFileDB(fname).then(()=>renderFilesLib()).catch(()=>renderFilesLib());});}
 
 // ═══════════════════════════════════════════════════════════════
@@ -1398,23 +1269,31 @@ function doReset(){
         clearCanvas("c-canvas");clearCanvas("r-canvas");
         document.getElementById("live-summary").style.display="none";document.getElementById("r-live-summary").style.display="none";
         document.getElementById("res-canvas-col").style.display="none";
+        window._lastLensParams=null;
         showToast('↺ Reset complete','');
     });
 }
 
 // ═══════════════════════════════════════════════════════════════
-// LENS CANVAS — FIXED label placement (no overlap)
+// ── LENS CANVAS — DPR-AWARE (FIX #1) ──
+// All drawing math uses logical pixels (CW/CH).
+// The canvas pixel buffer is CW*dpr × CH*dpr, scaled internally.
 // ═══════════════════════════════════════════════════════════════
-function drawLensCanvas(id, p, preview=false){
+function drawLensCanvas(id, p, preview=false, dpr=0){
     const canvas = document.getElementById(id);
+    // DPR: clamp at 3 for live canvas to avoid huge buffers on high-density screens
+    if(!dpr) dpr = Math.min(window.devicePixelRatio||1, 3);
     const CW = canvas.offsetWidth || 320;
     const {OD, CT, CA1, CA2, s1, s2, g1, g2} = p;
-    const roc1 = parseFloat(document.getElementById("s1ri").value)||0;
-    const roc2 = parseFloat(document.getElementById("s2ri").value)||0;
+    const roc1 = p.roc1 != null ? p.roc1 : (parseFloat(document.getElementById("s1ri").value)||0);
+    const roc2 = p.roc2 != null ? p.roc2 : (parseFloat(document.getElementById("s2ri").value)||0);
 
     function errOverlay(msg){
-        const CH = Math.max(CW,200); canvas.width=CW; canvas.height=CH;
-        const ctx=canvas.getContext("2d"); ctx.clearRect(0,0,CW,CH);
+        const CH = Math.max(CW,200);
+        canvas.width=CW*dpr; canvas.height=CH*dpr;
+        canvas.style.width=CW+'px'; canvas.style.height=CH+'px';
+        const ctx=canvas.getContext("2d"); ctx.scale(dpr,dpr);
+        ctx.clearRect(0,0,CW,CH);
         ctx.fillStyle="rgba(248,113,113,0.13)"; ctx.fillRect(0,0,CW,CH);
         ctx.strokeStyle="#f87171"; ctx.lineWidth=1.5; ctx.setLineDash([6,4]); ctx.strokeRect(4,4,CW-8,CH-8); ctx.setLineDash([]);
         ctx.fillStyle="#f87171"; ctx.textAlign="center"; ctx.font="bold 13px 'Nunito',sans-serif";
@@ -1440,9 +1319,6 @@ function drawLensCanvas(id, p, preview=false){
     const xs1v=xS1(0), xs2v=xS2(0);
     const xMin=Math.min(xs1v,xS1(hOD))-0.5, xMax=Math.max(xs2v,xS2(hOD))+0.5;
 
-    // Layout zones (px):
-    //  CA1 label  |  lens body  |  CA2 + OD labels (compact)
-    //   56px          fill          88px (CA2 + OD together)
     const PAD_L=58, PAD_R=92;
     const physW=xMax-xMin, physH=OD;
     const drawableW=CW-PAD_L-PAD_R;
@@ -1453,8 +1329,14 @@ function drawLensCanvas(id, p, preview=false){
     const s=Math.min(sX,sY);
     if(s<=0) return;
     const CH=Math.max(Math.min(Math.round(physH*s+padY*2),400),200);
-    canvas.width=CW; canvas.height=CH;
-    const ctx=canvas.getContext("2d"); ctx.clearRect(0,0,CW,CH);
+
+    // ── KEY FIX: multiply pixel buffer by dpr, keep CSS size the same ──
+    canvas.width=CW*dpr; canvas.height=CH*dpr;
+    canvas.style.width=CW+'px'; canvas.style.height=CH+'px';
+    const ctx=canvas.getContext("2d");
+    ctx.scale(dpr,dpr); // all subsequent drawing in logical pixels
+    ctx.imageSmoothingEnabled=true; ctx.imageSmoothingQuality='high';
+    ctx.clearRect(0,0,CW,CH);
 
     const drawW=(xMax-xMin)*s;
     const bodyLeft=PAD_L;
@@ -1484,7 +1366,6 @@ function drawLensCanvas(id, p, preview=false){
     ctx.beginPath();ctx.moveTo(...LP[0]);ctx.lineTo(...RP[0]);ctx.strokeStyle=cA;ctx.lineWidth=1.8;ctx.stroke();
     ctx.beginPath();ctx.moveTo(...LP[N]);ctx.lineTo(...RP[N]);ctx.strokeStyle=cA;ctx.lineWidth=1.8;ctx.stroke();
 
-    // ── HELPER: draw a vertical double-arrow with rotated label ──
     function drawVArrow(arrowX, topY, botY, labelText, color, side){
         const span=Math.abs(botY-topY);
         ctx.strokeStyle=color; ctx.lineWidth=1.4;
@@ -1505,7 +1386,7 @@ function drawLensCanvas(id, p, preview=false){
         ctx.restore();
     }
 
-    // ── CT annotation ──
+    // CT annotation
     const ctX1=px(xS1(0)), ctX2=px(xS2(0));
     const ctArrY=cy+Math.min(22, CH/2-16);
     ctx.strokeStyle=cA; ctx.lineWidth=1.3;
@@ -1518,10 +1399,10 @@ function drawLensCanvas(id, p, preview=false){
     ctx.font="bold 11px 'Nunito',sans-serif"; ctx.fillStyle=cA; ctx.textAlign="center";
     ctx.fillText("CT="+CT.toFixed(2)+"mm",(ctX1+ctX2)/2,ctArrY+13); ctx.textAlign="left";
 
-    // ── ET@CA annotation ──
+    // ET@CA annotation
     const etCA=edgeThicknessAt(s1,s2,CT,g1,g2);
     if(!isNaN(etCA)&&etCA>0){
-        const etYline=Math.min(py(hCA1 > 0 ? hCA1 : hOD), py(hCA2 > 0 ? hCA2 : hOD))-18;
+        const etYline=Math.min(py(hCA1>0?hCA1:hOD),py(hCA2>0?hCA2:hOD))-18;
         const etLeft=px(xS1(hCA1>0?hCA1:hOD)), etRight=px(xS2(hCA2>0?hCA2:hOD));
         if(Math.abs(etRight-etLeft)>12){
             ctx.strokeStyle=preview?"#64748b":"#374151"; ctx.lineWidth=1.2; ctx.setLineDash([]);
@@ -1533,44 +1414,187 @@ function drawLensCanvas(id, p, preview=false){
         }
     }
 
-    // ── Surface labels ──
+    // Surface labels
     ctx.font="bold 13px 'Nunito',sans-serif"; ctx.fillStyle=cA;
     ctx.textAlign="right"; ctx.fillText("S1",LP[Math.round(N*0.12)][0]-5,LP[Math.round(N*0.12)][1]-7);
     ctx.textAlign="left";  ctx.fillText("S2",RP[Math.round(N*0.12)][0]+5,RP[Math.round(N*0.12)][1]-7);
-
     ctx.font="bold 11px 'Nunito',sans-serif";
     if(s1!=="plano"&&roc1>0){ctx.fillStyle=cAmb;ctx.textAlign="right";ctx.fillText("R1="+roc1.toFixed(1),LP[Math.round(N*0.3)][0]-4,LP[Math.round(N*0.3)][1]+4);}
     if(s2!=="plano"&&roc2>0){ctx.fillStyle=cAmb;ctx.textAlign="left"; ctx.fillText("R2="+roc2.toFixed(1),RP[Math.round(N*0.3)][0]+4,RP[Math.round(N*0.3)][1]+4);}
     ctx.textAlign="left";
 
-    // ── CA1 arrow (left zone) ──
+    // CA1 arrow (left zone)
     const ca1ArrowX = PAD_L - 16;
-    if(hCA1>0){
-        drawVArrow(ca1ArrowX, py(hCA1), py(-hCA1), "⌀CA1="+CA1.toFixed(2)+"mm", '#4f46e5', 'left');
-    }
+    if(hCA1>0) drawVArrow(ca1ArrowX, py(hCA1), py(-hCA1), "⌀CA1="+CA1.toFixed(2)+"mm", '#4f46e5', 'left');
 
-    // ── CA2 arrow (right of lens) ──
+    // CA2 arrow
     const lensRightEdge = Math.max(...RP.map(pt=>pt[0]));
     const ca2ArrowX = lensRightEdge + 10;
-    if(hCA2>0 && Math.abs(hCA2-hOD)>0.5){
-        drawVArrow(ca2ArrowX, py(hCA2), py(-hCA2), "⌀CA2="+CA2.toFixed(2)+"mm", cCA2, 'right');
-    }
+    if(hCA2>0 && Math.abs(hCA2-hOD)>0.5) drawVArrow(ca2ArrowX, py(hCA2), py(-hCA2), "⌀CA2="+CA2.toFixed(2)+"mm", cCA2, 'right');
 
-    // ── OD arrow — now placed CLOSER to CA2, with a compact gap ──
-    // Position: just to the right of CA2 arrow with 18px gap, capped at canvas right edge
+    // OD arrow
     const odArrowX = Math.min(ca2ArrowX + 20, CW - 14);
-    // But ensure it's at least 8px right of CA2 arrow
     const odX = Math.max(odArrowX, ca2ArrowX + 12);
-    // Also ensure it doesn't overlap the CA2 label text (roughly 80px wide)
-    // So if CA2 + OD are too close, push OD slightly further
     const gap = odX - ca2ArrowX;
     if(gap < 30 && hCA2 > 0 && hOD > 0){
-        // Only push if there's space
         const pushedX = Math.min(ca2ArrowX + 34, CW - 14);
         drawVArrow(pushedX, py(hOD), py(-hOD), "⌀OD="+OD+" mm", cAmb, 'right');
     } else {
         drawVArrow(odX, py(hOD), py(-hOD), "⌀OD="+OD+" mm", cAmb, 'right');
     }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ── OFFSCREEN HI-RES LENS RENDERER (FIX #2) ──
+// Renders the lens into an offscreen canvas at any pixel size.
+// Used by _buildReportCanvas to get a crisp cross-section in PNG.
+// ═══════════════════════════════════════════════════════════════
+function _drawLensOffscreen(p, targetPixelW, targetPixelH){
+    if(!p) return null;
+    const oc = document.createElement('canvas');
+    oc.width  = targetPixelW;
+    oc.height = targetPixelH;
+    // Temporarily attach to DOM offscreen so offsetWidth works,
+    // but we actually set the CSS width ourselves for the scale calc.
+    oc.style.position='absolute';oc.style.left='-9999px';oc.style.width=targetPixelW+'px';
+    document.body.appendChild(oc);
+
+    // drawLensCanvas reads offsetWidth from the canvas element.
+    // We set width via style, but offsetWidth needs layout — use a workaround:
+    // pass dpr=1 and pre-scale the canvas manually.
+    // Strategy: draw at dpr=1 into a temporary "logical" canvas of targetPixelW×targetPixelH,
+    // then the function will produce a full-res buffer directly.
+
+    // We need drawLensCanvas to think the canvas is targetPixelW wide (logical).
+    // Since we pass dpr=1, canvas.width = CW*1 = targetPixelW, which is correct.
+    // The canvas.style.width is already set to targetPixelW+'px', offsetWidth returns that.
+    drawLensCanvas(null, p, false, 1); // can't pass id=null — use alternate approach below
+
+    document.body.removeChild(oc);
+    return oc;
+}
+
+// Alternate: use a standalone draw function that directly accepts a canvas element
+function _renderLensToCanvas(targetCanvas, p, targetW, targetH){
+    if(!p||!targetCanvas) return;
+    // We draw at dpr=1, logical size = targetW x targetH
+    // All geometry math is unchanged; we just use targetW as CW and targetH for CH budget
+    targetCanvas.width  = targetW;
+    targetCanvas.height = targetH;
+
+    const {OD, CT, CA1, CA2, s1, s2, g1, g2} = p;
+    const roc1 = p.roc1||0, roc2 = p.roc2||0;
+    const CW = targetW;
+
+    function getSag(roc,hCA,gMax,absY){
+        const aY=Math.min(absY,hCA);if(gMax<=0)return 0;
+        if(roc>0&&roc>=aY)return roc-Math.sqrt(Math.max(0,roc*roc-aY*aY));
+        return gMax*(aY/hCA)**2;
+    }
+    const hOD=OD/2, hCA1=CA1/2, hCA2=CA2/2;
+    function xS1(y){const sg=getSag(roc1,hCA1,g1,Math.abs(y));if(s1==="convex")return -CT/2-g1+sg;if(s1==="concave")return -CT/2-sg;return -CT/2;}
+    function xS2(y){const sg=getSag(roc2,hCA2,g2,Math.abs(y));if(s2==="convex")return CT/2+g2-sg;if(s2==="concave")return CT/2+sg;return CT/2;}
+
+    const xs1v=xS1(0), xs2v=xS2(0);
+    const xMin=Math.min(xs1v,xS1(hOD))-0.5, xMax=Math.max(xs2v,xS2(hOD))+0.5;
+
+    const PAD_L=Math.round(CW*0.14), PAD_R=Math.round(CW*0.20);
+    const physW=xMax-xMin, physH=OD;
+    const drawableW=CW-PAD_L-PAD_R;
+    const sX=drawableW/Math.max(physW,0.1);
+    const padY=Math.round(targetH*0.10);
+    const sY=(targetH-padY*2)/Math.max(physH,0.1);
+    const s=Math.min(sX,sY);
+    if(s<=0){return;}
+    const CH=targetH;
+
+    const ctx=targetCanvas.getContext("2d");
+    ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
+    ctx.clearRect(0,0,CW,CH);
+    ctx.fillStyle='#f0f5ff'; ctx.fillRect(0,0,CW,CH);
+
+    const drawW=(xMax-xMin)*s;
+    const ox=PAD_L-xMin*s+(drawableW-drawW)/2;
+    const cy=CH/2;
+    const ppx=xmm=>ox+xmm*s, ppy=ymm=>cy-ymm*s;
+
+    const N=300, ys=[];
+    for(let i=0;i<=N;i++) ys.push(hOD-OD*i/N);
+    const LP=ys.map(y=>[ppx(xS1(y)),ppy(y)]);
+    const RP=ys.map(y=>[ppx(xS2(y)),ppy(y)]);
+
+    // Fill
+    ctx.beginPath();LP.forEach((pt,i)=>i?ctx.lineTo(...pt):ctx.moveTo(...pt));[...RP].reverse().forEach(pt=>ctx.lineTo(...pt));ctx.closePath();
+    const grd=ctx.createLinearGradient(ppx(xs1v),0,ppx(xs2v),0);
+    grd.addColorStop(0,'rgba(30,58,138,0.90)');grd.addColorStop(0.5,'rgba(99,102,241,0.75)');grd.addColorStop(1,'rgba(30,58,138,0.90)');
+    ctx.fillStyle=grd;ctx.fill();
+
+    // Shimmer
+    ctx.save();ctx.beginPath();LP.forEach((pt,i)=>i?ctx.lineTo(...pt):ctx.moveTo(...pt));[...RP].reverse().forEach(pt=>ctx.lineTo(...pt));ctx.closePath();ctx.clip();
+    const shim=ctx.createLinearGradient(0,ppy(hOD),0,ppy(-hOD));
+    shim.addColorStop(0,"rgba(180,200,255,0.08)");shim.addColorStop(0.35,"rgba(220,230,255,0.45)");shim.addColorStop(0.65,"rgba(220,230,255,0.45)");shim.addColorStop(1,"rgba(180,200,255,0.08)");
+    ctx.fillStyle=shim;ctx.fill();ctx.restore();
+
+    // Outlines — scale lineWidth with canvas size
+    const lw = Math.max(1.5, CW/180);
+    ctx.lineJoin="round";ctx.lineCap="round";ctx.strokeStyle='#1a2e44';ctx.lineWidth=lw;
+    ctx.beginPath();LP.forEach((pt,i)=>i?ctx.lineTo(...pt):ctx.moveTo(...pt));ctx.stroke();
+    ctx.beginPath();RP.forEach((pt,i)=>i?ctx.lineTo(...pt):ctx.moveTo(...pt));ctx.stroke();
+    ctx.lineWidth=lw*0.8;
+    ctx.beginPath();ctx.moveTo(...LP[0]);ctx.lineTo(...RP[0]);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(...LP[N]);ctx.lineTo(...RP[N]);ctx.stroke();
+
+    // Labels — scale font with canvas size
+    const fs = Math.max(11, Math.round(CW/28));
+    const fsSmall = Math.max(9, Math.round(CW/36));
+
+    // CT annotation
+    const ctX1=ppx(xS1(0)), ctX2=ppx(xS2(0));
+    const ctArrY=cy+Math.min(Math.round(CH*0.09), CH/2-20);
+    ctx.strokeStyle='#1a2e44';ctx.lineWidth=Math.max(1,lw*0.7);
+    ctx.beginPath();ctx.moveTo(ctX1,cy-4);ctx.lineTo(ctX1,ctArrY+4);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(ctX2,cy-4);ctx.lineTo(ctX2,ctArrY+4);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(ctX1,ctArrY);ctx.lineTo(ctX2,ctArrY);ctx.stroke();
+    const arH=Math.max(4, Math.round(fs*0.45));
+    ctx.beginPath();ctx.moveTo(ctX1+arH,ctArrY-3);ctx.lineTo(ctX1,ctArrY);ctx.lineTo(ctX1+arH,ctArrY+3);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(ctX2-arH,ctArrY-3);ctx.lineTo(ctX2,ctArrY);ctx.lineTo(ctX2-arH,ctArrY+3);ctx.stroke();
+    ctx.font=`bold ${fs}px Arial,sans-serif`;ctx.fillStyle='#1a2e44';ctx.textAlign="center";
+    ctx.fillText("CT="+CT.toFixed(2)+"mm",(ctX1+ctX2)/2,ctArrY+fs+2);ctx.textAlign="left";
+
+    // Surface S1/S2 labels
+    ctx.font=`bold ${fs}px Arial,sans-serif`;ctx.fillStyle='#1a2e44';
+    ctx.textAlign="right";ctx.fillText("S1",LP[Math.round(N*0.12)][0]-4,LP[Math.round(N*0.12)][1]-6);
+    ctx.textAlign="left"; ctx.fillText("S2",RP[Math.round(N*0.12)][0]+4,RP[Math.round(N*0.12)][1]-6);
+
+    // ROC labels
+    ctx.font=`bold ${fsSmall}px Arial,sans-serif`;
+    if(s1!=="plano"&&roc1>0){ctx.fillStyle='#92400e';ctx.textAlign="right";ctx.fillText("R1="+roc1.toFixed(1),LP[Math.round(N*0.3)][0]-4,LP[Math.round(N*0.3)][1]+fsSmall+2);}
+    if(s2!=="plano"&&roc2>0){ctx.fillStyle='#92400e';ctx.textAlign="left"; ctx.fillText("R2="+roc2.toFixed(1),RP[Math.round(N*0.3)][0]+4,RP[Math.round(N*0.3)][1]+fsSmall+2);}
+    ctx.textAlign="left";
+
+    // Vertical arrows helper
+    function drawVArrowHR(arrowX, topY, botY, labelText, color, side){
+        const span=Math.abs(botY-topY);if(span<8)return;
+        ctx.strokeStyle=color;ctx.lineWidth=Math.max(1,lw*0.65);
+        ctx.beginPath();ctx.moveTo(arrowX,topY);ctx.lineTo(arrowX,botY);ctx.stroke();
+        const ah2=Math.max(3,Math.round(fs*0.4));
+        ctx.beginPath();ctx.moveTo(arrowX-ah2,topY+ah2);ctx.lineTo(arrowX,topY);ctx.lineTo(arrowX+ah2,topY+ah2);ctx.stroke();
+        ctx.beginPath();ctx.moveTo(arrowX-ah2,botY-ah2);ctx.lineTo(arrowX,botY);ctx.lineTo(arrowX+ah2,botY-ah2);ctx.stroke();
+        if(span<20)return;
+        ctx.save();
+        ctx.font=`bold ${fsSmall}px Arial,sans-serif`;ctx.fillStyle=color;
+        const labelX=side==='left'?(arrowX-fsSmall-2):(arrowX+fsSmall+2);
+        ctx.translate(labelX,(topY+botY)/2);
+        ctx.rotate(side==='left'?-Math.PI/2:Math.PI/2);
+        ctx.textAlign="center";ctx.fillText(labelText,0,0);
+        ctx.restore();
+    }
+
+    // CA1
+    if(hCA1>0) drawVArrowHR(Math.round(PAD_L*0.45), ppy(hCA1), ppy(-hCA1), "CA1="+CA1.toFixed(2)+"mm", '#4f46e5','left');
+    // OD
+    const lensRE=Math.max(...RP.map(pt=>pt[0]));
+    drawVArrowHR(Math.min(lensRE+Math.round(PAD_R*0.28), CW-8), ppy(hOD), ppy(-hOD), "OD="+OD+"mm", '#b45309','right');
 }
 
 function liveDrawLens(){
@@ -1586,8 +1610,9 @@ function liveDrawLens(){
         const sag1od=calcSag(s1,roc1,od), sag2od=calcSag(s2,roc2,od);
         const ETca=edgeThicknessAt(s1,s2,ct,sag1ca,sag2ca);
         if(ETca<0){if(summary)summary.style.display="none";_showCanvasErr("c-canvas","ET@CA="+ETca.toFixed(2)+"mm — sags exceed CT");return;}
-        window._lastLensParams={id:"c-canvas",p:{OD:od,CT:ct,CA1:ca1,CA2:ca2,s1,s2,g1:sag1ca,g2:sag2ca}};
-        drawLensCanvas("c-canvas",window._lastLensParams.p,true);
+        const lp={OD:od,CT:ct,CA1:ca1,CA2:ca2,s1,s2,g1:sag1ca,g2:sag2ca,roc1,roc2};
+        window._lastLensParams={type:'circ',id:"c-canvas",p:lp};
+        drawLensCanvas("c-canvas",lp,true);
         const matSel=document.getElementById("c-mat").value;
         let dens=matSel==="Custom Density"?parseFloat(document.getElementById("c-cd").value)||0:getDens(matSel)||0;
         if(dens>0&&summary){
@@ -1604,9 +1629,12 @@ function liveDrawLens(){
 
 function _showCanvasErr(id,msg){
     const canvas=document.getElementById(id);if(!canvas)return;
+    const dpr=Math.min(window.devicePixelRatio||1,3);
     const CW=canvas.offsetWidth||320, CH=Math.max(CW,200);
-    canvas.width=CW;canvas.height=CH;
-    const ctx=canvas.getContext("2d");ctx.clearRect(0,0,CW,CH);
+    canvas.width=CW*dpr;canvas.height=CH*dpr;
+    canvas.style.width=CW+'px';canvas.style.height=CH+'px';
+    const ctx=canvas.getContext("2d");ctx.scale(dpr,dpr);
+    ctx.clearRect(0,0,CW,CH);
     ctx.fillStyle="rgba(248,113,113,0.13)";ctx.fillRect(0,0,CW,CH);
     ctx.strokeStyle="#f87171";ctx.lineWidth=1.5;ctx.setLineDash([6,4]);ctx.strokeRect(4,4,CW-8,CH-8);ctx.setLineDash([]);
     ctx.fillStyle="#f87171";ctx.textAlign="center";ctx.font="bold 13px 'Nunito',sans-serif";ctx.fillText("⚠ Invalid Geometry",CW/2,CH/2-14);
@@ -1621,17 +1649,27 @@ function liveDrawRect(){
     if(dens>0&&summary){const vol=L*W*H/1000, wt=vol*dens;document.getElementById("r-lw-wt").textContent=wt.toFixed(3)+" g";document.getElementById("r-lw-vol").textContent=vol.toFixed(4)+" cm³";summary.style.display="block";}else if(summary) summary.style.display="none";
 }
 
-function clearCanvas(id){const c=document.getElementById(id);c.width=c.offsetWidth||320;c.getContext("2d").clearRect(0,0,c.width,c.height);}
+function clearCanvas(id){
+    const c=document.getElementById(id);
+    const dpr=Math.min(window.devicePixelRatio||1,3);
+    const CW=c.offsetWidth||320;
+    c.width=CW*dpr;c.height=(parseInt(c.getAttribute("height"))||200)*dpr;
+    c.style.width=CW+'px';
+    c.getContext("2d").clearRect(0,0,c.width,c.height);
+}
 
 function drawRectCanvas(id,{L,W,H}){
-    const canvas=document.getElementById(id), W2=canvas.offsetWidth||320, H2=parseInt(canvas.getAttribute("height"))||130;
-    canvas.width=W2;canvas.height=H2;
-    const ctx=canvas.getContext("2d");ctx.clearRect(0,0,W2,H2);
+    const canvas=document.getElementById(id);
+    const dpr=Math.min(window.devicePixelRatio||1,3);
+    const W2=canvas.offsetWidth||320;
+    const H2=parseInt(canvas.getAttribute("height"))||130;
+    canvas.width=W2*dpr;canvas.height=H2*dpr;
+    canvas.style.width=W2+'px';canvas.style.height=H2+'px';
+    const ctx=canvas.getContext("2d");ctx.scale(dpr,dpr);
+    ctx.clearRect(0,0,W2,H2);
     if(L<=0||H<=0) return;
     const pad=20, sc=Math.min((W2-pad*2)/L,(H2-pad*2)/H), dw=L*sc, dh=H*sc, x0=(W2-dw)/2, y0=(H2-dh)/2;
-    ctx.shadowColor="rgba(0,0,0,0.4)";ctx.shadowBlur=10;ctx.shadowOffsetX=4;ctx.shadowOffsetY=4;
     ctx.fillStyle="rgba(4,40,86,0.45)";ctx.beginPath();ctx.roundRect(x0,y0,dw,dh,8);ctx.fill();
-    ctx.shadowColor="transparent";
     ctx.fillStyle="rgba(40,98,146,0.18)";ctx.beginPath();ctx.roundRect(x0,y0+dh*.54,dw,dh*.46,8);ctx.fill();
     ctx.strokeStyle="#22d3ee";ctx.lineWidth=2.2;ctx.beginPath();ctx.roundRect(x0,y0,dw,dh,8);ctx.stroke();
     const my=y0+dh/2;ctx.save();ctx.setLineDash([8,8]);ctx.strokeStyle="rgba(248,113,113,0.85)";ctx.lineWidth=1.4;ctx.beginPath();ctx.moveTo(x0,my);ctx.lineTo(x0+dw,my);ctx.stroke();ctx.restore();
@@ -1647,7 +1685,9 @@ if(!CanvasRenderingContext2D.prototype.roundRect){
 }
 
 // ═══════════════════════════════════════════════════════════════
-// PNG REPORT BUILDER
+// ── PNG REPORT BUILDER — HIGH QUALITY (FIX #3) ──
+// SC raised from 3→5 for crisp text at print resolution.
+// Cross-section drawn natively at report resolution via _renderLensToCanvas.
 // ═══════════════════════════════════════════════════════════════
 function _buildReportCanvas(callback){
     refreshSnapHeader();
@@ -1663,54 +1703,105 @@ function _buildReportCanvas(callback){
         const srows=[];sec.querySelectorAll('.res-row').forEach(r=>{const lblEl=r.querySelector('.res-lbl'),inp=r.querySelector('.res-val-inp');if(lblEl&&inp)srows.push({lbl:lblEl.textContent||'',val:inp.value||'',green:inp.classList.contains('green'),amber:inp.classList.contains('amber')});});
         sections.push({hdr:hdr?hdr.textContent.trim():'',rows:srows});
     });
-    const srcCanvas=document.getElementById('res-canvas');
-    const hasCanvas=srcCanvas&&srcCanvas.width>0&&srcCanvas.height>0;
-    const SC=3,W=1100,PAD=24,HDR_H=110,FOOTER_H=40,ROW_H=32,SEC_H=30,GAP=10,TITLE_ROW=36;
+
+    // ── FIX: SC=5 for ultra-sharp text ──
+    const SC=5;
+    const W=1100, PAD=24, HDR_H=110, FOOTER_H=40, ROW_H=32, SEC_H=30, GAP=10, TITLE_ROW=36;
     let dataH=TITLE_ROW+8;sections.forEach(s=>{dataH+=SEC_H;s.rows.forEach(()=>dataH+=ROW_H);dataH+=GAP;});
-    const SPLIT_W=hasCanvas?Math.round(W*0.38):0;
-    const DATA_W=W-SPLIT_W-PAD*3;
-    const CONTENT_H=Math.max(hasCanvas?Math.round(SPLIT_W*srcCanvas.height/srcCanvas.width):0,dataH)+PAD;
+
+    // ── FIX: Determine if we have a lens to draw ──
+    const hasLens = !!(window._lastLensParams && window._lastLensParams.type === 'circ' && window._lastLensParams.p);
+    const hasRect = !!(window._lastLensParams && window._lastLensParams.type === 'rect' && window._lastLensParams.p);
+    const hasCanvas = hasLens || hasRect;
+
+    const SPLIT_W = hasCanvas ? Math.round(W*0.38) : 0;
+    const DATA_W  = W - SPLIT_W - PAD*3;
+    const CONTENT_H = Math.max(dataH, hasCanvas ? Math.round(SPLIT_W*0.75) : 0) + PAD;
     const H=HDR_H+CONTENT_H+FOOTER_H;
-    const cv=document.createElement('canvas');cv.width=W*SC;cv.height=H*SC;
-    const ctx=cv.getContext('2d');ctx.scale(SC,SC);ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
+
+    const cv=document.createElement('canvas');
+    cv.width=W*SC; cv.height=H*SC;
+    const ctx=cv.getContext('2d');
+    ctx.scale(SC,SC);
+    ctx.imageSmoothingEnabled=true;
+    ctx.imageSmoothingQuality='high';
     ctx.fillStyle='#ffffff';ctx.fillRect(0,0,W,H);
+
+    // Header
     ctx.fillStyle='#111827';ctx.font='bold 20px Arial';ctx.fillText(mfr.substring(0,60),PAD,28);
-    ctx.fillStyle='#4b5563';ctx.font='13px Arial';ctx.fillText((website+(contact?' | '+contact:'')).substring(0,90),PAD,50);
+    ctx.fillStyle='#4b5563';ctx.font='14px Arial';ctx.fillText((website+(contact?' | '+contact:'')).substring(0,90),PAD,50);
     ctx.strokeStyle='#e5e7eb';ctx.lineWidth=0.8;ctx.beginPath();ctx.moveTo(PAD,60);ctx.lineTo(W-PAD,60);ctx.stroke();
+
     const fW=Math.floor((W-PAD*2)/4);
-    [['TO / VENDOR',vendor],['TITLE',titleTxt],['PART NO.',partno],['DATE',dateVal]].forEach(([lbl,val],i)=>{const fx=PAD+i*fW;ctx.font='bold 10px Arial';ctx.fillStyle='#6b7280';ctx.fillText(lbl,fx,76);ctx.font='bold 13px Arial';ctx.fillStyle=lbl==='PART NO.'?'#b45309':'#111827';ctx.fillText((val||'—').substring(0,Math.floor(fW/7)),fx,94);});
+    [['TO / VENDOR',vendor],['TITLE',titleTxt],['PART NO.',partno],['DATE',dateVal]].forEach(([lbl,val],i)=>{
+        const fx=PAD+i*fW;
+        ctx.font='bold 11px Arial';ctx.fillStyle='#6b7280';ctx.fillText(lbl,fx,76);
+        ctx.font='bold 14px Arial';ctx.fillStyle=lbl==='PART NO.'?'#b45309':'#111827';
+        ctx.fillText((val||'—').substring(0,Math.floor(fW/8)),fx,96);
+    });
+
     const bodyY=HDR_H;
-    const liveC=document.getElementById('c-canvas')||document.getElementById('r-canvas');
-    const actualSrc=(liveC&&liveC.width>0)?liveC:srcCanvas;
-    if(hasCanvas&&actualSrc){
+
+    // ── FIX: Draw cross-section at native report resolution ──
+    if(hasCanvas){
         ctx.fillStyle='#f1f3f5';ctx.fillRect(0,bodyY,SPLIT_W,CONTENT_H);
-        ctx.fillStyle='#374151';ctx.font='bold 10px Arial';ctx.textAlign='center';ctx.fillText('CROSS-SECTION PREVIEW',SPLIT_W/2,bodyY+16);ctx.textAlign='left';
-        const cw=SPLIT_W-16, ch=Math.round(cw*actualSrc.height/actualSrc.width);
-        const cOffY=Math.max(0,Math.round((CONTENT_H-ch)/2));
-        ctx.drawImage(actualSrc,0,0,actualSrc.width,actualSrc.height,8,bodyY+22+cOffY,cw,ch);
+        ctx.fillStyle='#374151';ctx.font='bold 11px Arial';ctx.textAlign='center';
+        ctx.fillText('CROSS-SECTION PREVIEW',SPLIT_W/2,bodyY+16);ctx.textAlign='left';
+
+        if(hasLens){
+            // Render lens at full report resolution: SPLIT_W*SC × CONTENT_H*SC pixels
+            const lensCanvasW = SPLIT_W*SC - 16;
+            const lensCanvasH = (CONTENT_H - 36)*SC;
+            const offCanvas = document.createElement('canvas');
+            _renderLensToCanvas(offCanvas, window._lastLensParams.p, lensCanvasW, lensCanvasH);
+            // Draw into report at logical coords (ctx is already at SC scale)
+            ctx.drawImage(offCanvas, 0, 0, lensCanvasW, lensCanvasH, 8/SC, bodyY+22, SPLIT_W - 16/SC, CONTENT_H - 36);
+        } else if(hasRect){
+            // For rect, use the existing live canvas
+            const srcR=document.getElementById('r-canvas');
+            if(srcR&&srcR.width>0){
+                const cw=SPLIT_W-16, ch=Math.round(cw*srcR.height/srcR.width);
+                const cOffY=Math.max(0,Math.round((CONTENT_H-ch)/2));
+                ctx.drawImage(srcR,0,0,srcR.width,srcR.height,8,bodyY+22+cOffY,cw,ch);
+            }
+        }
+
         ctx.fillStyle='#c8d8e8';ctx.fillRect(SPLIT_W,bodyY,1,CONTENT_H);
     }
+
+    // Data column
     const dataX=(hasCanvas?SPLIT_W:0)+PAD, dataRight=dataX+DATA_W;
     let dy=bodyY+PAD;
-    ctx.fillStyle='#111827';ctx.font='bold 16px Arial';ctx.fillText(titleTxt.substring(0,60),dataX,dy+18);dy+=TITLE_ROW;
+    ctx.fillStyle='#111827';ctx.font='bold 17px Arial';ctx.fillText(titleTxt.substring(0,60),dataX,dy+18);dy+=TITLE_ROW;
+
     sections.forEach(sec=>{
         ctx.fillStyle='#e8f0fb';ctx.fillRect(dataX,dy,DATA_W,SEC_H-2);
-        ctx.fillStyle='#1a3a6e';ctx.font='bold 12px Arial';ctx.fillText((sec.hdr||'').toUpperCase(),dataX+6,dy+SEC_H-9);dy+=SEC_H;
+        ctx.fillStyle='#1a3a6e';ctx.font='bold 13px Arial';ctx.fillText((sec.hdr||'').toUpperCase(),dataX+6,dy+SEC_H-9);dy+=SEC_H;
         sec.rows.forEach(r=>{
             const bg=r.green?'#f0fdf4':r.amber?'#fffbeb':'#ffffff';ctx.fillStyle=bg;ctx.fillRect(dataX,dy,DATA_W,ROW_H-1);
-            ctx.fillStyle='#111827';ctx.font='12px Arial';ctx.fillText(r.lbl||'',dataX+6,dy+ROW_H-9);
-            const vc=r.green?'#16a34a':r.amber?'#92400e':'#111827';ctx.fillStyle=vc;ctx.font=r.green||r.amber?'bold 13px Arial':'12px Arial';
+            ctx.fillStyle='#374151';ctx.font='13px Arial';ctx.fillText(r.lbl||'',dataX+6,dy+ROW_H-9);
+            const vc=r.green?'#16a34a':r.amber?'#92400e':'#111827';ctx.fillStyle=vc;ctx.font=r.green||r.amber?'bold 14px Arial':'13px Arial';
             ctx.textAlign='right';ctx.fillText(r.val||'',dataRight,dy+ROW_H-9);ctx.textAlign='left';
             ctx.strokeStyle='#e5e7eb';ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(dataX,dy+ROW_H-1);ctx.lineTo(dataRight,dy+ROW_H-1);ctx.stroke();
             dy+=ROW_H;
         });dy+=GAP;
     });
+
+    // Footer
     const fy=H-FOOTER_H;ctx.fillStyle='#f3f4f6';ctx.fillRect(0,fy,W,FOOTER_H);
     ctx.strokeStyle='#e5e7eb';ctx.lineWidth=0.8;ctx.beginPath();ctx.moveTo(0,fy);ctx.lineTo(W,fy);ctx.stroke();
-    ctx.fillStyle='#374151';ctx.font='11px Arial';ctx.textAlign='center';
+    ctx.fillStyle='#374151';ctx.font='12px Arial';ctx.textAlign='center';
     ctx.fillText('Generated by OptiCost LRMCE v1.2  |  '+mfr+'  |  '+website+(contact?' | '+contact:''),W/2,fy+FOOTER_H/2+5);ctx.textAlign='left';
-    if(_logoDataUrl){const li=new Image();li.onload=()=>{ctx.drawImage(li,W-PAD-70,8,60,36);callback(cv);};li.onerror=()=>callback(cv);li.src=_logoDataUrl;}
-    else callback(cv);
+
+    // Logo
+    if(_logoDataUrl){
+        const li=new Image();
+        li.onload=()=>{ctx.drawImage(li,W-PAD-70,8,60,36);callback(cv);};
+        li.onerror=()=>callback(cv);
+        li.src=_logoDataUrl;
+    } else {
+        callback(cv);
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1731,9 +1822,7 @@ const THEMES=['dark','light','white','warm','green','steel','purple','red'];
 function setTheme(t){document.documentElement.setAttribute('data-theme',t==='dark'?'':t);THEMES.forEach(x=>{const el=document.getElementById('sw-'+x);if(el)el.classList.toggle('active',x===t);});try{localStorage.setItem('opticost_theme',t);}catch(e){}liveDrawLens();}
 function toggleThemePanel(){document.getElementById('theme-panel').classList.toggle('open');}
 
-// ═══════════════════════════════════════════════════════════════
 // ABOUT
-// ═══════════════════════════════════════════════════════════════
 function showAbout(){showModal("About OptiCost LRMCE","OptiCost — LRMCE v1.2\n\nDeveloped by:\n  Priya Gavshinde\n  Sr. Optical Engineer\n  Optics & Allied Engg. Pvt. Ltd.\n\nContact:\n  www.opticsindia.com\n  +91-9886654729\n  info@opticsindia.com\n\n© 2025 Optics & Allied Engg. Pvt. Ltd.");}
 
 // ═══════════════════════════════════════════════════════════════

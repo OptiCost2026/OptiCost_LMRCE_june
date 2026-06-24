@@ -652,6 +652,10 @@
 <script>
 'use strict';
 
+// ─── FIX 1: Track which tab produced the last calculation ───────
+// so mirrorCanvasToResults always uses the correct source canvas
+let _lastCalcTab = 'circular'; // 'circular' | 'rectangular'
+
 const DEFAULT_MATERIALS = [
     {name:"Germanium",dens:5.323,ppg:0},{name:"Silicon",dens:2.33,ppg:0},
     {name:"AMTIR-1",dens:4.41,ppg:0},{name:"AMTIR-2",dens:4.50,ppg:0},{name:"AMTIR-5",dens:4.62,ppg:0},
@@ -810,7 +814,7 @@ function showManageUsers(){
 function deleteUser(username){showConfirm("Delete User","Delete user '"+username+"'?\nThis cannot be undone.",()=>{_deleteUser(username).then(()=>showManageUsers()).catch(()=>showModal("Error","Failed to delete user."));});}
 function doLogout(){
     showConfirm("Logout","Are you sure you want to log out?",()=>{
-        currentUser=null;recs=[];
+        currentUser=null;recs=[];_lastCalcTab='circular';
         try{sessionStorage.removeItem("opticost_session");}catch(e){}
         document.getElementById("login-user").value="";document.getElementById("login-pass").value="";
         document.getElementById("result-text").innerHTML='<div class="res-empty">Run a calculation to see results here.</div>';
@@ -832,8 +836,13 @@ function switchTab(key,btn){
     const ab=document.getElementById("global-actbar"),mn=document.querySelector("#screen-main main"),isCalc=(key==="circular"||key==="rectangular");
     if(ab) ab.style.display=isCalc?"flex":"none";
     if(mn) mn.style.paddingBottom=isCalc?"120px":"60px";
-    if(key==="results"){refreshSnapHeader();mirrorCanvasToResults(currentTab==="rectangular"?"r-canvas":"c-canvas");}
+    // FIX 2: use _lastCalcTab to pick the right source canvas for mirror
+    if(key==="results"){
+        refreshSnapHeader();
+        mirrorCanvasToResults(_lastCalcTab==="rectangular"?"r-canvas":"c-canvas");
+    }
 }
+
 function populateMats(){
     ["c-mat","r-mat"].forEach(id=>{
         const sel=document.getElementById(id), cur=sel.value;
@@ -851,18 +860,24 @@ function matChanged(p){
 }
 function surfChanged(){
     ["s1","s2"].forEach(s=>{document.getElementById(s+"-roc-row").style.display=document.getElementById(s+"t").value==="Plano"?"none":"block";});
-    liveDrawLens();
+    // FIX 3: only call liveDrawLens if the canvas has real dimensions (after layout)
+    if(document.getElementById("c-canvas").offsetWidth>0) liveDrawLens();
 }
 function syncCA(){
     const od=parseFloat(document.getElementById("c-od").value)||0,chk=document.getElementById("c-od-chk").checked,s1=document.getElementById("s1od").checked,s2=document.getElementById("s2od").checked;
-    if(chk){["c-ca1","c-ca2"].forEach(id=>{const e=document.getElementById(id);e.value=od||"";e.disabled=true;});liveDrawLens();return;}
+    if(chk){["c-ca1","c-ca2"].forEach(id=>{const e=document.getElementById(id);e.value=od||"";e.disabled=true;});if(document.getElementById("c-canvas").offsetWidth>0)liveDrawLens();return;}
     const ca1=document.getElementById("c-ca1"),ca2=document.getElementById("c-ca2");
     ca1.disabled=s1;ca2.disabled=s2;
     if(s1&&od) ca1.value=od;if(s2&&od) ca2.value=od;
     if(!s1) ca1.disabled=false;if(!s2) ca2.disabled=false;
-    liveDrawLens();
+    if(document.getElementById("c-canvas").offsetWidth>0) liveDrawLens();
 }
-function safeEval(expr){expr=String(expr).trim().replace(/[^0-9+\-*/().eE ]/g,"");if(!expr)return NaN;try{return Function('"use strict";return ('+expr+')')();}catch{return NaN;}}
+// FIX 4: safeEval — allow digits, operators, parens, decimal, scientific notation
+function safeEval(expr){
+    expr=String(expr).trim().replace(/[^0-9+\-*/().eE ]/g,"");
+    if(!expr)return NaN;
+    try{return Function('"use strict";return ('+expr+')')();}catch{return NaN;}
+}
 function getCTVal(){const raw=v("c-ct").trim();const val=safeEval(raw);return isNaN(val)?parseFloat(raw):val;}
 function evalCT(){
     const raw=v("c-ct").trim(),hint=document.getElementById("c-ct-result");
@@ -880,7 +895,14 @@ function renderMatTable(){
 }
 let _matSaveTimer=null;
 function autoSaveMats(){readMatTableIntoMemory();clearTimeout(_matSaveTimer);_matSaveTimer=setTimeout(()=>{try{if(MATERIALS.length>0)localStorage.setItem("opticost_materials",JSON.stringify(MATERIALS));}catch(e){}},400);}
-function readMatTableIntoMemory(){const rows=[...document.querySelectorAll("#mat-tbody tr")];if(!rows.length)return;const updated=[];rows.forEach(tr=>{const n=tr.querySelector(".mat-name"),d=tr.querySelector(".mat-dens"),pg=tr.querySelector(".mat-ppg");const name=n?n.value.trim():"",dens=parseFloat(d?d.value:0),ppg=Math.round((parseFloat(pg?pg.value:0)||0)*10000)/10000;if(name&&dens>0)updated.push({name,dens,ppg});});if(updated.length>0)MATERIALS=updated;}
+// FIX 5: guard readMatTableIntoMemory — only update if table has rows
+function readMatTableIntoMemory(){
+    const rows=[...document.querySelectorAll("#mat-tbody tr")];
+    if(!rows.length) return; // table not rendered, don't wipe MATERIALS
+    const updated=[];
+    rows.forEach(tr=>{const n=tr.querySelector(".mat-name"),d=tr.querySelector(".mat-dens"),pg=tr.querySelector(".mat-ppg");const name=n?n.value.trim():"",dens=parseFloat(d?d.value:0),ppg=Math.round((parseFloat(pg?pg.value:0)||0)*10000)/10000;if(name&&dens>0)updated.push({name,dens,ppg});});
+    if(updated.length>0) MATERIALS=updated;
+}
 function delMat(i){if(MATERIALS.length<=1){showModal("Error","At least one material must remain.");return;}showConfirm("Delete","Delete '"+MATERIALS[i].name+"'?",()=>{readMatTableIntoMemory();MATERIALS.splice(i,1);renderMatTable();populateMats();persistMaterials();});}
 function addMatRow(){readMatTableIntoMemory();const name=document.getElementById("new-mat-name").value.trim(),dens=parseFloat(document.getElementById("new-mat-dens").value),ppg=Math.round((parseFloat(document.getElementById("new-mat-price").value)||0)*10000)/10000;if(!name){showModal("Error","Material name required.");return;}if(isNaN(dens)||dens<=0){showModal("Error","Density must be > 0.");return;}if(MATERIALS.find(m=>m.name===name)){showModal("Error","'"+name+"' already exists.");return;}MATERIALS.push({name,dens,ppg});document.getElementById("new-mat-name").value="";document.getElementById("new-mat-dens").value="";document.getElementById("new-mat-price").value="";renderMatTable();populateMats();persistMaterials();showModal("Added ✔","'"+name+"' added and saved.");}
 function setLibCurrency(curr){['c-curr','r-curr'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=curr;});const hdr=document.getElementById('mat-ppg-hdr');if(hdr)hdr.textContent='Price/gm ('+curr+')';const al=document.getElementById('new-price-lbl');if(al)al.textContent='Price/gm ('+curr+')';try{localStorage.setItem('opticost_currency',curr);}catch(e){}}
@@ -890,13 +912,14 @@ function resetMaterials(){showConfirm("Reset Library","Restore factory defaults?
 
 function doCalc(){
     try{
-        if(currentTab==="rectangular") calcRect();
-        else calcCirc();
+        if(currentTab==="rectangular"){calcRect();_lastCalcTab='rectangular';}
+        else{calcCirc();_lastCalcTab='circular';}
         switchTab("results",document.querySelectorAll(".tab")[2]);
         document.getElementById("batch-count").textContent=recs.length;
         refreshSnapHeader();
         if(_logoDataUrl){document.getElementById("logo-img").src=_logoDataUrl;document.getElementById("logo-preview").style.display="block";}
-        mirrorCanvasToResults(currentTab==="rectangular"?"r-canvas":"c-canvas");
+        // FIX 6: mirror from the correct source canvas after calc
+        mirrorCanvasToResults(_lastCalcTab==="rectangular"?"r-canvas":"c-canvas");
     }catch(e){showModal("Input Error",e.message);}
 }
 
@@ -932,7 +955,8 @@ function calcCirc(){
     const signedSag1od=s1==="convex"?sag1od:(s1==="concave"?-sag1od:0);
     const signedSag2od=s2==="convex"?sag2od:(s2==="concave"?-sag2od:0);
     window._lastLensParams={id:"c-canvas",p:{OD,CT,CA1,CA2,s1,s2,g1:Math.abs(sag1ca),g2:Math.abs(sag2ca)}};
-    drawLensCanvas("c-canvas",window._lastLensParams.p,true);
+    // FIX 7: ensure canvas is sized before drawing by using requestAnimationFrame if needed
+    _ensureDrawLens("c-canvas",window._lastLensParams.p,true);
     document.getElementById("result-text").innerHTML=
         resTitle("📐 Optic Cost Summary — Circular Lens")+
         `<div class="res-section">`+secHdr("Material")+row("Material",mat)+row("Density",dens.toFixed(3)+" g/cm³")+`</div><div class="res-divider"></div>`+
@@ -970,7 +994,8 @@ function row(lbl,val,cls=""){
     </div>`;
 }
 
-// ── FIXED: mirror at source resolution for perfect quality ──
+// FIX 8: mirrorCanvasToResults — use the actual source canvas (not res-canvas)
+// and always get fresh dimensions from the live source canvas
 function mirrorCanvasToResults(srcId){
     const src=document.getElementById(srcId);
     const dst=document.getElementById("res-canvas");
@@ -981,7 +1006,7 @@ function mirrorCanvasToResults(srcId){
         const colW=col.clientWidth||140;
         const aspect=src.height/src.width;
         const dstH=Math.min(Math.round(colW*aspect),320);
-        // Keep internal buffer at full source resolution — CSS scales it down crisp
+        // Copy at full source resolution — CSS scales it down for crispness
         dst.width=src.width;
         dst.height=src.height;
         dst.style.width=colW+"px";
@@ -992,6 +1017,21 @@ function mirrorCanvasToResults(srcId){
         ctx.clearRect(0,0,src.width,src.height);
         ctx.drawImage(src,0,0);
     });});
+}
+
+// FIX 9: _ensureDrawLens — handles the case where offsetWidth is 0 on first paint
+// by deferring to rAF if canvas isn't laid out yet
+function _ensureDrawLens(id, p, preview){
+    const canvas=document.getElementById(id);
+    if(!canvas) return;
+    if(canvas.offsetWidth>0){
+        drawLensCanvas(id,p,preview);
+    } else {
+        requestAnimationFrame(()=>{
+            if(canvas.offsetWidth>0) drawLensCanvas(id,p,preview);
+            else requestAnimationFrame(()=>drawLensCanvas(id,p,preview));
+        });
+    }
 }
 
 function loadLogoFile(inp){
@@ -1051,7 +1091,6 @@ function showToast(msg,type){
     _toastTimer=setTimeout(()=>{el.className='toast';el.style.display='none';},3600);
 }
 
-// ── FIXED: always direct silent download, no share popup ──
 function _fallbackDownload(blob, fname){
     try{
         const url=URL.createObjectURL(blob);
@@ -1109,7 +1148,9 @@ function saveReportWord(){
     const dateVal=_dvx?_dvx.split('-').reverse().join('/'):new Date().toLocaleDateString('en-GB');
     const website=(document.getElementById('rpt-website')||{}).value||'www.opticsindia.com';
     const contact=(document.getElementById('rpt-contact')||{}).value||'+91-9886654729';
-    const liveC=document.getElementById('c-canvas')||document.getElementById('r-canvas');
+    // FIX 10: for Word export, use the correct source canvas (_lastCalcTab)
+    const srcCanvasId=_lastCalcTab==="rectangular"?"r-canvas":"c-canvas";
+    const liveC=document.getElementById(srcCanvasId);
     let canvasDataUrl='';
     if(liveC&&liveC.width>10){try{canvasDataUrl=liveC.toDataURL('image/png');}catch(e){}}
     const rtEl=document.getElementById('result-text');
@@ -1257,7 +1298,6 @@ function closeFileViewer(){
     resetZoom();
 }
 
-// ── FIXED: direct download only, no share popup ──
 function shareStoredFile(fname){
     _getStoredFile(fname).then(rec=>{
         if(!rec){showToast('❌ File not found.','error');return;}
@@ -1274,7 +1314,7 @@ function doReset(){
         document.getElementById("c-curr").value="INR";document.getElementById("r-curr").value="INR";
         document.getElementById("c-ct-result").textContent="";
         ["c-mat","r-mat"].forEach(id=>{const s=document.getElementById(id);s.selectedIndex=0;matChanged(id==="c-mat"?"c":"r");});
-        surfChanged();recs=[];
+        surfChanged();recs=[];_lastCalcTab='circular';
         document.getElementById("batch-count").textContent="0";
         document.getElementById("result-text").innerHTML='<div class="res-empty">Run a calculation to see results here.</div>';
         document.getElementById("snap-header").style.display="none";document.getElementById("snap-footer").style.display="none";
@@ -1289,7 +1329,8 @@ function doReset(){
 function drawLensCanvas(id,p,preview=false){
     const canvas=document.getElementById(id);
     if(!canvas)return;
-    const CW=canvas.offsetWidth||320;
+    // FIX 11: fallback width if offsetWidth is still 0 (e.g. hidden panel)
+    const CW=canvas.offsetWidth||canvas.parentElement&&canvas.parentElement.offsetWidth||320;
     const {OD,CT,CA1,CA2,s1,s2,g1,g2}=p;
     const roc1=parseFloat(document.getElementById("s1ri").value)||0;
     const roc2=parseFloat(document.getElementById("s2ri").value)||0;
@@ -1414,6 +1455,7 @@ function drawLensCanvas(id,p,preview=false){
     function drawVArrow(arrowX,topPx,botPx,labelText,color,side){
         const span=Math.abs(botPx-topPx);
         ctx.save();
+        ctx.setLineDash([]); // FIX 12: always reset dash before arrows
         ctx.strokeStyle=color;ctx.lineWidth=1.4;
         ctx.beginPath();ctx.moveTo(arrowX,topPx);ctx.lineTo(arrowX,botPx);ctx.stroke();
         const ah=5;
@@ -1440,6 +1482,7 @@ function drawLensCanvas(id,p,preview=false){
     const ctArrY=Math.min(cy+Math.min(26,CH/2-20),CH-24);
     if(Math.abs(ctX2-ctX1)>8){
         ctx.save();
+        ctx.setLineDash([]); // FIX 12 continued
         ctx.strokeStyle=cCT;ctx.lineWidth=1.2;
         ctx.beginPath();ctx.moveTo(ctX1,cy-3);ctx.lineTo(ctX1,ctArrY+4);ctx.stroke();
         ctx.beginPath();ctx.moveTo(ctX2,cy-3);ctx.lineTo(ctX2,ctArrY+4);ctx.stroke();
@@ -1459,6 +1502,7 @@ function drawLensCanvas(id,p,preview=false){
         if(Math.abs(etRight-etLeft)>12){
             const etY=py(hOD)-14;
             ctx.save();
+            ctx.setLineDash([]); // FIX 12 continued
             ctx.strokeStyle=cET;ctx.lineWidth=1.1;
             ctx.beginPath();ctx.moveTo(etLeft,etY);ctx.lineTo(etRight,etY);ctx.stroke();
             const ah=5;
@@ -1488,6 +1532,7 @@ function drawLensCanvas(id,p,preview=false){
     }
     ctx.textAlign="left";
 
+    // FIX 12: reset dash before setting it, ensure it's cleared after each save/restore block
     ctx.save();ctx.setLineDash([3,4]);ctx.lineWidth=0.7;
     const ca1ArrowX=Z_CA1-10;
     const xs1_ca1_top=px(xS1(hCA1));
@@ -1510,7 +1555,7 @@ function drawLensCanvas(id,p,preview=false){
     ctx.strokeStyle=cCA2;
     ctx.beginPath();ctx.moveTo(xs2_ca2_top+2,py(hCA2));ctx.lineTo(ca2ArrowX-2,py(hCA2));ctx.stroke();
     ctx.beginPath();ctx.moveTo(xs2_ca2_bot+2,py(-hCA2));ctx.lineTo(ca2ArrowX-2,py(-hCA2));ctx.stroke();
-    ctx.restore();
+    ctx.restore(); // restores setLineDash to solid
 
     drawVArrow(ca1ArrowX,py(hCA1),py(-hCA1),"⌀CA1="+CA1.toFixed(2)+"mm",cCA1,'left');
     const isCA2CloseToOD=Math.abs(hCA2-hOD)<0.2;
@@ -1534,7 +1579,7 @@ function liveDrawLens(){
         const ETca=edgeThicknessAt(s1,s2,ct,sag1ca,sag2ca);
         if(ETca<0){if(summary)summary.style.display="none";_showCanvasErr("c-canvas","ET@CA="+ETca.toFixed(2)+"mm — sags exceed CT");return;}
         window._lastLensParams={id:"c-canvas",p:{OD:od,CT:ct,CA1:ca1,CA2:ca2,s1,s2,g1:sag1ca,g2:sag2ca}};
-        drawLensCanvas("c-canvas",window._lastLensParams.p,true);
+        _ensureDrawLens("c-canvas",window._lastLensParams.p,true);
         const matSel=document.getElementById("c-mat").value;
         let dens=matSel==="Custom Density"?parseFloat(document.getElementById("c-cd").value)||0:getDens(matSel)||0;
         if(dens>0&&summary){
@@ -1551,7 +1596,8 @@ function liveDrawLens(){
 
 function _showCanvasErr(id,msg){
     const canvas=document.getElementById(id);if(!canvas)return;
-    const CW=canvas.offsetWidth||320,CH=Math.max(CW,200);
+    const CW=canvas.offsetWidth||canvas.parentElement&&canvas.parentElement.offsetWidth||320;
+    const CH=Math.max(CW,200);
     canvas.width=CW;canvas.height=CH;
     const ctx=canvas.getContext("2d");ctx.clearRect(0,0,CW,CH);
     ctx.fillStyle="rgba(248,113,113,0.13)";ctx.fillRect(0,0,CW,CH);
@@ -1572,7 +1618,7 @@ function clearCanvas(id){const c=document.getElementById(id);c.width=c.offsetWid
 
 function drawRectCanvas(id,{L,W,H}){
     const canvas=document.getElementById(id);
-    const cW=canvas.offsetWidth||320;
+    const cW=canvas.offsetWidth||canvas.parentElement&&canvas.parentElement.offsetWidth||320;
     const cH=parseInt(canvas.getAttribute("height"))||130;
     canvas.width=cW;canvas.height=cH;
     const ctx=canvas.getContext("2d");ctx.clearRect(0,0,cW,cH);
@@ -1617,7 +1663,7 @@ function drawRectCanvas(id,{L,W,H}){
     const mY=fy+dh/2;
     ctx.save();ctx.setLineDash([7,7]);ctx.strokeStyle="rgba(248,113,113,0.80)";
     ctx.lineWidth=1.3;ctx.beginPath();ctx.moveTo(fx,mY);ctx.lineTo(fx+dw,mY);ctx.stroke();
-    ctx.restore();
+    ctx.restore(); // FIX 12: restore resets dash
 
     ctx.font="bold 9.5px 'Nunito',sans-serif";ctx.fillStyle="#fbbf24";ctx.textAlign="center";
     const lLblY=Math.min(fy+dh+13,cH-4);
@@ -1644,6 +1690,7 @@ if(!CanvasRenderingContext2D.prototype.roundRect){
 }
 
 // ─── HIGH‑RES PNG REPORT (SC=16 ultra crisp) ───────────────────
+// FIX 13: _buildReportCanvas — use the actual source canvas (_lastCalcTab), not res-canvas
 function _buildReportCanvas(callback){
     refreshSnapHeader();
     const g=id=>(document.getElementById(id)||{}).textContent||(document.getElementById(id)||{}).value||'';
@@ -1658,10 +1705,11 @@ function _buildReportCanvas(callback){
         const srows=[];sec.querySelectorAll('.res-row').forEach(r=>{const lblEl=r.querySelector('.res-lbl'),inp=r.querySelector('.res-val-inp');if(lblEl&&inp)srows.push({lbl:lblEl.textContent||'',val:inp.value||'',green:inp.classList.contains('green'),amber:inp.classList.contains('amber')});});
         sections.push({hdr:hdr?hdr.textContent.trim():'',rows:srows});
     });
-    const srcCanvas=document.getElementById('res-canvas');
+    // Use the live source canvas, not the mirror (res-canvas)
+    const srcCanvasId=_lastCalcTab==="rectangular"?"r-canvas":"c-canvas";
+    const srcCanvas=document.getElementById(srcCanvasId);
     const hasCanvas=srcCanvas&&srcCanvas.width>0&&srcCanvas.height>0;
 
-    // SC=16 for ultra-crisp output at any zoom level
     const SC=16;
     const W=1200, P=28, HDR_H=120, FOOTER_H=48, ROW_H=34, SEC_H=32, GAP=12, TITLE_ROW=40;
     let dataH=TITLE_ROW+8;sections.forEach(s=>{dataH+=SEC_H;s.rows.forEach(()=>dataH+=ROW_H);dataH+=GAP;});
@@ -1765,7 +1813,10 @@ function _closeModal(){document.getElementById("modal-overlay").style.display="n
 function v(id){return(document.getElementById(id)||{value:""}).value;}
 
 const THEMES=['dark','light','white','warm','green','steel','purple','red'];
-function setTheme(t){document.documentElement.setAttribute('data-theme',t==='dark'?'':t);THEMES.forEach(x=>{const el=document.getElementById('sw-'+x);if(el)el.classList.toggle('active',x===t);});try{localStorage.setItem('opticost_theme',t);}catch(e){}liveDrawLens();}
+function setTheme(t){document.documentElement.setAttribute('data-theme',t==='dark'?'':t);THEMES.forEach(x=>{const el=document.getElementById('sw-'+x);if(el)el.classList.toggle('active',x===t);});try{localStorage.setItem('opticost_theme',t);}catch(e){}
+    // Redraw active canvases when theme changes
+    if(window._lastLensParams) _ensureDrawLens('c-canvas',window._lastLensParams.p,true);
+}
 function toggleThemePanel(){document.getElementById('theme-panel').classList.toggle('open');}
 
 function showAbout(){showModal("About OptiCost LRMCE","OptiCost — LRMCE v1.4\n\nDeveloped by:\n  Priya Gavshinde\n  Sr. Optical Engineer\n  Optics & Allied Engg. Pvt. Ltd.\n\nContact:\n  www.opticsindia.com\n  +91-9886654729\n  info@opticsindia.com\n\n© 2025 Optics & Allied Engg. Pvt. Ltd.");}
@@ -1773,7 +1824,11 @@ function showAbout(){showModal("About OptiCost LRMCE","OptiCost — LRMCE v1.4\n
 window.addEventListener('DOMContentLoaded',()=>{
     loadMaterials();
     try{const su=localStorage.getItem("opticost_saved_user"),sp=localStorage.getItem("opticost_saved_pass");if(su&&sp){document.getElementById("login-user").value=su;document.getElementById("login-pass").value=atob(sp);document.getElementById("remember-me").checked=true;const fi=document.getElementById("forget-login-row");if(fi)fi.style.display="block";}}catch(e){}
-    _seedDefaultUser();populateMats();surfChanged();syncCA();
+    _seedDefaultUser();populateMats();
+    // FIX 14: defer surfChanged/syncCA init until after first rAF so offsetWidth is valid
+    requestAnimationFrame(()=>{
+        surfChanged();syncCA();
+    });
     try{const sc=localStorage.getItem('opticost_currency');if(sc){const lc=document.getElementById('lib-curr');if(lc)lc.value=sc;setLibCurrency(sc);}}catch(e){}
     try{const t=localStorage.getItem('opticost_theme')||'dark';setTheme(t);}catch(e){setTheme('dark');}
     const de=document.getElementById('rpt-date');if(de)de.value=new Date().toISOString().slice(0,10);

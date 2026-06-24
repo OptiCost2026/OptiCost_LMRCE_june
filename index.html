@@ -860,17 +860,16 @@ function matChanged(p){
 }
 function surfChanged(){
     ["s1","s2"].forEach(s=>{document.getElementById(s+"-roc-row").style.display=document.getElementById(s+"t").value==="Plano"?"none":"block";});
-    // FIX 3: only call liveDrawLens if the canvas has real dimensions (after layout)
-    if(document.getElementById("c-canvas").offsetWidth>0) liveDrawLens();
+    liveDrawLens();
 }
 function syncCA(){
     const od=parseFloat(document.getElementById("c-od").value)||0,chk=document.getElementById("c-od-chk").checked,s1=document.getElementById("s1od").checked,s2=document.getElementById("s2od").checked;
-    if(chk){["c-ca1","c-ca2"].forEach(id=>{const e=document.getElementById(id);e.value=od||"";e.disabled=true;});if(document.getElementById("c-canvas").offsetWidth>0)liveDrawLens();return;}
+    if(chk){["c-ca1","c-ca2"].forEach(id=>{const e=document.getElementById(id);e.value=od||"";e.disabled=true;});liveDrawLens();return;}
     const ca1=document.getElementById("c-ca1"),ca2=document.getElementById("c-ca2");
     ca1.disabled=s1;ca2.disabled=s2;
     if(s1&&od) ca1.value=od;if(s2&&od) ca2.value=od;
     if(!s1) ca1.disabled=false;if(!s2) ca2.disabled=false;
-    if(document.getElementById("c-canvas").offsetWidth>0) liveDrawLens();
+    liveDrawLens();
 }
 // FIX 4: safeEval — allow digits, operators, parens, decimal, scientific notation
 function safeEval(expr){
@@ -955,7 +954,6 @@ function calcCirc(){
     const signedSag1od=s1==="convex"?sag1od:(s1==="concave"?-sag1od:0);
     const signedSag2od=s2==="convex"?sag2od:(s2==="concave"?-sag2od:0);
     window._lastLensParams={id:"c-canvas",p:{OD,CT,CA1,CA2,s1,s2,g1:Math.abs(sag1ca),g2:Math.abs(sag2ca)}};
-    // FIX 7: ensure canvas is sized before drawing by using requestAnimationFrame if needed
     _ensureDrawLens("c-canvas",window._lastLensParams.p,true);
     document.getElementById("result-text").innerHTML=
         resTitle("📐 Optic Cost Summary — Circular Lens")+
@@ -1019,19 +1017,13 @@ function mirrorCanvasToResults(srcId){
     });});
 }
 
-// FIX 9: _ensureDrawLens — handles the case where offsetWidth is 0 on first paint
-// by deferring to rAF if canvas isn't laid out yet
+// _ensureDrawLens: draw immediately; if canvas has no width yet, force via getBoundingClientRect
 function _ensureDrawLens(id, p, preview){
     const canvas=document.getElementById(id);
     if(!canvas) return;
-    if(canvas.offsetWidth>0){
-        drawLensCanvas(id,p,preview);
-    } else {
-        requestAnimationFrame(()=>{
-            if(canvas.offsetWidth>0) drawLensCanvas(id,p,preview);
-            else requestAnimationFrame(()=>drawLensCanvas(id,p,preview));
-        });
-    }
+    // getBoundingClientRect forces a layout flush so offsetWidth becomes valid
+    if(canvas.offsetWidth===0) canvas.getBoundingClientRect();
+    drawLensCanvas(id, p, preview);
 }
 
 function loadLogoFile(inp){
@@ -1329,8 +1321,9 @@ function doReset(){
 function drawLensCanvas(id,p,preview=false){
     const canvas=document.getElementById(id);
     if(!canvas)return;
-    // FIX 11: fallback width if offsetWidth is still 0 (e.g. hidden panel)
-    const CW=canvas.offsetWidth||canvas.parentElement&&canvas.parentElement.offsetWidth||320;
+    // getBoundingClientRect forces layout flush — gives correct width even on first paint
+    const rect=canvas.getBoundingClientRect();
+    const CW=Math.round(rect.width)||canvas.offsetWidth||canvas.parentElement&&canvas.parentElement.offsetWidth||320;
     const {OD,CT,CA1,CA2,s1,s2,g1,g2}=p;
     const roc1=parseFloat(document.getElementById("s1ri").value)||0;
     const roc2=parseFloat(document.getElementById("s2ri").value)||0;
@@ -1596,7 +1589,8 @@ function liveDrawLens(){
 
 function _showCanvasErr(id,msg){
     const canvas=document.getElementById(id);if(!canvas)return;
-    const CW=canvas.offsetWidth||canvas.parentElement&&canvas.parentElement.offsetWidth||320;
+    const rect=canvas.getBoundingClientRect();
+    const CW=Math.round(rect.width)||canvas.offsetWidth||canvas.parentElement&&canvas.parentElement.offsetWidth||320;
     const CH=Math.max(CW,200);
     canvas.width=CW;canvas.height=CH;
     const ctx=canvas.getContext("2d");ctx.clearRect(0,0,CW,CH);
@@ -1618,7 +1612,8 @@ function clearCanvas(id){const c=document.getElementById(id);c.width=c.offsetWid
 
 function drawRectCanvas(id,{L,W,H}){
     const canvas=document.getElementById(id);
-    const cW=canvas.offsetWidth||canvas.parentElement&&canvas.parentElement.offsetWidth||320;
+    const rect=canvas.getBoundingClientRect();
+    const cW=Math.round(rect.width)||canvas.offsetWidth||canvas.parentElement&&canvas.parentElement.offsetWidth||320;
     const cH=parseInt(canvas.getAttribute("height"))||130;
     canvas.width=cW;canvas.height=cH;
     const ctx=canvas.getContext("2d");ctx.clearRect(0,0,cW,cH);
@@ -1825,10 +1820,8 @@ window.addEventListener('DOMContentLoaded',()=>{
     loadMaterials();
     try{const su=localStorage.getItem("opticost_saved_user"),sp=localStorage.getItem("opticost_saved_pass");if(su&&sp){document.getElementById("login-user").value=su;document.getElementById("login-pass").value=atob(sp);document.getElementById("remember-me").checked=true;const fi=document.getElementById("forget-login-row");if(fi)fi.style.display="block";}}catch(e){}
     _seedDefaultUser();populateMats();
-    // FIX 14: defer surfChanged/syncCA init until after first rAF so offsetWidth is valid
-    requestAnimationFrame(()=>{
-        surfChanged();syncCA();
-    });
+    // surfChanged/syncCA call liveDrawLens which uses getBoundingClientRect — safe to call directly
+    surfChanged();syncCA();
     try{const sc=localStorage.getItem('opticost_currency');if(sc){const lc=document.getElementById('lib-curr');if(lc)lc.value=sc;setLibCurrency(sc);}}catch(e){}
     try{const t=localStorage.getItem('opticost_theme')||'dark';setTheme(t);}catch(e){setTheme('dark');}
     const de=document.getElementById('rpt-date');if(de)de.value=new Date().toISOString().slice(0,10);

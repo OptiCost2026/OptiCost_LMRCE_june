@@ -1257,16 +1257,15 @@ function drawLensCanvas(id, p, preview=false, dpr=0){
     ctx.beginPath();ctx.moveTo(...LP[0]);ctx.lineTo(...RP[0]);ctx.strokeStyle=cStroke;ctx.lineWidth=1.8;ctx.stroke();
     ctx.beginPath();ctx.moveTo(...LP[N]);ctx.lineTo(...RP[N]);ctx.strokeStyle=cStroke;ctx.lineWidth=1.8;ctx.stroke();
 
-    // ── OPTICAL AXIS — dashed center line through full width ──
-    const axisX0=0, axisX1=CW;
+    // ── OPTICAL AXIS — dashed, spans only max(CT, ET) width, no label ──
+    const _lcAxX1=px(xS1(0)), _lcAxX2=px(xS2(0));
+    const _lcEtL=px(xS1(hCA1>0?hCA1:hOD)), _lcEtR=px(xS2(hCA2>0?hCA2:hOD));
+    const _lcAxL=Math.min(_lcAxX1,_lcEtL)-8, _lcAxR=Math.max(_lcAxX2,_lcEtR)+8;
     ctx.save();
     ctx.strokeStyle=cAxis; ctx.lineWidth=1.4;
-    ctx.setLineDash([10,6]); ctx.lineDashOffset=0;
-    ctx.beginPath();ctx.moveTo(axisX0,cy);ctx.lineTo(axisX1,cy);ctx.stroke();
+    ctx.setLineDash([10,6]);
+    ctx.beginPath();ctx.moveTo(_lcAxL,cy);ctx.lineTo(_lcAxR,cy);ctx.stroke();
     ctx.setLineDash([]);
-    // Axis label
-    ctx.font="bold 11px 'Nunito',sans-serif"; ctx.fillStyle=cAxis; ctx.textAlign="left";
-    ctx.fillText("── OPTICAL AXIS",4,cy-5);
     ctx.restore();
 
     // ── Vertical arrow helper with dashed leader lines ──
@@ -1424,15 +1423,18 @@ function _renderLensToCanvas(targetCanvas, p, targetW, targetH){
     ctx.beginPath();ctx.moveTo(...LP[0]);ctx.lineTo(...RP[0]);ctx.stroke();
     ctx.beginPath();ctx.moveTo(...LP[N]);ctx.lineTo(...RP[N]);ctx.stroke();
 
-    // ── OPTICAL AXIS — dashed red center line ──
+    // ── OPTICAL AXIS — dashed, only spanning max(CT width, ET width) ──
     ctx.save();
-    ctx.strokeStyle='rgba(220,38,38,0.75)'; ctx.lineWidth=Math.max(1.5,lw*0.55);
+    ctx.strokeStyle='rgba(220,38,38,0.80)'; ctx.lineWidth=Math.max(1.5,lw*0.55);
     ctx.setLineDash([Math.round(CW/50), Math.round(CW/80)]);
-    ctx.beginPath();ctx.moveTo(0,cy);ctx.lineTo(CW,cy);ctx.stroke();
+    // CT pixel span at center
+    const _axX1=ppx(xS1(0)), _axX2=ppx(xS2(0));
+    // ET pixel span at CA (or OD if no CA)
+    const _etL=ppx(xS1(hCA1>0?hCA1:hOD)), _etR=ppx(xS2(hCA2>0?hCA2:hOD));
+    // Use whichever span is larger, padded by 8px each side
+    const _axL=Math.min(_axX1,_etL)-8, _axR=Math.max(_axX2,_etR)+8;
+    ctx.beginPath();ctx.moveTo(_axL,cy);ctx.lineTo(_axR,cy);ctx.stroke();
     ctx.setLineDash([]);
-    const axFontSz=Math.max(14,Math.round(CW/60));
-    ctx.font=`bold ${axFontSz}px Arial`; ctx.fillStyle='rgba(185,28,28,0.85)'; ctx.textAlign='left';
-    ctx.fillText('OPTICAL AXIS',8,cy-4);
     ctx.restore();
 
     const fs=Math.max(18,Math.round(CW/22));   // main labels — larger minimum
@@ -1552,12 +1554,12 @@ function _buildReportCanvas(callback){
 
     // ── Layout constants ──
     const SC=3;
-    // Narrower canvas = no right gap; taller rows = better readability
-    const W=1100, HDR_H=200, FOOTER_H=96;
+    // 1250px wide — enough for labels + values without clipping; no right gap
+    const W=1250, HDR_H=200, FOOTER_H=96;
     const LOGO_W=110, LOGO_H=62, LOGO_PAD=20;
     const PAD=22, IPAD=20;
     const ROW_H=72, SEC_H=54, GAP=4, TITLE_ROW=66;
-    // Font sizes — all in canvas px (SC=3 so these show at 3x on export)
+    // Canvas px fonts (rendered at SC=3 so a 20px font appears as 60px equivalent)
     const LF=26, VF=26, VFB=28, SHF=22, HTF=34, HSF=20;
 
     let dataH=TITLE_ROW+12;
@@ -1570,8 +1572,8 @@ function _buildReportCanvas(callback){
     const CONTENT_H=dataH+PAD*2;
     const H=HDR_H+CONTENT_H+FOOTER_H;
 
-    // CS column: 38% wide, data fills rest flush to right edge
-    const CS_W=hasCanvas?Math.round(W*0.38):0;
+    // CS column: 36% wide; data fills rest flush
+    const CS_W=hasCanvas?Math.round(W*0.36):0;
     const DX=CS_W;
     const DR=W;
     const DW=DR-DX;
@@ -1601,13 +1603,16 @@ function _buildReportCanvas(callback){
         // Separator
         ctx.strokeStyle='#b0c4d8'; ctx.lineWidth=1.5;
         ctx.beginPath();ctx.moveTo(PAD,114);ctx.lineTo(W-PAD,114);ctx.stroke();
-        // Meta fields row — 4 columns
+        // Meta fields row — 4 columns, proper readable fonts
         const fW=Math.floor((W-PAD*2)/4);
         [['TO / VENDOR',vendor,'#0f172a'],['TITLE',titleTxt,'#0f172a'],['PART NO.',partno,'#b45309'],['DATE',dateVal,'#0f172a']].forEach(([lbl,val,vc],i)=>{
             const fx=PAD+i*fW;
             if(i>0){ctx.strokeStyle='#d0dbe8';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(fx,118);ctx.lineTo(fx,HDR_H-6);ctx.stroke();}
-            ctx.font='bold 14px Arial'; ctx.fillStyle='#64748b'; ctx.fillText(lbl,fx+8,136);
-            ctx.font=`bold 22px Arial`; ctx.fillStyle=vc; ctx.fillText((val||'—').substring(0,Math.floor(fW/12)),fx+8,168);
+            ctx.font='bold 15px Arial'; ctx.fillStyle='#64748b'; ctx.fillText(lbl,fx+8,136);
+            ctx.font=`bold 24px Arial`; ctx.fillStyle=vc;
+            // truncate to fit in column (approx 14px per char at 24px bold)
+            const maxChars=Math.floor((fW-16)/15);
+            ctx.fillText((val||'—').substring(0,maxChars),fx+8,170);
         });
         ctx.strokeStyle='#c8d8e8'; ctx.lineWidth=1.5;
         ctx.beginPath();ctx.moveTo(0,HDR_H);ctx.lineTo(W,HDR_H);ctx.stroke();
@@ -1679,10 +1684,10 @@ function _buildReportCanvas(callback){
 
         // ══ Data column — DX to DR (no right margin) ══
         const colInnerW=DW-IPAD*2;
-        // Label 44% | separator | value fills rest
-        const LABEL_W=Math.round(colInnerW*0.44);
-        const splitX=DX+IPAD+LABEL_W;     // separator X
-        const valX=splitX+14;             // value starts 14px after separator
+        // Label 50% | separator | value fills rest — prevents param text clipping
+        const LABEL_W=Math.round(colInnerW*0.50);
+        const splitX=DX+IPAD+LABEL_W;
+        const valX=splitX+14;
         let dy=bodyY+PAD;
 
         // Report title row

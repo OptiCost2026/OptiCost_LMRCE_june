@@ -1483,10 +1483,11 @@ function _buildReportCanvas(callback){
         if(srows.length) sections.push({hdr:hdr?hdr.textContent.trim():'',rows:srows});
     });
 
-    // Layout constants — all in logical px (SC multiplies to pixel buffer)
-    const SC=3;                        // render at 3× for sharpness
-    const W=1500, HDR_H=140, FOOTER_H=52;
-    const PAD=32, ROW_H=44, SEC_H=38, GAP=14, TITLE_ROW=52;
+    // Layout constants
+    const SC=3;
+    const LOGO_W=90, LOGO_H=52, LOGO_PAD=16;
+    const W=1500, HDR_H=150, FOOTER_H=52;
+    const PAD=32, ROW_H=50, SEC_H=40, GAP=10, TITLE_ROW=54;
     let dataH=TITLE_ROW+12;
     sections.forEach(s=>{dataH+=SEC_H;s.rows.forEach(()=>dataH+=ROW_H);dataH+=GAP;});
 
@@ -1494,11 +1495,9 @@ function _buildReportCanvas(callback){
     const hasRect=!!(window._lastLensParams&&window._lastLensParams.type==='rect'&&window._lastLensParams.p);
     const hasCanvas=hasLens||hasRect;
 
-    // Cross-section column = 38% of total width
     const SPLIT_W=hasCanvas?Math.round(W*0.38):0;
     const DATA_W=W-SPLIT_W-PAD*3;
-    // Content height is whichever is taller: data or cross-section area
-    const CONTENT_H=Math.max(dataH+PAD*2, hasCanvas?Math.round(SPLIT_W*0.85)+PAD*2:0);
+    const CONTENT_H=Math.max(dataH+PAD*2, hasCanvas?Math.round(SPLIT_W*0.90)+PAD*2:0);
     const H=HDR_H+CONTENT_H+FOOTER_H;
 
     const cv=document.createElement('canvas');
@@ -1508,119 +1507,118 @@ function _buildReportCanvas(callback){
     ctx.imageSmoothingEnabled=true; ctx.imageSmoothingQuality='high';
     ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,W,H);
 
-    // ── Header ──
-    ctx.fillStyle='#f0f4fa'; ctx.fillRect(0,0,W,HDR_H);
-    ctx.fillStyle='#0f172a'; ctx.font='bold 26px Arial';
-    ctx.fillText(mfr.substring(0,55),PAD,38);
-    ctx.fillStyle='#4b5563'; ctx.font='16px Arial';
-    ctx.fillText((website+(contact?' | '+contact:'')).substring(0,80),PAD,62);
-    ctx.strokeStyle='#c8d5e8'; ctx.lineWidth=1.5;
-    ctx.beginPath();ctx.moveTo(PAD,72);ctx.lineTo(W-PAD,72);ctx.stroke();
-
-    // Meta fields row
-    const fW=Math.floor((W-PAD*2)/4);
-    [['TO / VENDOR',vendor],['TITLE',titleTxt],['PART NO.',partno],['DATE',dateVal]].forEach(([lbl,val],i)=>{
-        const fx=PAD+i*fW;
-        ctx.font='bold 12px Arial'; ctx.fillStyle='#64748b'; ctx.fillText(lbl,fx,92);
-        ctx.font='bold 18px Arial'; ctx.fillStyle=lbl==='PART NO.'?'#b45309':'#0f172a';
-        ctx.fillText((val||'—').substring(0,Math.floor(fW/11)),fx,118);
-    });
-    ctx.strokeStyle='#dde4ef'; ctx.lineWidth=1;
-    ctx.beginPath();ctx.moveTo(0,HDR_H);ctx.lineTo(W,HDR_H);ctx.stroke();
-
     const bodyY=HDR_H;
 
-    // ── Cross-section column ──
-    if(hasCanvas){
-        ctx.fillStyle='#eaeff8'; ctx.fillRect(0,bodyY,SPLIT_W,CONTENT_H);
-        ctx.fillStyle='#1e3a6e'; ctx.font='bold 15px Arial'; ctx.textAlign='center';
-        ctx.fillText('⬡  CROSS-SECTION PREVIEW',SPLIT_W/2,bodyY+24); ctx.textAlign='left';
-
-        const lensAreaX=PAD, lensAreaY=bodyY+38;
-        const lensAreaW=SPLIT_W-PAD*2, lensAreaH=CONTENT_H-50;
-
-        if(hasLens){
-            const lp=window._lastLensParams.p;
-            // Compute true physical extent including sags
-            const xs1Max=Math.abs(lp.g1||0)+(lp.CT||0)/2;
-            const xs2Max=Math.abs(lp.g2||0)+(lp.CT||0)/2;
-            const physTotalW=xs1Max+xs2Max;
-            const physTotalH=lp.OD||1;
-            // Natural aspect ratio of the optic
-            const physAspect=physTotalH/Math.max(physTotalW,0.001);
-            // Scale to fit lensArea, preserving aspect, but cap at 1.4 (prevent extreme elongation)
-            const cappedAspect=Math.min(physAspect, 1.4);
-            let dW=lensAreaW, dH=Math.round(dW*cappedAspect);
-            if(dH>lensAreaH){dH=lensAreaH; dW=Math.round(dH/cappedAspect);}
-            const dispX=lensAreaX+Math.round((lensAreaW-dW)/2);
-            const dispY=lensAreaY+Math.round((lensAreaH-dH)/2);
-            // Render at SC× pixel size then drawImage at logical size
-            const off=document.createElement('canvas');
-            _renderLensToCanvas(off, lp, dW*SC, dH*SC);
-            ctx.drawImage(off,0,0,dW*SC,dH*SC, dispX, dispY, dW, dH);
-        } else if(hasRect){
-            const srcR=document.getElementById('r-canvas');
-            if(srcR&&srcR.width>0){
-                const rAsp=srcR.height/srcR.width;
-                let dW=lensAreaW, dH=Math.round(dW*rAsp);
-                if(dH>lensAreaH){dH=lensAreaH;dW=Math.round(dH/rAsp);}
-                ctx.drawImage(srcR,0,0,srcR.width,srcR.height, lensAreaX,lensAreaY,dW,dH);
-            }
+    function _drawHeader(logoImg){
+        ctx.fillStyle='#f0f4fa'; ctx.fillRect(0,0,W,HDR_H);
+        let textX=PAD;
+        if(logoImg){
+            const ly=Math.round((80-LOGO_H)/2)+4;
+            ctx.drawImage(logoImg, PAD, ly, LOGO_W, LOGO_H);
+            textX=PAD+LOGO_W+LOGO_PAD;
         }
-        ctx.strokeStyle='#c0ccde'; ctx.lineWidth=1.5;
-        ctx.beginPath();ctx.moveTo(SPLIT_W,bodyY);ctx.lineTo(SPLIT_W,bodyY+CONTENT_H);ctx.stroke();
+        ctx.fillStyle='#0f172a'; ctx.font='bold 27px Arial';
+        ctx.fillText(mfr.substring(0,50), textX, 38);
+        ctx.fillStyle='#4b5563'; ctx.font='16px Arial';
+        ctx.fillText((website+(contact?' | '+contact:'')).substring(0,72), textX, 63);
+        ctx.strokeStyle='#c0cedf'; ctx.lineWidth=1.5;
+        ctx.beginPath();ctx.moveTo(PAD,78);ctx.lineTo(W-PAD,78);ctx.stroke();
+        const fW=Math.floor((W-PAD*2)/4);
+        [['TO / VENDOR',vendor],['TITLE',titleTxt],['PART NO.',partno],['DATE',dateVal]].forEach(([lbl,val],i)=>{
+            const fx=PAD+i*fW;
+            ctx.font='bold 12px Arial'; ctx.fillStyle='#64748b'; ctx.fillText(lbl,fx,96);
+            ctx.font='bold 19px Arial'; ctx.fillStyle=lbl==='PART NO.'?'#b45309':'#0f172a';
+            ctx.fillText((val||'—').substring(0,Math.floor(fW/11)),fx,122);
+        });
+        ctx.strokeStyle='#dde4ef'; ctx.lineWidth=1;
+        ctx.beginPath();ctx.moveTo(0,HDR_H);ctx.lineTo(W,HDR_H);ctx.stroke();
     }
 
-    // ── Data column ──
-    const dataX=(hasCanvas?SPLIT_W:0)+PAD;
-    const dataRight=dataX+DATA_W;
-    let dy=bodyY+PAD;
+    function _drawBody(){
+        // ── Cross-section column ──
+        if(hasCanvas){
+            ctx.fillStyle='#eaeff8'; ctx.fillRect(0,bodyY,SPLIT_W,CONTENT_H);
+            ctx.fillStyle='#1e3a6e'; ctx.font='bold 15px Arial'; ctx.textAlign='center';
+            ctx.fillText('\u2B21  CROSS-SECTION PREVIEW',SPLIT_W/2,bodyY+24); ctx.textAlign='left';
+            const lensAreaX=PAD, lensAreaY=bodyY+38;
+            const lensAreaW=SPLIT_W-PAD*2, lensAreaH=CONTENT_H-50;
+            if(hasLens){
+                const lp=window._lastLensParams.p;
+                const physW=(Math.abs(lp.g1||0)+(lp.CT||0)/2)+(Math.abs(lp.g2||0)+(lp.CT||0)/2);
+                const physH=lp.OD||1;
+                const cappedAspect=Math.min(physH/Math.max(physW,0.001),1.4);
+                let dW=lensAreaW, dH=Math.round(dW*cappedAspect);
+                if(dH>lensAreaH){dH=lensAreaH; dW=Math.round(dH/cappedAspect);}
+                const dispX=lensAreaX+Math.round((lensAreaW-dW)/2);
+                const dispY=lensAreaY+Math.round((lensAreaH-dH)/2);
+                const off=document.createElement('canvas');
+                _renderLensToCanvas(off, lp, dW*SC, dH*SC);
+                ctx.drawImage(off,0,0,dW*SC,dH*SC, dispX, dispY, dW, dH);
+            } else if(hasRect){
+                const srcR=document.getElementById('r-canvas');
+                if(srcR&&srcR.width>0){
+                    const rAsp=srcR.height/srcR.width;
+                    let dW=lensAreaW, dH=Math.round(dW*rAsp);
+                    if(dH>lensAreaH){dH=lensAreaH;dW=Math.round(dH/rAsp);}
+                    ctx.drawImage(srcR,0,0,srcR.width,srcR.height,lensAreaX,lensAreaY,dW,dH);
+                }
+            }
+            ctx.strokeStyle='#c0ccde'; ctx.lineWidth=1.5;
+            ctx.beginPath();ctx.moveTo(SPLIT_W,bodyY);ctx.lineTo(SPLIT_W,bodyY+CONTENT_H);ctx.stroke();
+        }
 
-    // Section title
-    ctx.fillStyle='#0f172a'; ctx.font='bold 22px Arial';
-    ctx.fillText(titleTxt.substring(0,54),dataX,dy+24); dy+=TITLE_ROW;
+        // ── Data column ──
+        const dataX=(hasCanvas?SPLIT_W:0)+PAD;
+        const dataRight=dataX+DATA_W;
+        let dy=bodyY+PAD;
 
-    sections.forEach(sec=>{
-        // Section header bar
-        ctx.fillStyle='#1e3a7e'; ctx.fillRect(dataX,dy,DATA_W,SEC_H);
-        ctx.fillStyle='#ffffff'; ctx.font='bold 15px Arial';
-        ctx.fillText((sec.hdr||'').toUpperCase(),dataX+10,dy+SEC_H-10); dy+=SEC_H;
+        ctx.fillStyle='#0f172a'; ctx.font='bold 24px Arial';
+        ctx.fillText(titleTxt.substring(0,54),dataX,dy+26); dy+=TITLE_ROW;
 
-        sec.rows.forEach((r,ri)=>{
-            const bg=r.green?'#f0fdf4':r.amber?'#fffbeb':(ri%2===0?'#ffffff':'#f8fafc');
-            ctx.fillStyle=bg; ctx.fillRect(dataX,dy,DATA_W,ROW_H);
-            // Label
-            ctx.fillStyle='#374151'; ctx.font='15px Arial';
-            ctx.fillText(r.lbl||'',dataX+10,dy+ROW_H-13);
-            // Value — right-aligned
-            const vc=r.green?'#15803d':r.amber?'#92400e':'#111827';
-            ctx.fillStyle=vc;
-            ctx.font=r.green||r.amber?'bold 17px Arial':'bold 15px Arial';
-            ctx.textAlign='right';
-            ctx.fillText(r.val||'',dataRight-8,dy+ROW_H-13);
-            ctx.textAlign='left';
-            // Divider
-            ctx.strokeStyle='#e5e7eb'; ctx.lineWidth=0.7;
-            ctx.beginPath();ctx.moveTo(dataX,dy+ROW_H);ctx.lineTo(dataRight,dy+ROW_H);ctx.stroke();
-            dy+=ROW_H;
+        sections.forEach(sec=>{
+            // Section header bar
+            ctx.fillStyle='#1e3a7e'; ctx.fillRect(dataX,dy,DATA_W,SEC_H);
+            ctx.fillStyle='#ffffff'; ctx.font='bold 16px Arial';
+            ctx.fillText((sec.hdr||'').toUpperCase(),dataX+12,dy+SEC_H-11); dy+=SEC_H;
+
+            sec.rows.forEach((r,ri)=>{
+                const bg=r.green?'#f0fdf4':r.amber?'#fffbeb':(ri%2===0?'#ffffff':'#f7f9fc');
+                ctx.fillStyle=bg; ctx.fillRect(dataX,dy,DATA_W,ROW_H);
+                // Label — left, vertically centred in row
+                ctx.fillStyle='#374151'; ctx.font='16px Arial';
+                ctx.fillText(r.lbl||'', dataX+14, dy+ROW_H/2+6);
+                // Value — right-aligned, same vertical centre
+                const vc=r.green?'#15803d':r.amber?'#92400e':'#111827';
+                ctx.fillStyle=vc;
+                ctx.font=r.green||r.amber?'bold 18px Arial':'bold 16px Arial';
+                ctx.textAlign='right';
+                ctx.fillText(r.val||'', dataRight-14, dy+ROW_H/2+6);
+                ctx.textAlign='left';
+                // Row divider
+                ctx.strokeStyle='#e2e8f0'; ctx.lineWidth=0.8;
+                ctx.beginPath();ctx.moveTo(dataX,dy+ROW_H);ctx.lineTo(dataRight,dy+ROW_H);ctx.stroke();
+                dy+=ROW_H;
+            });
+            dy+=GAP;
         });
-        dy+=GAP;
-    });
 
-    // ── Footer ──
-    const fy=H-FOOTER_H;
-    ctx.fillStyle='#1a2e44'; ctx.fillRect(0,fy,W,FOOTER_H);
-    ctx.fillStyle='#94a3b8'; ctx.font='15px Arial'; ctx.textAlign='center';
-    ctx.fillText('Generated by OptiCost LRMCE v1.2  |  '+mfr+'  |  '+website+(contact?' | '+contact:''),W/2,fy+32);
-    ctx.textAlign='left';
+        // ── Footer ──
+        const fy=H-FOOTER_H;
+        ctx.fillStyle='#1a2e44'; ctx.fillRect(0,fy,W,FOOTER_H);
+        ctx.fillStyle='#94a3b8'; ctx.font='15px Arial'; ctx.textAlign='center';
+        ctx.fillText('Generated by OptiCost LRMCE v1.2  |  '+mfr+'  |  '+website+(contact?' | '+contact:''),W/2,fy+33);
+        ctx.textAlign='left';
+        callback(cv);
+    }
 
     if(_logoDataUrl){
         const li=new Image();
-        li.onload=()=>{ctx.drawImage(li,W-PAD-100,6,90,50);callback(cv);};
-        li.onerror=()=>callback(cv);
+        li.onload=()=>{_drawHeader(li);_drawBody();};
+        li.onerror=()=>{_drawHeader(null);_drawBody();};
         li.src=_logoDataUrl;
     } else {
-        callback(cv);
+        _drawHeader(null);
+        _drawBody();
     }
 }
 

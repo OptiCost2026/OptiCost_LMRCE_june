@@ -1483,13 +1483,12 @@ function _buildReportCanvas(callback){
         if(srows.length) sections.push({hdr:hdr?hdr.textContent.trim():'',rows:srows});
     });
 
-    // Layout constants — larger fonts, taller rows, tighter gap
+    // Layout constants
     const SC=3;
     const LOGO_W=100, LOGO_H=58, LOGO_PAD=18;
     const W=1500, HDR_H=170, FOOTER_H=70;
-    const PAD=28, ROW_H=60, SEC_H=46, GAP=8, TITLE_ROW=58;
-    const LABEL_FONT=18, VALUE_FONT=18, VALUE_BOLD_FONT=20, SEC_HDR_FONT=17, HDR_TITLE_FONT=30, HDR_SUB_FONT=17;
-    // Central divider: label occupies left 55%, value right 45% — no big gap
+    const PAD=24, ROW_H=58, SEC_H=44, GAP=6, TITLE_ROW=56;
+    const LABEL_FONT=20, VALUE_FONT=20, VALUE_BOLD_FONT=22, SEC_HDR_FONT=18, HDR_TITLE_FONT=30, HDR_SUB_FONT=17;
     let dataH=TITLE_ROW+14;
     sections.forEach(s=>{dataH+=SEC_H;s.rows.forEach(()=>dataH+=ROW_H);dataH+=GAP;});
 
@@ -1497,9 +1496,10 @@ function _buildReportCanvas(callback){
     const hasRect=!!(window._lastLensParams&&window._lastLensParams.type==='rect'&&window._lastLensParams.p);
     const hasCanvas=hasLens||hasRect;
 
-    const SPLIT_W=hasCanvas?Math.round(W*0.37):0;
+    const SPLIT_W=hasCanvas?Math.round(W*0.36):0;
     const DATA_W=W-SPLIT_W-PAD*2;
-    const CONTENT_H=Math.max(dataH+PAD*2, hasCanvas?Math.round(SPLIT_W*0.95)+PAD*2:0);
+    // CONTENT_H driven purely by data height — cross-section scales to fit inside it
+    const CONTENT_H=dataH+PAD*2;
     const H=HDR_H+CONTENT_H+FOOTER_H;
 
     const cv=document.createElement('canvas');
@@ -1554,27 +1554,34 @@ function _buildReportCanvas(callback){
     }
 
     function _drawBody(){
-        // ── Cross-section column ──
+        // ── Cross-section column — strictly clipped to bodyY..bodyY+CONTENT_H ──
         if(hasCanvas){
-            const csBg=ctx.createLinearGradient(0,bodyY,SPLIT_W,bodyY+CONTENT_H);
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(0, bodyY, SPLIT_W, CONTENT_H);
+            ctx.clip();
+
+            const csBg=ctx.createLinearGradient(0,bodyY,0,bodyY+CONTENT_H);
             csBg.addColorStop(0,'#e8eff9'); csBg.addColorStop(1,'#f2f6fc');
             ctx.fillStyle=csBg; ctx.fillRect(0,bodyY,SPLIT_W,CONTENT_H);
-            // Section label
+
             ctx.fillStyle='#1e3a6e'; ctx.font='bold 16px Arial'; ctx.textAlign='center';
             ctx.fillText('\u2B21  CROSS-SECTION PREVIEW',SPLIT_W/2,bodyY+28); ctx.textAlign='left';
-            // Sub-caption
             ctx.fillStyle='#64748b'; ctx.font='12px Arial'; ctx.textAlign='center';
-            ctx.fillText('Optical Cross-Section — Not to scale',SPLIT_W/2,bodyY+46); ctx.textAlign='left';
+            ctx.fillText('Optical cross-section — not to scale',SPLIT_W/2,bodyY+46); ctx.textAlign='left';
 
+            // Lens area: strictly inside clipped zone
             const lensAreaX=PAD, lensAreaY=bodyY+56;
-            const lensAreaW=SPLIT_W-PAD*2, lensAreaH=CONTENT_H-70;
+            const lensAreaW=SPLIT_W-PAD*2;
+            const lensAreaH=CONTENT_H-70; // fits inside CONTENT_H
             if(hasLens){
                 const lp=window._lastLensParams.p;
                 const physW=(Math.abs(lp.g1||0)+(lp.CT||0)/2)+(Math.abs(lp.g2||0)+(lp.CT||0)/2);
                 const physH=lp.OD||1;
-                const cappedAspect=Math.min(physH/Math.max(physW,0.001),1.5);
+                const cappedAspect=Math.min(physH/Math.max(physW,0.001),1.6);
                 let dW=lensAreaW, dH=Math.round(dW*cappedAspect);
                 if(dH>lensAreaH){dH=lensAreaH; dW=Math.round(dH/cappedAspect);}
+                dW=Math.min(dW,lensAreaW); dH=Math.min(dH,lensAreaH);
                 const dispX=lensAreaX+Math.round((lensAreaW-dW)/2);
                 const dispY=lensAreaY+Math.round((lensAreaH-dH)/2);
                 const off=document.createElement('canvas');
@@ -1586,18 +1593,26 @@ function _buildReportCanvas(callback){
                     const rAsp=srcR.height/srcR.width;
                     let dW=lensAreaW, dH=Math.round(dW*rAsp);
                     if(dH>lensAreaH){dH=lensAreaH;dW=Math.round(dH/rAsp);}
+                    dW=Math.min(dW,lensAreaW); dH=Math.min(dH,lensAreaH);
                     ctx.drawImage(srcR,0,0,srcR.width,srcR.height,lensAreaX,lensAreaY,dW,dH);
                 }
             }
+            ctx.restore(); // remove clip
+
+            // Divider line between columns
             ctx.strokeStyle='#b8c8de'; ctx.lineWidth=1.5;
             ctx.beginPath();ctx.moveTo(SPLIT_W,bodyY);ctx.lineTo(SPLIT_W,bodyY+CONTENT_H);ctx.stroke();
         }
 
         // ── Data column ──
         const dataX=(hasCanvas?SPLIT_W:0)+PAD;
-        const dataRight=dataX+DATA_W-PAD;
-        // Label/value split point — label takes 52%, value in remaining 48%
-        const splitX=dataX+Math.round((dataRight-dataX)*0.52);
+        // dataRight = full width minus right pad
+        const dataRight=W-PAD;
+        const colW=dataRight-dataX;
+        // splitX: label right-aligns here, value left-aligns just after — label 48% of colW
+        const LABEL_COL=Math.round(colW*0.48);
+        const splitX=dataX+LABEL_COL;
+        const valX=splitX+14; // small fixed gap after divider line
         let dy=bodyY+PAD;
 
         // Report title
@@ -1605,30 +1620,32 @@ function _buildReportCanvas(callback){
         ctx.fillText(titleTxt.substring(0,60),dataX,dy+28); dy+=TITLE_ROW;
 
         sections.forEach(sec=>{
-            // Section header bar — navy blue
-            ctx.fillStyle='#1e3a7e'; ctx.fillRect(dataX,dy,dataRight-dataX,SEC_H);
+            // Section header bar
+            ctx.fillStyle='#1e3a7e'; ctx.fillRect(dataX,dy,colW,SEC_H);
             ctx.fillStyle='#ffffff'; ctx.font=`bold ${SEC_HDR_FONT}px Arial`;
-            ctx.fillText((sec.hdr||'').toUpperCase(),dataX+12,dy+SEC_H-13); dy+=SEC_H;
+            ctx.fillText((sec.hdr||'').toUpperCase(),dataX+12,dy+SEC_H-12); dy+=SEC_H;
 
             sec.rows.forEach((r,ri)=>{
                 const bg=r.green?'#f0fdf4':r.amber?'#fffbeb':(ri%2===0?'#ffffff':'#f7f9fc');
-                ctx.fillStyle=bg; ctx.fillRect(dataX,dy,dataRight-dataX,ROW_H);
+                ctx.fillStyle=bg; ctx.fillRect(dataX,dy,colW,ROW_H);
                 const midY=dy+Math.round(ROW_H/2)+7;
 
-                // Label — left side up to splitX
+                // Label — left-aligned, capped before splitX
                 ctx.fillStyle='#374151'; ctx.font=`${LABEL_FONT}px Arial`; ctx.textAlign='left';
+                ctx.save(); ctx.beginPath(); ctx.rect(dataX,dy,LABEL_COL-8,ROW_H); ctx.clip();
                 ctx.fillText(r.lbl||'', dataX+12, midY);
+                ctx.restore();
 
-                // Thin vertical separator between label and value
-                ctx.strokeStyle='#e2e8f0'; ctx.lineWidth=1;
-                ctx.beginPath();ctx.moveTo(splitX,dy+6);ctx.lineTo(splitX,dy+ROW_H-6);ctx.stroke();
+                // Thin vertical separator line
+                ctx.strokeStyle='#d0dbe8'; ctx.lineWidth=1;
+                ctx.beginPath();ctx.moveTo(splitX,dy+4);ctx.lineTo(splitX,dy+ROW_H-4);ctx.stroke();
 
-                // Value — right-aligned from splitX to dataRight
+                // Value — left-aligned right after separator
                 const vc=r.green?'#15803d':r.amber?'#92400e':'#111827';
                 ctx.fillStyle=vc;
                 ctx.font=r.green||r.amber?`bold ${VALUE_BOLD_FONT}px Arial`:`bold ${VALUE_FONT}px Arial`;
-                ctx.textAlign='right';
-                ctx.fillText(r.val||'', dataRight-12, midY);
+                ctx.textAlign='left';
+                ctx.fillText(r.val||'', valX, midY);
                 ctx.textAlign='left';
 
                 // Row bottom divider

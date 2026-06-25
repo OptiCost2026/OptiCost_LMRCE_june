@@ -999,13 +999,27 @@ function showToast(msg,type){const el=document.getElementById('toast');if(!el)re
 
 function _saveBlob(blob, defaultFname){
     _storeFile(defaultFname, blob).catch(()=>{});
+    // Android WebView bridge
     if(window.Android && typeof window.Android.saveFile === 'function'){
-        try{const reader = new FileReader();reader.onload = function(e){const base64 = e.target.result.split(',')[1];window.Android.saveFile(defaultFname, blob.type || 'application/octet-stream', base64);showToast('✅ Saved: '+defaultFname,'success');};reader.onerror = function(){ _fallbackDownload(blob, defaultFname); };reader.readAsDataURL(blob);return;}catch(e){}
+        try{const reader = new FileReader();reader.onload=e=>{window.Android.saveFile(defaultFname, blob.type||'application/octet-stream', e.target.result.split(',')[1]);showToast('✅ Saved: '+defaultFname,'success');};reader.onerror=()=>_fallbackDownload(blob,defaultFname);reader.readAsDataURL(blob);return;}catch(e){}
     }
+    // Always try direct download first — works on desktop and most mobile browsers
+    if(typeof URL.createObjectURL === 'function'){
+        try{
+            const url=URL.createObjectURL(blob);
+            const a=document.createElement('a');
+            a.href=url; a.download=defaultFname;
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            showToast('⬇ Saved: '+defaultFname,'success');
+            setTimeout(()=>URL.revokeObjectURL(url),8000);
+            return;
+        }catch(e){}
+    }
+    // Web Share API as last resort (mobile Safari, etc.)
     if(navigator.share){
-        try{const file = new File([blob], defaultFname, {type: blob.type});if(!navigator.canShare || navigator.canShare({files:[file]})){navigator.share({files:[file], title: defaultFname}).then(()=>{ showToast('✅ Shared: '+defaultFname,'success'); }).catch((err)=>{if(err.name!=='AbortError') _fallbackDownload(blob, defaultFname);else showToast('⏹ Share cancelled','');});return;}}catch(e){}
+        try{const file=new File([blob],defaultFname,{type:blob.type});if(!navigator.canShare||navigator.canShare({files:[file]})){navigator.share({files:[file],title:defaultFname}).then(()=>showToast('✅ Shared: '+defaultFname,'success')).catch(err=>{if(err.name!=='AbortError')showToast('❌ Share failed','error');else showToast('⏹ Cancelled','');});return;}}catch(e){}
     }
-    _fallbackDownload(blob, defaultFname);
+    showToast('❌ Could not save file','error');
 }
 function _fallbackDownload(blob, fname){
     try{const url = URL.createObjectURL(blob);const a = document.createElement('a');a.href = url; a.download = fname;document.body.appendChild(a);a.click();document.body.removeChild(a);showToast('⬇ Downloading: '+fname,'success');setTimeout(()=>URL.revokeObjectURL(url), 8000);}
@@ -1294,12 +1308,13 @@ function drawLensCanvas(id, p, preview=false, dpr=0){
 }
 
 // ═══════════════════════════════════════════════════════════════
-// PNG REPORT — _renderLensToCanvas (FIXED aspect + ET/CA arrows)
+// PNG REPORT — _renderLensToCanvas
+// Fixed: aspect ratio uses actual pixel extent; labels outside lens body
 // ═══════════════════════════════════════════════════════════════
 function _renderLensToCanvas(targetCanvas, p, targetW, targetH){
     if(!p||!targetCanvas) return;
     targetCanvas.width=targetW; targetCanvas.height=targetH;
-    const {OD, CT, CA1, CA2, s1, s2, g1, g2} = p;
+    const {OD,CT,CA1,CA2,s1,s2,g1,g2}=p;
     const roc1=p.roc1||0, roc2=p.roc2||0;
     const CW=targetW, CH=targetH;
 
@@ -1309,26 +1324,27 @@ function _renderLensToCanvas(targetCanvas, p, targetW, targetH){
     function xS2(y){const sg=getSag(roc2,hCA2,g2,Math.abs(y));if(s2==="convex")return CT/2+g2-sg;if(s2==="concave")return CT/2+sg;return CT/2;}
 
     const xs1v=xS1(0), xs2v=xS2(0);
-    const xMin=Math.min(xs1v,xS1(hOD))-0.5, xMax=Math.max(xs2v,xS2(hOD))+0.5;
+    const xMin=Math.min(xs1v,xS1(hOD)), xMax=Math.max(xs2v,xS2(hOD));
+    const physW=xMax-xMin||0.001, physH=OD||0.001;
 
-    // Generous padding: 22% left, 26% right so CA/OD arrows fit
-    const PAD_L=Math.round(CW*0.22), PAD_R=Math.round(CW*0.26);
-    const physW=xMax-xMin, physH=OD;
+    // Fixed padding in pixels — left for CA1 label, right for CA2+OD labels
+    const PAD_L=Math.round(CW*0.20), PAD_R=Math.round(CW*0.22);
+    const PAD_Y=Math.round(CH*0.10);
     const drawableW=CW-PAD_L-PAD_R;
-    const sX=drawableW/Math.max(physW,0.1);
-    // Limit vertical scale so lens doesn't look too elongated
-    const padY=Math.round(CH*0.14);
-    const sY=(CH-padY*2)/Math.max(physH,0.1);
+    const drawableH=CH-PAD_Y*2;
+    // Use the SMALLER of horizontal/vertical scale so lens is never stretched
+    const sX=drawableW/physW, sY=drawableH/physH;
     const s=Math.min(sX,sY);
     if(s<=0) return;
 
     const ctx=targetCanvas.getContext("2d");
     ctx.imageSmoothingEnabled=true; ctx.imageSmoothingQuality='high';
     ctx.clearRect(0,0,CW,CH);
-    ctx.fillStyle='#e8f0fb'; ctx.fillRect(0,0,CW,CH);
+    ctx.fillStyle='#dde8f8'; ctx.fillRect(0,0,CW,CH);
 
-    const drawW=(xMax-xMin)*s;
-    const ox=PAD_L-xMin*s+(drawableW-drawW)/2;
+    // Centre the lens body within the drawable area
+    const lensPixW=(xMax-xMin)*s, lensPixH=OD*s;
+    const ox=PAD_L + (drawableW-lensPixW)/2 - xMin*s;
     const cy=CH/2;
     const ppx=xmm=>ox+xmm*s, ppy=ymm=>cy-ymm*s;
 
@@ -1337,17 +1353,22 @@ function _renderLensToCanvas(targetCanvas, p, targetW, targetH){
     const LP=ys.map(y=>[ppx(xS1(y)),ppy(y)]);
     const RP=ys.map(y=>[ppx(xS2(y)),ppy(y)]);
 
-    ctx.beginPath();LP.forEach((pt,i)=>i?ctx.lineTo(...pt):ctx.moveTo(...pt));[...RP].reverse().forEach(pt=>ctx.lineTo(...pt));ctx.closePath();
+    // Fill
+    ctx.beginPath();LP.forEach((pt,i)=>i?ctx.lineTo(...pt):ctx.moveTo(...pt));
+    [...RP].reverse().forEach(pt=>ctx.lineTo(...pt));ctx.closePath();
     const grd=ctx.createLinearGradient(ppx(xs1v),0,ppx(xs2v),0);
-    grd.addColorStop(0,'rgba(30,58,138,0.90)');grd.addColorStop(0.5,'rgba(99,102,241,0.75)');grd.addColorStop(1,'rgba(30,58,138,0.90)');
+    grd.addColorStop(0,'rgba(30,58,138,0.92)');grd.addColorStop(0.45,'rgba(96,125,240,0.80)');grd.addColorStop(1,'rgba(30,58,138,0.92)');
     ctx.fillStyle=grd; ctx.fill();
-
-    ctx.save();ctx.beginPath();LP.forEach((pt,i)=>i?ctx.lineTo(...pt):ctx.moveTo(...pt));[...RP].reverse().forEach(pt=>ctx.lineTo(...pt));ctx.closePath();ctx.clip();
+    // Shimmer
+    ctx.save();ctx.beginPath();LP.forEach((pt,i)=>i?ctx.lineTo(...pt):ctx.moveTo(...pt));
+    [...RP].reverse().forEach(pt=>ctx.lineTo(...pt));ctx.closePath();ctx.clip();
     const shim=ctx.createLinearGradient(0,ppy(hOD),0,ppy(-hOD));
-    shim.addColorStop(0,"rgba(180,200,255,0.08)");shim.addColorStop(0.35,"rgba(220,230,255,0.45)");shim.addColorStop(0.65,"rgba(220,230,255,0.45)");shim.addColorStop(1,"rgba(180,200,255,0.08)");
+    shim.addColorStop(0,"rgba(180,200,255,0.06)");shim.addColorStop(0.4,"rgba(220,235,255,0.42)");
+    shim.addColorStop(0.6,"rgba(220,235,255,0.42)");shim.addColorStop(1,"rgba(180,200,255,0.06)");
     ctx.fillStyle=shim; ctx.fill(); ctx.restore();
 
-    const lw=Math.max(2, CW/140);
+    // Outlines
+    const lw=Math.max(1.5,CW/200);
     ctx.lineJoin="round";ctx.lineCap="round";ctx.strokeStyle='#1a2e44';ctx.lineWidth=lw;
     ctx.beginPath();LP.forEach((pt,i)=>i?ctx.lineTo(...pt):ctx.moveTo(...pt));ctx.stroke();
     ctx.beginPath();RP.forEach((pt,i)=>i?ctx.lineTo(...pt):ctx.moveTo(...pt));ctx.stroke();
@@ -1355,79 +1376,94 @@ function _renderLensToCanvas(targetCanvas, p, targetW, targetH){
     ctx.beginPath();ctx.moveTo(...LP[0]);ctx.lineTo(...RP[0]);ctx.stroke();
     ctx.beginPath();ctx.moveTo(...LP[N]);ctx.lineTo(...RP[N]);ctx.stroke();
 
-    // Scale font with canvas width
-    const fs=Math.max(13, Math.round(CW/22));
-    const fsS=Math.max(10, Math.round(CW/30));
+    // Font sizes scaled to canvas
+    const fs=Math.max(11,Math.round(CW/28));   // main labels
+    const fsS=Math.max(9,Math.round(CW/38));    // secondary
 
-    function drawVArrowHR(arrowX,topY,botY,labelText,color,side){
-        const span=Math.abs(botY-topY); if(span<10) return;
-        ctx.strokeStyle=color; ctx.lineWidth=Math.max(1.2,lw*0.65);
-        ctx.beginPath();ctx.moveTo(arrowX,topY);ctx.lineTo(arrowX,botY);ctx.stroke();
-        const ah=Math.max(4, Math.round(fs*0.42));
-        ctx.beginPath();ctx.moveTo(arrowX-ah,topY+ah);ctx.lineTo(arrowX,topY);ctx.lineTo(arrowX+ah,topY+ah);ctx.stroke();
-        ctx.beginPath();ctx.moveTo(arrowX-ah,botY-ah);ctx.lineTo(arrowX,botY);ctx.lineTo(arrowX+ah,botY-ah);ctx.stroke();
-        if(span<22) return;
+    // ── Vertical arrow helper ──
+    function vArrow(ax,ty,by,label,color,side){
+        const span=Math.abs(by-ty); if(span<8)return;
+        ctx.strokeStyle=color; ctx.lineWidth=Math.max(1,lw*0.6);
+        ctx.beginPath();ctx.moveTo(ax,ty);ctx.lineTo(ax,by);ctx.stroke();
+        const ah=Math.max(3,Math.round(fs*0.38));
+        ctx.beginPath();ctx.moveTo(ax-ah,ty+ah);ctx.lineTo(ax,ty);ctx.lineTo(ax+ah,ty+ah);ctx.stroke();
+        ctx.beginPath();ctx.moveTo(ax-ah,by-ah);ctx.lineTo(ax,by);ctx.lineTo(ax+ah,by-ah);ctx.stroke();
+        if(span<fs*2)return;
         ctx.save();
         ctx.font=`bold ${fsS}px Arial,sans-serif`; ctx.fillStyle=color;
-        const lx=side==='left'?(arrowX-fsS-2):(arrowX+fsS+2);
-        ctx.translate(lx,(topY+botY)/2);
+        // Place label text outside the lens area
+        const lx=side==='left'?(ax-fsS-1):(ax+fsS+1);
+        ctx.translate(lx,(ty+by)/2);
         ctx.rotate(side==='left'?-Math.PI/2:Math.PI/2);
-        ctx.textAlign="center"; ctx.fillText(labelText,0,0);
+        ctx.textAlign="center"; ctx.fillText(label,0,0);
         ctx.restore();
     }
 
-    // CT annotation
+    // ── CT annotation: horizontal arrow below lens ──
     const ctX1=ppx(xS1(0)), ctX2=ppx(xS2(0));
-    const ctArrY=Math.min(cy+Math.round(CH*0.13), CH-padY+2);
-    ctx.strokeStyle='#1a2e44'; ctx.lineWidth=Math.max(1,lw*0.7); ctx.setLineDash([]);
-    ctx.beginPath();ctx.moveTo(ctX1,cy-4);ctx.lineTo(ctX1,ctArrY+4);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(ctX2,cy-4);ctx.lineTo(ctX2,ctArrY+4);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(ctX1,ctArrY);ctx.lineTo(ctX2,ctArrY);ctx.stroke();
-    const arH=Math.max(4, Math.round(fs*0.42));
-    ctx.beginPath();ctx.moveTo(ctX1+arH,ctArrY-3);ctx.lineTo(ctX1,ctArrY);ctx.lineTo(ctX1+arH,ctArrY+3);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(ctX2-arH,ctArrY-3);ctx.lineTo(ctX2,ctArrY);ctx.lineTo(ctX2-arH,ctArrY+3);ctx.stroke();
+    const ctY=ppy(-hOD)+Math.round(fs*2.2); // below bottom edge
+    const ctY2=Math.min(ctY, CH-fs*2);
+    ctx.strokeStyle='#1a2e44'; ctx.lineWidth=Math.max(1,lw*0.7);
+    // Leader lines from CT faces to arrow level
+    [[ctX1,ppy(-hOD)],[ctX2,ppy(-hOD)]].forEach(([x,ey])=>{
+        ctx.setLineDash([3,3]);ctx.beginPath();ctx.moveTo(x,ey);ctx.lineTo(x,ctY2);ctx.stroke();ctx.setLineDash([]);
+    });
+    ctx.beginPath();ctx.moveTo(ctX1,ctY2);ctx.lineTo(ctX2,ctY2);ctx.stroke();
+    const arH=Math.max(3,Math.round(fs*0.4));
+    ctx.beginPath();ctx.moveTo(ctX1+arH,ctY2-arH);ctx.lineTo(ctX1,ctY2);ctx.lineTo(ctX1+arH,ctY2+arH);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(ctX2-arH,ctY2-arH);ctx.lineTo(ctX2,ctY2);ctx.lineTo(ctX2-arH,ctY2+arH);ctx.stroke();
     ctx.font=`bold ${fs}px Arial,sans-serif`; ctx.fillStyle='#1a2e44'; ctx.textAlign="center";
-    ctx.fillText("CT="+CT.toFixed(2)+"mm",(ctX1+ctX2)/2,ctArrY+fs+3); ctx.textAlign="left";
+    ctx.fillText("CT="+CT.toFixed(2)+" mm",(ctX1+ctX2)/2,Math.min(ctY2+fs+2, CH-3));
+    ctx.textAlign="left";
 
-    // ET@CA annotation (above center axis)
+    // ── ET@CA annotation: dashed horizontal arrow above lens ──
     const etCA=edgeThicknessAt(s1,s2,CT,g1,g2);
     if(!isNaN(etCA)&&etCA>0){
         const etLeft=ppx(xS1(hCA1>0?hCA1:hOD)), etRight=ppx(xS2(hCA2>0?hCA2:hOD));
-        const etArrY=cy-Math.round(CH*0.12);
-        if(Math.abs(etRight-etLeft)>14){
-            ctx.strokeStyle='#374151'; ctx.lineWidth=Math.max(1,lw*0.6); ctx.setLineDash([5,4]);
-            ctx.beginPath();ctx.moveTo(etLeft,etArrY);ctx.lineTo(etRight,etArrY);ctx.stroke();
+        const etY=ppy(hOD)-Math.round(fs*2.0); // above top edge
+        const etY2=Math.max(etY, fs+2);
+        if(Math.abs(etRight-etLeft)>fs){
+            [[etLeft,ppy(hOD)],[etRight,ppy(hOD)]].forEach(([x,ey])=>{
+                ctx.strokeStyle='#374151';ctx.setLineDash([3,3]);ctx.beginPath();ctx.moveTo(x,ey);ctx.lineTo(x,etY2);ctx.stroke();ctx.setLineDash([]);
+            });
+            ctx.strokeStyle='#374151'; ctx.lineWidth=Math.max(1,lw*0.55);
+            ctx.setLineDash([6,4]);
+            ctx.beginPath();ctx.moveTo(etLeft,etY2);ctx.lineTo(etRight,etY2);ctx.stroke();
             ctx.setLineDash([]);
             const arH2=Math.max(3,Math.round(fs*0.35));
-            ctx.beginPath();ctx.moveTo(etLeft+arH2,etArrY-3);ctx.lineTo(etLeft,etArrY);ctx.lineTo(etLeft+arH2,etArrY+3);ctx.stroke();
-            ctx.beginPath();ctx.moveTo(etRight-arH2,etArrY-3);ctx.lineTo(etRight,etArrY);ctx.lineTo(etRight-arH2,etArrY+3);ctx.stroke();
-            ctx.font=`bold ${fsS}px Arial,sans-serif`; ctx.fillStyle='#374151'; ctx.textAlign="center";
-            ctx.fillText("ET@CA="+etCA.toFixed(2)+"mm",(etLeft+etRight)/2,etArrY-5); ctx.textAlign="left";
+            ctx.beginPath();ctx.moveTo(etLeft+arH2,etY2-arH2);ctx.lineTo(etLeft,etY2);ctx.lineTo(etLeft+arH2,etY2+arH2);ctx.stroke();
+            ctx.beginPath();ctx.moveTo(etRight-arH2,etY2-arH2);ctx.lineTo(etRight,etY2);ctx.lineTo(etRight-arH2,etY2+arH2);ctx.stroke();
+            ctx.font=`bold ${fsS}px Arial,sans-serif`; ctx.fillStyle='#1e3a6e'; ctx.textAlign="center";
+            ctx.fillText("ET@CA="+etCA.toFixed(2)+" mm",(etLeft+etRight)/2, Math.max(etY2-4,fsS+2));
+            ctx.textAlign="left";
         }
     }
 
-    // S1/S2 labels
-    ctx.font=`bold ${fs}px Arial,sans-serif`; ctx.fillStyle='#1a2e44';
-    ctx.textAlign="right"; ctx.fillText("S1",LP[Math.round(N*0.12)][0]-5,LP[Math.round(N*0.12)][1]-7);
-    ctx.textAlign="left";  ctx.fillText("S2",RP[Math.round(N*0.12)][0]+5,RP[Math.round(N*0.12)][1]-7);
-    ctx.font=`bold ${fsS}px Arial,sans-serif`;
-    if(s1!=="plano"&&roc1>0){ctx.fillStyle='#92400e';ctx.textAlign="right";ctx.fillText("R1="+roc1.toFixed(1),LP[Math.round(N*0.3)][0]-4,LP[Math.round(N*0.3)][1]+fsS+2);}
-    if(s2!=="plano"&&roc2>0){ctx.fillStyle='#92400e';ctx.textAlign="left"; ctx.fillText("R2="+roc2.toFixed(1),RP[Math.round(N*0.3)][0]+4,RP[Math.round(N*0.3)][1]+fsS+2);}
+    // ── S1/S2 labels ──
+    ctx.font=`bold ${fs}px Arial,sans-serif`; ctx.fillStyle='#0f172a';
+    ctx.textAlign="right"; ctx.fillText("S1",LP[Math.round(N*0.10)][0]-4,LP[Math.round(N*0.10)][1]-4);
+    ctx.textAlign="left";  ctx.fillText("S2",RP[Math.round(N*0.10)][0]+4,RP[Math.round(N*0.10)][1]-4);
+    // ROC labels
+    if(s1!=="plano"&&roc1>0){ctx.font=`bold ${fsS}px Arial,sans-serif`;ctx.fillStyle='#92400e';ctx.textAlign="right";ctx.fillText("R1="+roc1.toFixed(1),LP[Math.round(N*0.28)][0]-3,LP[Math.round(N*0.28)][1]+fsS+1);}
+    if(s2!=="plano"&&roc2>0){ctx.font=`bold ${fsS}px Arial,sans-serif`;ctx.fillStyle='#92400e';ctx.textAlign="left"; ctx.fillText("R2="+roc2.toFixed(1),RP[Math.round(N*0.28)][0]+3,RP[Math.round(N*0.28)][1]+fsS+1);}
     ctx.textAlign="left";
 
-    // CA1 arrow — left zone (22% pad gives plenty of room)
-    drawVArrowHR(Math.round(PAD_L*0.38), ppy(hCA1), ppy(-hCA1), "\u00d8CA1="+CA1.toFixed(2)+"mm", '#4f46e5','left');
-    // CA2 arrow — just outside right lens edge
-    const lensRE=Math.max(...RP.map(pt=>pt[0]));
-    const ca2ArrowX=Math.min(lensRE+Math.round(PAD_R*0.28), CW-Math.round(PAD_R*0.46));
-    if(hCA2>0&&Math.abs(hCA2-hOD)>0.5) drawVArrowHR(ca2ArrowX, ppy(hCA2), ppy(-hCA2), "\u00d8CA2="+CA2.toFixed(2)+"mm", '#6366f1','right');
-    // OD arrow — rightmost
-    const odArrowX=Math.min(lensRE+Math.round(PAD_R*0.62), CW-8);
-    drawVArrowHR(odArrowX, ppy(hOD), ppy(-hOD), "\u00d8OD="+OD+"mm", '#b45309','right');
+    // ── CA1 arrow — in left pad zone ──
+    const leftEdge=Math.min(...LP.map(pt=>pt[0]));
+    const ca1ArrowX=Math.round((PAD_L*0.35 + leftEdge*0.5)/1); // between left edge and lens
+    vArrow(Math.min(ca1ArrowX, leftEdge-fs*0.5), ppy(hCA1), ppy(-hCA1), "\u00d8CA1="+CA1.toFixed(2)+"mm", '#4338ca','left');
+
+    // ── CA2 + OD arrows — in right pad zone ──
+    const rightEdge=Math.max(...RP.map(pt=>pt[0]));
+    const ca2ArrowX=rightEdge + Math.round(PAD_R*0.28);
+    const odArrowX =rightEdge + Math.round(PAD_R*0.68);
+    if(hCA2>0&&Math.abs(hCA2-hOD)>0.4)
+        vArrow(Math.min(ca2ArrowX,CW-fsS*6), ppy(hCA2), ppy(-hCA2), "\u00d8CA2="+CA2.toFixed(2)+"mm", '#6366f1','right');
+    vArrow(Math.min(odArrowX,CW-4), ppy(hOD), ppy(-hOD), "\u00d8OD="+OD+"mm", '#b45309','right');
 }
 
 // ═══════════════════════════════════════════════════════════════
-// PNG REPORT BUILDER — wider canvas, bigger fonts, proper aspect
+// PNG REPORT BUILDER
 // ═══════════════════════════════════════════════════════════════
 function _buildReportCanvas(callback){
     refreshSnapHeader();
@@ -1440,23 +1476,29 @@ function _buildReportCanvas(callback){
     const sections=[];
     document.querySelectorAll('#result-text .res-section').forEach(sec=>{
         const hdr=sec.querySelector('.res-sec-hdr');
-        const srows=[];sec.querySelectorAll('.res-row').forEach(r=>{const lblEl=r.querySelector('.res-lbl'),inp=r.querySelector('.res-val-inp');if(lblEl&&inp)srows.push({lbl:lblEl.textContent||'',val:inp.value||'',green:inp.classList.contains('green'),amber:inp.classList.contains('amber')});});
-        sections.push({hdr:hdr?hdr.textContent.trim():'',rows:srows});
+        const srows=[];sec.querySelectorAll('.res-row').forEach(r=>{
+            const lblEl=r.querySelector('.res-lbl'),inp=r.querySelector('.res-val-inp');
+            if(lblEl&&inp)srows.push({lbl:lblEl.textContent.trim()||'',val:inp.value.trim()||'',green:inp.classList.contains('green'),amber:inp.classList.contains('amber')});
+        });
+        if(srows.length) sections.push({hdr:hdr?hdr.textContent.trim():'',rows:srows});
     });
 
-    // SC=4 → output is 5600×(H*4) px — sharp at print resolution
-    const SC=4;
-    const W=1400, PAD=28, HDR_H=132, FOOTER_H=50, ROW_H=38, SEC_H=36, GAP=12, TITLE_ROW=46;
-    let dataH=TITLE_ROW+10;sections.forEach(s=>{dataH+=SEC_H;s.rows.forEach(()=>dataH+=ROW_H);dataH+=GAP;});
+    // Layout constants — all in logical px (SC multiplies to pixel buffer)
+    const SC=3;                        // render at 3× for sharpness
+    const W=1500, HDR_H=140, FOOTER_H=52;
+    const PAD=32, ROW_H=44, SEC_H=38, GAP=14, TITLE_ROW=52;
+    let dataH=TITLE_ROW+12;
+    sections.forEach(s=>{dataH+=SEC_H;s.rows.forEach(()=>dataH+=ROW_H);dataH+=GAP;});
 
     const hasLens=!!(window._lastLensParams&&window._lastLensParams.type==='circ'&&window._lastLensParams.p);
     const hasRect=!!(window._lastLensParams&&window._lastLensParams.type==='rect'&&window._lastLensParams.p);
     const hasCanvas=hasLens||hasRect;
 
-    // Cross-section column: 36% of width → gives a roughly square area for typical lenses
-    const SPLIT_W=hasCanvas?Math.round(W*0.36):0;
+    // Cross-section column = 38% of total width
+    const SPLIT_W=hasCanvas?Math.round(W*0.38):0;
     const DATA_W=W-SPLIT_W-PAD*3;
-    const CONTENT_H=Math.max(dataH, hasCanvas?SPLIT_W:0)+PAD;
+    // Content height is whichever is taller: data or cross-section area
+    const CONTENT_H=Math.max(dataH+PAD*2, hasCanvas?Math.round(SPLIT_W*0.85)+PAD*2:0);
     const H=HDR_H+CONTENT_H+FOOTER_H;
 
     const cv=document.createElement('canvas');
@@ -1466,94 +1508,115 @@ function _buildReportCanvas(callback){
     ctx.imageSmoothingEnabled=true; ctx.imageSmoothingQuality='high';
     ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,W,H);
 
-    // Header band
-    ctx.fillStyle='#f8fafc'; ctx.fillRect(0,0,W,HDR_H);
-    ctx.fillStyle='#0f172a'; ctx.font='bold 24px Arial'; ctx.fillText(mfr.substring(0,60),PAD,34);
-    ctx.fillStyle='#475569'; ctx.font='15px Arial'; ctx.fillText((website+(contact?' | '+contact:'')).substring(0,90),PAD,58);
-    ctx.strokeStyle='#cbd5e1'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(PAD,68); ctx.lineTo(W-PAD,68); ctx.stroke();
+    // ── Header ──
+    ctx.fillStyle='#f0f4fa'; ctx.fillRect(0,0,W,HDR_H);
+    ctx.fillStyle='#0f172a'; ctx.font='bold 26px Arial';
+    ctx.fillText(mfr.substring(0,55),PAD,38);
+    ctx.fillStyle='#4b5563'; ctx.font='16px Arial';
+    ctx.fillText((website+(contact?' | '+contact:'')).substring(0,80),PAD,62);
+    ctx.strokeStyle='#c8d5e8'; ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.moveTo(PAD,72);ctx.lineTo(W-PAD,72);ctx.stroke();
 
+    // Meta fields row
     const fW=Math.floor((W-PAD*2)/4);
     [['TO / VENDOR',vendor],['TITLE',titleTxt],['PART NO.',partno],['DATE',dateVal]].forEach(([lbl,val],i)=>{
         const fx=PAD+i*fW;
-        ctx.font='bold 13px Arial'; ctx.fillStyle='#64748b'; ctx.fillText(lbl,fx,88);
-        ctx.font='bold 17px Arial'; ctx.fillStyle=lbl==='PART NO.'?'#b45309':'#0f172a';
-        ctx.fillText((val||'—').substring(0,Math.floor(fW/10)),fx,113);
+        ctx.font='bold 12px Arial'; ctx.fillStyle='#64748b'; ctx.fillText(lbl,fx,92);
+        ctx.font='bold 18px Arial'; ctx.fillStyle=lbl==='PART NO.'?'#b45309':'#0f172a';
+        ctx.fillText((val||'—').substring(0,Math.floor(fW/11)),fx,118);
     });
-    ctx.strokeStyle='#e2e8f0'; ctx.lineWidth=1;
-    ctx.beginPath(); ctx.moveTo(0,HDR_H); ctx.lineTo(W,HDR_H); ctx.stroke();
+    ctx.strokeStyle='#dde4ef'; ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(0,HDR_H);ctx.lineTo(W,HDR_H);ctx.stroke();
 
     const bodyY=HDR_H;
 
-    // Cross-section column
+    // ── Cross-section column ──
     if(hasCanvas){
-        ctx.fillStyle='#eef2fb'; ctx.fillRect(0,bodyY,SPLIT_W,CONTENT_H);
-        ctx.fillStyle='#1e3a6e'; ctx.font='bold 14px Arial'; ctx.textAlign='center';
-        ctx.fillText('CROSS-SECTION PREVIEW',SPLIT_W/2,bodyY+20); ctx.textAlign='left';
+        ctx.fillStyle='#eaeff8'; ctx.fillRect(0,bodyY,SPLIT_W,CONTENT_H);
+        ctx.fillStyle='#1e3a6e'; ctx.font='bold 15px Arial'; ctx.textAlign='center';
+        ctx.fillText('⬡  CROSS-SECTION PREVIEW',SPLIT_W/2,bodyY+24); ctx.textAlign='left';
+
+        const lensAreaX=PAD, lensAreaY=bodyY+38;
+        const lensAreaW=SPLIT_W-PAD*2, lensAreaH=CONTENT_H-50;
 
         if(hasLens){
             const lp=window._lastLensParams.p;
-            // Compute proper aspect from physical OD vs CT extent
-            const physLensW=Math.max(lp.CT+(lp.g1||0)+(lp.g2||0), lp.OD*0.2);
-            const physLensH=lp.OD;
-            // Available area for lens drawing (in report logical coords)
-            const areaW=SPLIT_W-20, areaH=CONTENT_H-40;
-            // Scale to fill area without distorting: respect physical aspect ratio
-            // Also cap aspect at 1.6 so plano-plano thin lenses don't become slivers
-            const aspect=Math.min(physLensH/physLensW, 1.8);
-            let dispW=areaW, dispH=Math.round(dispW*aspect);
-            if(dispH>areaH){dispH=areaH; dispW=Math.round(dispH/aspect);}
-            const dispX=Math.round((SPLIT_W-dispW)/2);
-            const dispY=bodyY+32+Math.round((areaH-dispH)/2);
-            // Render at SC× resolution for sharpness
-            const offCanvas=document.createElement('canvas');
-            _renderLensToCanvas(offCanvas, lp, dispW*SC, dispH*SC);
-            // Draw into report (ctx already scaled by SC, so draw at logical dispW×dispH)
-            ctx.drawImage(offCanvas, 0,0, dispW*SC, dispH*SC, dispX, dispY, dispW, dispH);
+            // Compute true physical extent including sags
+            const xs1Max=Math.abs(lp.g1||0)+(lp.CT||0)/2;
+            const xs2Max=Math.abs(lp.g2||0)+(lp.CT||0)/2;
+            const physTotalW=xs1Max+xs2Max;
+            const physTotalH=lp.OD||1;
+            // Natural aspect ratio of the optic
+            const physAspect=physTotalH/Math.max(physTotalW,0.001);
+            // Scale to fit lensArea, preserving aspect, but cap at 1.4 (prevent extreme elongation)
+            const cappedAspect=Math.min(physAspect, 1.4);
+            let dW=lensAreaW, dH=Math.round(dW*cappedAspect);
+            if(dH>lensAreaH){dH=lensAreaH; dW=Math.round(dH/cappedAspect);}
+            const dispX=lensAreaX+Math.round((lensAreaW-dW)/2);
+            const dispY=lensAreaY+Math.round((lensAreaH-dH)/2);
+            // Render at SC× pixel size then drawImage at logical size
+            const off=document.createElement('canvas');
+            _renderLensToCanvas(off, lp, dW*SC, dH*SC);
+            ctx.drawImage(off,0,0,dW*SC,dH*SC, dispX, dispY, dW, dH);
         } else if(hasRect){
             const srcR=document.getElementById('r-canvas');
             if(srcR&&srcR.width>0){
-                const cw=SPLIT_W-24, ch=Math.min(Math.round(cw*srcR.height/srcR.width),CONTENT_H-60);
-                ctx.drawImage(srcR,0,0,srcR.width,srcR.height,12,bodyY+32,cw,ch);
+                const rAsp=srcR.height/srcR.width;
+                let dW=lensAreaW, dH=Math.round(dW*rAsp);
+                if(dH>lensAreaH){dH=lensAreaH;dW=Math.round(dH/rAsp);}
+                ctx.drawImage(srcR,0,0,srcR.width,srcR.height, lensAreaX,lensAreaY,dW,dH);
             }
         }
-        ctx.strokeStyle='#c8d8e8'; ctx.lineWidth=1;
-        ctx.beginPath(); ctx.moveTo(SPLIT_W,bodyY); ctx.lineTo(SPLIT_W,bodyY+CONTENT_H); ctx.stroke();
+        ctx.strokeStyle='#c0ccde'; ctx.lineWidth=1.5;
+        ctx.beginPath();ctx.moveTo(SPLIT_W,bodyY);ctx.lineTo(SPLIT_W,bodyY+CONTENT_H);ctx.stroke();
     }
 
-    // Data column
-    const dataX=(hasCanvas?SPLIT_W:0)+PAD, dataRight=dataX+DATA_W;
+    // ── Data column ──
+    const dataX=(hasCanvas?SPLIT_W:0)+PAD;
+    const dataRight=dataX+DATA_W;
     let dy=bodyY+PAD;
-    ctx.fillStyle='#0f172a'; ctx.font='bold 20px Arial';
-    ctx.fillText(titleTxt.substring(0,60),dataX,dy+22); dy+=TITLE_ROW;
+
+    // Section title
+    ctx.fillStyle='#0f172a'; ctx.font='bold 22px Arial';
+    ctx.fillText(titleTxt.substring(0,54),dataX,dy+24); dy+=TITLE_ROW;
 
     sections.forEach(sec=>{
-        ctx.fillStyle='#dbeafe'; ctx.fillRect(dataX,dy,DATA_W,SEC_H-2);
-        ctx.fillStyle='#1e3a7e'; ctx.font='bold 15px Arial';
-        ctx.fillText((sec.hdr||'').toUpperCase(),dataX+8,dy+SEC_H-10); dy+=SEC_H;
-        sec.rows.forEach(r=>{
-            const bg=r.green?'#f0fdf4':r.amber?'#fffbeb':'#ffffff';
-            ctx.fillStyle=bg; ctx.fillRect(dataX,dy,DATA_W,ROW_H-1);
-            ctx.fillStyle='#374151'; ctx.font='14px Arial'; ctx.fillText(r.lbl||'',dataX+8,dy+ROW_H-11);
-            const vc=r.green?'#16a34a':r.amber?'#92400e':'#111827';
-            ctx.fillStyle=vc; ctx.font=r.green||r.amber?'bold 16px Arial':'14px Arial';
-            ctx.textAlign='right'; ctx.fillText(r.val||'',dataRight-4,dy+ROW_H-11); ctx.textAlign='left';
-            ctx.strokeStyle='#e5e7eb'; ctx.lineWidth=0.6;
-            ctx.beginPath(); ctx.moveTo(dataX,dy+ROW_H-1); ctx.lineTo(dataRight,dy+ROW_H-1); ctx.stroke();
+        // Section header bar
+        ctx.fillStyle='#1e3a7e'; ctx.fillRect(dataX,dy,DATA_W,SEC_H);
+        ctx.fillStyle='#ffffff'; ctx.font='bold 15px Arial';
+        ctx.fillText((sec.hdr||'').toUpperCase(),dataX+10,dy+SEC_H-10); dy+=SEC_H;
+
+        sec.rows.forEach((r,ri)=>{
+            const bg=r.green?'#f0fdf4':r.amber?'#fffbeb':(ri%2===0?'#ffffff':'#f8fafc');
+            ctx.fillStyle=bg; ctx.fillRect(dataX,dy,DATA_W,ROW_H);
+            // Label
+            ctx.fillStyle='#374151'; ctx.font='15px Arial';
+            ctx.fillText(r.lbl||'',dataX+10,dy+ROW_H-13);
+            // Value — right-aligned
+            const vc=r.green?'#15803d':r.amber?'#92400e':'#111827';
+            ctx.fillStyle=vc;
+            ctx.font=r.green||r.amber?'bold 17px Arial':'bold 15px Arial';
+            ctx.textAlign='right';
+            ctx.fillText(r.val||'',dataRight-8,dy+ROW_H-13);
+            ctx.textAlign='left';
+            // Divider
+            ctx.strokeStyle='#e5e7eb'; ctx.lineWidth=0.7;
+            ctx.beginPath();ctx.moveTo(dataX,dy+ROW_H);ctx.lineTo(dataRight,dy+ROW_H);ctx.stroke();
             dy+=ROW_H;
         });
         dy+=GAP;
     });
 
-    // Footer
+    // ── Footer ──
     const fy=H-FOOTER_H;
     ctx.fillStyle='#1a2e44'; ctx.fillRect(0,fy,W,FOOTER_H);
-    ctx.fillStyle='#94a3b8'; ctx.font='14px Arial'; ctx.textAlign='center';
-    ctx.fillText('Generated by OptiCost LRMCE v1.2  |  '+mfr+'  |  '+website+(contact?' | '+contact:''), W/2, fy+FOOTER_H/2+6);
+    ctx.fillStyle='#94a3b8'; ctx.font='15px Arial'; ctx.textAlign='center';
+    ctx.fillText('Generated by OptiCost LRMCE v1.2  |  '+mfr+'  |  '+website+(contact?' | '+contact:''),W/2,fy+32);
     ctx.textAlign='left';
 
     if(_logoDataUrl){
         const li=new Image();
-        li.onload=()=>{ctx.drawImage(li,W-PAD-90,8,80,44);callback(cv);};
+        li.onload=()=>{ctx.drawImage(li,W-PAD-100,6,90,50);callback(cv);};
         li.onerror=()=>callback(cv);
         li.src=_logoDataUrl;
     } else {

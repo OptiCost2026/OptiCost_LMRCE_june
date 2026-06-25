@@ -1463,7 +1463,7 @@ function _renderLensToCanvas(targetCanvas, p, targetW, targetH){
 }
 
 // ═══════════════════════════════════════════════════════════════
-// PNG REPORT BUILDER
+// PNG REPORT BUILDER — v3 (tighter gap, larger fonts, taller rows)
 // ═══════════════════════════════════════════════════════════════
 function _buildReportCanvas(callback){
     refreshSnapHeader();
@@ -1483,21 +1483,23 @@ function _buildReportCanvas(callback){
         if(srows.length) sections.push({hdr:hdr?hdr.textContent.trim():'',rows:srows});
     });
 
-    // Layout constants
+    // Layout constants — larger fonts, taller rows, tighter gap
     const SC=3;
-    const LOGO_W=90, LOGO_H=52, LOGO_PAD=16;
-    const W=1500, HDR_H=150, FOOTER_H=52;
-    const PAD=32, ROW_H=50, SEC_H=40, GAP=10, TITLE_ROW=54;
-    let dataH=TITLE_ROW+12;
+    const LOGO_W=100, LOGO_H=58, LOGO_PAD=18;
+    const W=1500, HDR_H=170, FOOTER_H=70;
+    const PAD=28, ROW_H=60, SEC_H=46, GAP=8, TITLE_ROW=58;
+    const LABEL_FONT=18, VALUE_FONT=18, VALUE_BOLD_FONT=20, SEC_HDR_FONT=17, HDR_TITLE_FONT=30, HDR_SUB_FONT=17;
+    // Central divider: label occupies left 55%, value right 45% — no big gap
+    let dataH=TITLE_ROW+14;
     sections.forEach(s=>{dataH+=SEC_H;s.rows.forEach(()=>dataH+=ROW_H);dataH+=GAP;});
 
     const hasLens=!!(window._lastLensParams&&window._lastLensParams.type==='circ'&&window._lastLensParams.p);
     const hasRect=!!(window._lastLensParams&&window._lastLensParams.type==='rect'&&window._lastLensParams.p);
     const hasCanvas=hasLens||hasRect;
 
-    const SPLIT_W=hasCanvas?Math.round(W*0.38):0;
-    const DATA_W=W-SPLIT_W-PAD*3;
-    const CONTENT_H=Math.max(dataH+PAD*2, hasCanvas?Math.round(SPLIT_W*0.90)+PAD*2:0);
+    const SPLIT_W=hasCanvas?Math.round(W*0.37):0;
+    const DATA_W=W-SPLIT_W-PAD*2;
+    const CONTENT_H=Math.max(dataH+PAD*2, hasCanvas?Math.round(SPLIT_W*0.95)+PAD*2:0);
     const H=HDR_H+CONTENT_H+FOOTER_H;
 
     const cv=document.createElement('canvas');
@@ -1510,43 +1512,67 @@ function _buildReportCanvas(callback){
     const bodyY=HDR_H;
 
     function _drawHeader(logoImg){
-        ctx.fillStyle='#f0f4fa'; ctx.fillRect(0,0,W,HDR_H);
-        let textX=PAD;
+        // Header gradient background
+        const hg=ctx.createLinearGradient(0,0,0,HDR_H);
+        hg.addColorStop(0,'#eaf1fb'); hg.addColorStop(1,'#f8fafd');
+        ctx.fillStyle=hg; ctx.fillRect(0,0,W,HDR_H);
+        // Left accent bar
+        ctx.fillStyle='#1e3a7e'; ctx.fillRect(0,0,6,HDR_H);
+
+        let textX=PAD+10;
         if(logoImg){
-            const ly=Math.round((80-LOGO_H)/2)+4;
-            ctx.drawImage(logoImg, PAD, ly, LOGO_W, LOGO_H);
-            textX=PAD+LOGO_W+LOGO_PAD;
+            const ly=Math.round((90-LOGO_H)/2)+4;
+            ctx.drawImage(logoImg, textX, ly, LOGO_W, LOGO_H);
+            textX+=LOGO_W+LOGO_PAD;
         }
-        ctx.fillStyle='#0f172a'; ctx.font='bold 27px Arial';
-        ctx.fillText(mfr.substring(0,50), textX, 38);
-        ctx.fillStyle='#4b5563'; ctx.font='16px Arial';
-        ctx.fillText((website+(contact?' | '+contact:'')).substring(0,72), textX, 63);
-        ctx.strokeStyle='#c0cedf'; ctx.lineWidth=1.5;
-        ctx.beginPath();ctx.moveTo(PAD,78);ctx.lineTo(W-PAD,78);ctx.stroke();
+        // Company name
+        ctx.fillStyle='#0f172a'; ctx.font=`bold ${HDR_TITLE_FONT}px Arial`;
+        ctx.fillText(mfr.substring(0,52), textX, 42);
+        // Contact line
+        ctx.fillStyle='#334155'; ctx.font=`${HDR_SUB_FONT}px Arial`;
+        ctx.fillText((website+(contact?' | '+contact:'')).substring(0,80), textX, 68);
+        // App name badge
+        ctx.fillStyle='#1e3a7e'; ctx.font='bold 13px Arial';
+        ctx.fillText('OptiCost LRMCE v1.2 — Lens Raw Material Cost Estimator', textX, 90);
+
+        // Horizontal rule
+        ctx.strokeStyle='#b0c4d8'; ctx.lineWidth=1.2;
+        ctx.beginPath();ctx.moveTo(PAD,100);ctx.lineTo(W-PAD,100);ctx.stroke();
+
+        // Meta fields — 4 columns, snug layout
         const fW=Math.floor((W-PAD*2)/4);
-        [['TO / VENDOR',vendor],['TITLE',titleTxt],['PART NO.',partno],['DATE',dateVal]].forEach(([lbl,val],i)=>{
+        [['TO / VENDOR',vendor,'#0f172a'],['TITLE',titleTxt,'#0f172a'],['PART NO.',partno,'#b45309'],['DATE',dateVal,'#0f172a']].forEach(([lbl,val,vc],i)=>{
             const fx=PAD+i*fW;
-            ctx.font='bold 12px Arial'; ctx.fillStyle='#64748b'; ctx.fillText(lbl,fx,96);
-            ctx.font='bold 19px Arial'; ctx.fillStyle=lbl==='PART NO.'?'#b45309':'#0f172a';
-            ctx.fillText((val||'—').substring(0,Math.floor(fW/11)),fx,122);
+            // Left divider for columns 1+
+            if(i>0){ctx.strokeStyle='#d0dbe8';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(fx,104);ctx.lineTo(fx,HDR_H-8);ctx.stroke();}
+            ctx.font='bold 11px Arial'; ctx.fillStyle='#64748b'; ctx.fillText(lbl,fx+6,118);
+            ctx.font=`bold 19px Arial`; ctx.fillStyle=vc;
+            ctx.fillText((val||'—').substring(0,Math.floor(fW/12)),fx+6,148);
         });
-        ctx.strokeStyle='#dde4ef'; ctx.lineWidth=1;
+        ctx.strokeStyle='#c8d8e8'; ctx.lineWidth=1.2;
         ctx.beginPath();ctx.moveTo(0,HDR_H);ctx.lineTo(W,HDR_H);ctx.stroke();
     }
 
     function _drawBody(){
         // ── Cross-section column ──
         if(hasCanvas){
-            ctx.fillStyle='#eaeff8'; ctx.fillRect(0,bodyY,SPLIT_W,CONTENT_H);
-            ctx.fillStyle='#1e3a6e'; ctx.font='bold 15px Arial'; ctx.textAlign='center';
-            ctx.fillText('\u2B21  CROSS-SECTION PREVIEW',SPLIT_W/2,bodyY+24); ctx.textAlign='left';
-            const lensAreaX=PAD, lensAreaY=bodyY+38;
-            const lensAreaW=SPLIT_W-PAD*2, lensAreaH=CONTENT_H-50;
+            const csBg=ctx.createLinearGradient(0,bodyY,SPLIT_W,bodyY+CONTENT_H);
+            csBg.addColorStop(0,'#e8eff9'); csBg.addColorStop(1,'#f2f6fc');
+            ctx.fillStyle=csBg; ctx.fillRect(0,bodyY,SPLIT_W,CONTENT_H);
+            // Section label
+            ctx.fillStyle='#1e3a6e'; ctx.font='bold 16px Arial'; ctx.textAlign='center';
+            ctx.fillText('\u2B21  CROSS-SECTION PREVIEW',SPLIT_W/2,bodyY+28); ctx.textAlign='left';
+            // Sub-caption
+            ctx.fillStyle='#64748b'; ctx.font='12px Arial'; ctx.textAlign='center';
+            ctx.fillText('Optical Cross-Section — Not to scale',SPLIT_W/2,bodyY+46); ctx.textAlign='left';
+
+            const lensAreaX=PAD, lensAreaY=bodyY+56;
+            const lensAreaW=SPLIT_W-PAD*2, lensAreaH=CONTENT_H-70;
             if(hasLens){
                 const lp=window._lastLensParams.p;
                 const physW=(Math.abs(lp.g1||0)+(lp.CT||0)/2)+(Math.abs(lp.g2||0)+(lp.CT||0)/2);
                 const physH=lp.OD||1;
-                const cappedAspect=Math.min(physH/Math.max(physW,0.001),1.4);
+                const cappedAspect=Math.min(physH/Math.max(physW,0.001),1.5);
                 let dW=lensAreaW, dH=Math.round(dW*cappedAspect);
                 if(dH>lensAreaH){dH=lensAreaH; dW=Math.round(dH/cappedAspect);}
                 const dispX=lensAreaX+Math.round((lensAreaW-dW)/2);
@@ -1563,39 +1589,50 @@ function _buildReportCanvas(callback){
                     ctx.drawImage(srcR,0,0,srcR.width,srcR.height,lensAreaX,lensAreaY,dW,dH);
                 }
             }
-            ctx.strokeStyle='#c0ccde'; ctx.lineWidth=1.5;
+            ctx.strokeStyle='#b8c8de'; ctx.lineWidth=1.5;
             ctx.beginPath();ctx.moveTo(SPLIT_W,bodyY);ctx.lineTo(SPLIT_W,bodyY+CONTENT_H);ctx.stroke();
         }
 
         // ── Data column ──
         const dataX=(hasCanvas?SPLIT_W:0)+PAD;
-        const dataRight=dataX+DATA_W;
+        const dataRight=dataX+DATA_W-PAD;
+        // Label/value split point — label takes 52%, value in remaining 48%
+        const splitX=dataX+Math.round((dataRight-dataX)*0.52);
         let dy=bodyY+PAD;
 
-        ctx.fillStyle='#0f172a'; ctx.font='bold 24px Arial';
-        ctx.fillText(titleTxt.substring(0,54),dataX,dy+26); dy+=TITLE_ROW;
+        // Report title
+        ctx.fillStyle='#0f172a'; ctx.font=`bold 26px Arial`;
+        ctx.fillText(titleTxt.substring(0,60),dataX,dy+28); dy+=TITLE_ROW;
 
         sections.forEach(sec=>{
-            // Section header bar
-            ctx.fillStyle='#1e3a7e'; ctx.fillRect(dataX,dy,DATA_W,SEC_H);
-            ctx.fillStyle='#ffffff'; ctx.font='bold 16px Arial';
-            ctx.fillText((sec.hdr||'').toUpperCase(),dataX+12,dy+SEC_H-11); dy+=SEC_H;
+            // Section header bar — navy blue
+            ctx.fillStyle='#1e3a7e'; ctx.fillRect(dataX,dy,dataRight-dataX,SEC_H);
+            ctx.fillStyle='#ffffff'; ctx.font=`bold ${SEC_HDR_FONT}px Arial`;
+            ctx.fillText((sec.hdr||'').toUpperCase(),dataX+12,dy+SEC_H-13); dy+=SEC_H;
 
             sec.rows.forEach((r,ri)=>{
                 const bg=r.green?'#f0fdf4':r.amber?'#fffbeb':(ri%2===0?'#ffffff':'#f7f9fc');
-                ctx.fillStyle=bg; ctx.fillRect(dataX,dy,DATA_W,ROW_H);
-                // Label — left, vertically centred in row
-                ctx.fillStyle='#374151'; ctx.font='16px Arial';
-                ctx.fillText(r.lbl||'', dataX+14, dy+ROW_H/2+6);
-                // Value — right-aligned, same vertical centre
+                ctx.fillStyle=bg; ctx.fillRect(dataX,dy,dataRight-dataX,ROW_H);
+                const midY=dy+Math.round(ROW_H/2)+7;
+
+                // Label — left side up to splitX
+                ctx.fillStyle='#374151'; ctx.font=`${LABEL_FONT}px Arial`; ctx.textAlign='left';
+                ctx.fillText(r.lbl||'', dataX+12, midY);
+
+                // Thin vertical separator between label and value
+                ctx.strokeStyle='#e2e8f0'; ctx.lineWidth=1;
+                ctx.beginPath();ctx.moveTo(splitX,dy+6);ctx.lineTo(splitX,dy+ROW_H-6);ctx.stroke();
+
+                // Value — right-aligned from splitX to dataRight
                 const vc=r.green?'#15803d':r.amber?'#92400e':'#111827';
                 ctx.fillStyle=vc;
-                ctx.font=r.green||r.amber?'bold 18px Arial':'bold 16px Arial';
+                ctx.font=r.green||r.amber?`bold ${VALUE_BOLD_FONT}px Arial`:`bold ${VALUE_FONT}px Arial`;
                 ctx.textAlign='right';
-                ctx.fillText(r.val||'', dataRight-14, dy+ROW_H/2+6);
+                ctx.fillText(r.val||'', dataRight-12, midY);
                 ctx.textAlign='left';
-                // Row divider
-                ctx.strokeStyle='#e2e8f0'; ctx.lineWidth=0.8;
+
+                // Row bottom divider
+                ctx.strokeStyle='#e2e8f0'; ctx.lineWidth=0.7;
                 ctx.beginPath();ctx.moveTo(dataX,dy+ROW_H);ctx.lineTo(dataRight,dy+ROW_H);ctx.stroke();
                 dy+=ROW_H;
             });
@@ -1605,8 +1642,14 @@ function _buildReportCanvas(callback){
         // ── Footer ──
         const fy=H-FOOTER_H;
         ctx.fillStyle='#1a2e44'; ctx.fillRect(0,fy,W,FOOTER_H);
-        ctx.fillStyle='#94a3b8'; ctx.font='15px Arial'; ctx.textAlign='center';
-        ctx.fillText('Generated by OptiCost LRMCE v1.2  |  '+mfr+'  |  '+website+(contact?' | '+contact:''),W/2,fy+33);
+        // Footer left: app info
+        ctx.fillStyle='#94a3b8'; ctx.font='bold 14px Arial'; ctx.textAlign='left';
+        ctx.fillText('OptiCost LRMCE v1.2  |  Optical Engineering Cost Tool  |  Optics & Allied Engg. Pvt. Ltd.',PAD,fy+26);
+        ctx.fillStyle='#64748b'; ctx.font='13px Arial';
+        ctx.fillText('Developed by: Priya Gavshinde, Sr. Optical Engineer  |  '+website+'  |  '+contact+'  |  info@opticsindia.com',PAD,fy+50);
+        // Footer right: generated date
+        ctx.fillStyle='#475569'; ctx.font='12px Arial'; ctx.textAlign='right';
+        ctx.fillText('Generated: '+new Date().toLocaleString(),W-PAD,fy+50);
         ctx.textAlign='left';
         callback(cv);
     }
@@ -1710,7 +1753,7 @@ function v(id){return(document.getElementById(id)||{value:""}).value;}
 const THEMES=['dark','light','white','warm','green','steel','purple','red'];
 function setTheme(t){document.documentElement.setAttribute('data-theme',t==='dark'?'':t);THEMES.forEach(x=>{const el=document.getElementById('sw-'+x);if(el)el.classList.toggle('active',x===t);});try{localStorage.setItem('opticost_theme',t);}catch(e){}liveDrawLens();}
 function toggleThemePanel(){document.getElementById('theme-panel').classList.toggle('open');}
-function showAbout(){showModal("About OptiCost LRMCE","OptiCost — LRMCE v1.2\n\nDeveloped by:\n  Priya Gavshinde\n  Sr. Optical Engineer\n  Optics & Allied Engg. Pvt. Ltd.\n\nContact:\n  www.opticsindia.com\n  +91-9886654729\n  info@opticsindia.com\n\n© 2025 Optics & Allied Engg. Pvt. Ltd.");}
+function showAbout(){showModal("About OptiCost LRMCE","OptiCost — Lens Raw Material Cost Estimator\nVersion 1.2  |  Build 2025\n\n━━━━━━━━━━━━━━━━━━━━━\nFEATURES\n• Circular & Rectangular optic cost estimation\n• Real-time cross-section canvas preview\n• Sag, ET, volume & weight calculation\n• Multi-material library with custom density\n• Batch records & Excel export\n• PNG report with cross-section diagram\n• Multi-user login with session management\n• 7 UI themes  |  Offline-capable\n\n━━━━━━━━━━━━━━━━━━━━━\nDEVELOPED BY\n  Priya Gavshinde, Sr. Optical Engineer\n  Optics & Allied Engg. Pvt. Ltd. (OPTICA)\n\n━━━━━━━━━━━━━━━━━━━━━\nCONTACT\n  www.opticsindia.com\n  +91-9886654729\n  info@opticsindia.com\n\n© 2025 Optics & Allied Engg. Pvt. Ltd.\nAll rights reserved.");}
 
 window.addEventListener('DOMContentLoaded',()=>{
     loadMaterials();

@@ -1463,7 +1463,7 @@ function _renderLensToCanvas(targetCanvas, p, targetW, targetH){
 }
 
 // ═══════════════════════════════════════════════════════════════
-// PNG REPORT BUILDER — v3 (tighter gap, larger fonts, taller rows)
+// PNG REPORT BUILDER — v4: no right gap, clipped CS panel, big fonts
 // ═══════════════════════════════════════════════════════════════
 function _buildReportCanvas(callback){
     refreshSnapHeader();
@@ -1483,24 +1483,29 @@ function _buildReportCanvas(callback){
         if(srows.length) sections.push({hdr:hdr?hdr.textContent.trim():'',rows:srows});
     });
 
-    // Layout constants
+    // ── Layout constants ──
     const SC=3;
-    const LOGO_W=100, LOGO_H=58, LOGO_PAD=18;
-    const W=1500, HDR_H=170, FOOTER_H=70;
-    const PAD=24, ROW_H=58, SEC_H=44, GAP=6, TITLE_ROW=56;
-    const LABEL_FONT=20, VALUE_FONT=20, VALUE_BOLD_FONT=22, SEC_HDR_FONT=18, HDR_TITLE_FONT=30, HDR_SUB_FONT=17;
-    let dataH=TITLE_ROW+14;
+    const W=1500, HDR_H=170, FOOTER_H=72;
+    const LOGO_W=110, LOGO_H=62, LOGO_PAD=20;
+    const PAD=20, IPAD=18;
+    const ROW_H=66, SEC_H=50, GAP=4, TITLE_ROW=62;
+    const LF=24, VF=24, VFB=26, SHF=20, HTF=31, HSF=17;
+
+    let dataH=TITLE_ROW+12;
     sections.forEach(s=>{dataH+=SEC_H;s.rows.forEach(()=>dataH+=ROW_H);dataH+=GAP;});
 
     const hasLens=!!(window._lastLensParams&&window._lastLensParams.type==='circ'&&window._lastLensParams.p);
     const hasRect=!!(window._lastLensParams&&window._lastLensParams.type==='rect'&&window._lastLensParams.p);
     const hasCanvas=hasLens||hasRect;
 
-    const SPLIT_W=hasCanvas?Math.round(W*0.36):0;
-    const DATA_W=W-SPLIT_W-PAD*2;
-    // CONTENT_H driven purely by data height — cross-section scales to fit inside it
     const CONTENT_H=dataH+PAD*2;
     const H=HDR_H+CONTENT_H+FOOTER_H;
+
+    // CS column: 34% wide, data fills rest flush to right edge
+    const CS_W=hasCanvas?Math.round(W*0.34):0;
+    const DX=CS_W;
+    const DR=W;
+    const DW=DR-DX;
 
     const cv=document.createElement('canvas');
     cv.width=W*SC; cv.height=H*SC;
@@ -1508,165 +1513,157 @@ function _buildReportCanvas(callback){
     ctx.scale(SC,SC);
     ctx.imageSmoothingEnabled=true; ctx.imageSmoothingQuality='high';
     ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,W,H);
-
     const bodyY=HDR_H;
 
+    // ── HEADER ──
     function _drawHeader(logoImg){
-        // Header gradient background
         const hg=ctx.createLinearGradient(0,0,0,HDR_H);
         hg.addColorStop(0,'#eaf1fb'); hg.addColorStop(1,'#f8fafd');
         ctx.fillStyle=hg; ctx.fillRect(0,0,W,HDR_H);
-        // Left accent bar
         ctx.fillStyle='#1e3a7e'; ctx.fillRect(0,0,6,HDR_H);
-
-        let textX=PAD+10;
-        if(logoImg){
-            const ly=Math.round((90-LOGO_H)/2)+4;
-            ctx.drawImage(logoImg, textX, ly, LOGO_W, LOGO_H);
-            textX+=LOGO_W+LOGO_PAD;
-        }
-        // Company name
-        ctx.fillStyle='#0f172a'; ctx.font=`bold ${HDR_TITLE_FONT}px Arial`;
-        ctx.fillText(mfr.substring(0,52), textX, 42);
-        // Contact line
-        ctx.fillStyle='#334155'; ctx.font=`${HDR_SUB_FONT}px Arial`;
-        ctx.fillText((website+(contact?' | '+contact:'')).substring(0,80), textX, 68);
-        // App name badge
-        ctx.fillStyle='#1e3a7e'; ctx.font='bold 13px Arial';
-        ctx.fillText('OptiCost LRMCE v1.2 — Lens Raw Material Cost Estimator', textX, 90);
-
-        // Horizontal rule
+        let tx=PAD+10;
+        if(logoImg){ctx.drawImage(logoImg,tx,Math.round((90-LOGO_H)/2)+4,LOGO_W,LOGO_H);tx+=LOGO_W+LOGO_PAD;}
+        ctx.fillStyle='#0f172a'; ctx.font=`bold ${HTF}px Arial`; ctx.fillText(mfr.substring(0,52),tx,42);
+        ctx.fillStyle='#334155'; ctx.font=`${HSF}px Arial`; ctx.fillText((website+(contact?' | '+contact:'')).substring(0,80),tx,68);
+        ctx.fillStyle='#1e3a7e'; ctx.font='bold 13px Arial'; ctx.fillText('OptiCost LRMCE v1.2 — Lens Raw Material Cost Estimator',tx,90);
         ctx.strokeStyle='#b0c4d8'; ctx.lineWidth=1.2;
         ctx.beginPath();ctx.moveTo(PAD,100);ctx.lineTo(W-PAD,100);ctx.stroke();
-
-        // Meta fields — 4 columns, snug layout
         const fW=Math.floor((W-PAD*2)/4);
         [['TO / VENDOR',vendor,'#0f172a'],['TITLE',titleTxt,'#0f172a'],['PART NO.',partno,'#b45309'],['DATE',dateVal,'#0f172a']].forEach(([lbl,val,vc],i)=>{
             const fx=PAD+i*fW;
-            // Left divider for columns 1+
             if(i>0){ctx.strokeStyle='#d0dbe8';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(fx,104);ctx.lineTo(fx,HDR_H-8);ctx.stroke();}
-            ctx.font='bold 11px Arial'; ctx.fillStyle='#64748b'; ctx.fillText(lbl,fx+6,118);
-            ctx.font=`bold 19px Arial`; ctx.fillStyle=vc;
-            ctx.fillText((val||'—').substring(0,Math.floor(fW/12)),fx+6,148);
+            ctx.font='bold 12px Arial'; ctx.fillStyle='#64748b'; ctx.fillText(lbl,fx+6,119);
+            ctx.font=`bold 20px Arial`; ctx.fillStyle=vc; ctx.fillText((val||'—').substring(0,Math.floor(fW/11)),fx+6,150);
         });
         ctx.strokeStyle='#c8d8e8'; ctx.lineWidth=1.2;
         ctx.beginPath();ctx.moveTo(0,HDR_H);ctx.lineTo(W,HDR_H);ctx.stroke();
     }
 
+    // ── BODY ──
     function _drawBody(){
-        // ── Cross-section column — strictly clipped to bodyY..bodyY+CONTENT_H ──
+        // ══ Cross-section panel ══
         if(hasCanvas){
+            // 1. Fill BG — strictly rect(0, bodyY, CS_W, CONTENT_H)
+            const csBg=ctx.createLinearGradient(0,bodyY,0,bodyY+CONTENT_H);
+            csBg.addColorStop(0,'#dce8f8'); csBg.addColorStop(1,'#eef4fb');
+            ctx.fillStyle=csBg;
+            ctx.fillRect(0,bodyY,CS_W,CONTENT_H);
+
+            // 2. Navy header strip (fixed height 44px, no overflow)
+            const CSH=44;
+            ctx.fillStyle='#1e3a6e';
+            ctx.fillRect(0,bodyY,CS_W,CSH);
+            ctx.fillStyle='#ffffff'; ctx.font='bold 15px Arial'; ctx.textAlign='center';
+            ctx.fillText('\u2715\u29C6  CROSS-SECTION PREVIEW',CS_W/2,bodyY+20);
+            ctx.fillStyle='rgba(255,255,255,0.7)'; ctx.font='11px Arial';
+            ctx.fillText('Not to scale',CS_W/2,bodyY+36);
+            ctx.textAlign='left';
+
+            // 3. Lens drawing area — STRICTLY clipped inside panel
+            const LAX=IPAD;
+            const LAY=bodyY+CSH+IPAD;
+            const LAW=CS_W-IPAD*2;
+            const LAH=CONTENT_H-CSH-IPAD*2;   // guaranteed to stay inside CONTENT_H
+
             ctx.save();
-            ctx.beginPath();
-            ctx.rect(0, bodyY, SPLIT_W, CONTENT_H);
+            ctx.rect(LAX, LAY, LAW, LAH);
             ctx.clip();
 
-            const csBg=ctx.createLinearGradient(0,bodyY,0,bodyY+CONTENT_H);
-            csBg.addColorStop(0,'#e8eff9'); csBg.addColorStop(1,'#f2f6fc');
-            ctx.fillStyle=csBg; ctx.fillRect(0,bodyY,SPLIT_W,CONTENT_H);
-
-            ctx.fillStyle='#1e3a6e'; ctx.font='bold 16px Arial'; ctx.textAlign='center';
-            ctx.fillText('\u2B21  CROSS-SECTION PREVIEW',SPLIT_W/2,bodyY+28); ctx.textAlign='left';
-            ctx.fillStyle='#64748b'; ctx.font='12px Arial'; ctx.textAlign='center';
-            ctx.fillText('Optical cross-section — not to scale',SPLIT_W/2,bodyY+46); ctx.textAlign='left';
-
-            // Lens area: strictly inside clipped zone
-            const lensAreaX=PAD, lensAreaY=bodyY+56;
-            const lensAreaW=SPLIT_W-PAD*2;
-            const lensAreaH=CONTENT_H-70; // fits inside CONTENT_H
             if(hasLens){
                 const lp=window._lastLensParams.p;
-                const physW=(Math.abs(lp.g1||0)+(lp.CT||0)/2)+(Math.abs(lp.g2||0)+(lp.CT||0)/2);
-                const physH=lp.OD||1;
-                const cappedAspect=Math.min(physH/Math.max(physW,0.001),1.6);
-                let dW=lensAreaW, dH=Math.round(dW*cappedAspect);
-                if(dH>lensAreaH){dH=lensAreaH; dW=Math.round(dH/cappedAspect);}
-                dW=Math.min(dW,lensAreaW); dH=Math.min(dH,lensAreaH);
-                const dispX=lensAreaX+Math.round((lensAreaW-dW)/2);
-                const dispY=lensAreaY+Math.round((lensAreaH-dH)/2);
+                const physW=Math.max(Math.abs(lp.g1||0)+(lp.CT||0)+Math.abs(lp.g2||0), 0.1);
+                const physH=Math.max(lp.OD||1, 0.1);
+                const asp=Math.min(physH/physW, 2.2);
+                let dW=LAW, dH=Math.round(dW*asp);
+                if(dH>LAH){dH=LAH; dW=Math.round(dH/asp);}
+                dW=Math.min(dW,LAW); dH=Math.min(dH,LAH);
                 const off=document.createElement('canvas');
-                _renderLensToCanvas(off, lp, dW*SC, dH*SC);
-                ctx.drawImage(off,0,0,dW*SC,dH*SC, dispX, dispY, dW, dH);
+                _renderLensToCanvas(off,lp,dW*SC,dH*SC);
+                ctx.drawImage(off,0,0,dW*SC,dH*SC,
+                    LAX+Math.round((LAW-dW)/2),
+                    LAY+Math.round((LAH-dH)/2),
+                    dW, dH);
             } else if(hasRect){
                 const srcR=document.getElementById('r-canvas');
                 if(srcR&&srcR.width>0){
-                    const rAsp=srcR.height/srcR.width;
-                    let dW=lensAreaW, dH=Math.round(dW*rAsp);
-                    if(dH>lensAreaH){dH=lensAreaH;dW=Math.round(dH/rAsp);}
-                    dW=Math.min(dW,lensAreaW); dH=Math.min(dH,lensAreaH);
-                    ctx.drawImage(srcR,0,0,srcR.width,srcR.height,lensAreaX,lensAreaY,dW,dH);
+                    const asp=srcR.height/srcR.width;
+                    let dW=LAW, dH=Math.round(dW*asp);
+                    if(dH>LAH){dH=LAH;dW=Math.round(dH/asp);}
+                    dW=Math.min(dW,LAW); dH=Math.min(dH,LAH);
+                    ctx.drawImage(srcR,0,0,srcR.width,srcR.height,
+                        LAX+Math.round((LAW-dW)/2),
+                        LAY+Math.round((LAH-dH)/2),
+                        dW, dH);
                 }
             }
-            ctx.restore(); // remove clip
+            ctx.restore();
 
-            // Divider line between columns
-            ctx.strokeStyle='#b8c8de'; ctx.lineWidth=1.5;
-            ctx.beginPath();ctx.moveTo(SPLIT_W,bodyY);ctx.lineTo(SPLIT_W,bodyY+CONTENT_H);ctx.stroke();
+            // 4. Divider line
+            ctx.strokeStyle='#a0b8d0'; ctx.lineWidth=2;
+            ctx.beginPath();ctx.moveTo(CS_W,bodyY);ctx.lineTo(CS_W,bodyY+CONTENT_H);ctx.stroke();
         }
 
-        // ── Data column ──
-        const dataX=(hasCanvas?SPLIT_W:0)+PAD;
-        // dataRight = full width minus right pad
-        const dataRight=W-PAD;
-        const colW=dataRight-dataX;
-        // splitX: label right-aligns here, value left-aligns just after — label 48% of colW
-        const LABEL_COL=Math.round(colW*0.48);
-        const splitX=dataX+LABEL_COL;
-        const valX=splitX+14; // small fixed gap after divider line
+        // ══ Data column — DX to DR (no right margin) ══
+        const colInnerW=DW-IPAD*2;
+        // Label 44% | separator | value fills rest
+        const LABEL_W=Math.round(colInnerW*0.44);
+        const splitX=DX+IPAD+LABEL_W;     // separator X
+        const valX=splitX+14;             // value starts 14px after separator
         let dy=bodyY+PAD;
 
-        // Report title
-        ctx.fillStyle='#0f172a'; ctx.font=`bold 26px Arial`;
-        ctx.fillText(titleTxt.substring(0,60),dataX,dy+28); dy+=TITLE_ROW;
+        // Report title row
+        ctx.fillStyle='#0f172a'; ctx.font=`bold 28px Arial`;
+        ctx.fillText(titleTxt.substring(0,60), DX+IPAD, dy+32); dy+=TITLE_ROW;
 
         sections.forEach(sec=>{
-            // Section header bar
-            ctx.fillStyle='#1e3a7e'; ctx.fillRect(dataX,dy,colW,SEC_H);
-            ctx.fillStyle='#ffffff'; ctx.font=`bold ${SEC_HDR_FONT}px Arial`;
-            ctx.fillText((sec.hdr||'').toUpperCase(),dataX+12,dy+SEC_H-12); dy+=SEC_H;
+            // Section header — from DX to DR, full flush
+            ctx.fillStyle='#1e3a7e'; ctx.fillRect(DX,dy,DW,SEC_H);
+            ctx.fillStyle='#ffffff'; ctx.font=`bold ${SHF}px Arial`;
+            ctx.fillText((sec.hdr||'').toUpperCase(), DX+IPAD, dy+SEC_H-13); dy+=SEC_H;
 
             sec.rows.forEach((r,ri)=>{
                 const bg=r.green?'#f0fdf4':r.amber?'#fffbeb':(ri%2===0?'#ffffff':'#f7f9fc');
-                ctx.fillStyle=bg; ctx.fillRect(dataX,dy,colW,ROW_H);
-                const midY=dy+Math.round(ROW_H/2)+7;
+                // row bg — flush DX to DR
+                ctx.fillStyle=bg; ctx.fillRect(DX,dy,DW,ROW_H);
+                const midY=dy+Math.round(ROW_H/2)+9;
 
-                // Label — left-aligned, capped before splitX
-                ctx.fillStyle='#374151'; ctx.font=`${LABEL_FONT}px Arial`; ctx.textAlign='left';
-                ctx.save(); ctx.beginPath(); ctx.rect(dataX,dy,LABEL_COL-8,ROW_H); ctx.clip();
-                ctx.fillText(r.lbl||'', dataX+12, midY);
+                // Label — clipped to label zone
+                ctx.save();
+                ctx.beginPath(); ctx.rect(DX+IPAD, dy+2, LABEL_W-6, ROW_H-4); ctx.clip();
+                ctx.fillStyle='#374151'; ctx.font=`${LF}px Arial`; ctx.textAlign='left';
+                ctx.fillText(r.lbl||'', DX+IPAD, midY);
                 ctx.restore();
 
-                // Thin vertical separator line
-                ctx.strokeStyle='#d0dbe8'; ctx.lineWidth=1;
-                ctx.beginPath();ctx.moveTo(splitX,dy+4);ctx.lineTo(splitX,dy+ROW_H-4);ctx.stroke();
+                // Separator line
+                ctx.strokeStyle='#c8d8ea'; ctx.lineWidth=1;
+                ctx.beginPath();ctx.moveTo(splitX,dy+6);ctx.lineTo(splitX,dy+ROW_H-6);ctx.stroke();
 
-                // Value — left-aligned right after separator
-                const vc=r.green?'#15803d':r.amber?'#92400e':'#111827';
+                // Value — left-aligned after separator, clipped to row right edge
+                ctx.save();
+                ctx.beginPath(); ctx.rect(valX, dy+2, DR-valX-IPAD, ROW_H-4); ctx.clip();
+                const vc=r.green?'#15803d':r.amber?'#92400e':'#0f172a';
                 ctx.fillStyle=vc;
-                ctx.font=r.green||r.amber?`bold ${VALUE_BOLD_FONT}px Arial`:`bold ${VALUE_FONT}px Arial`;
-                ctx.textAlign='left';
-                ctx.fillText(r.val||'', valX, midY);
-                ctx.textAlign='left';
+                ctx.font=r.green||r.amber?`bold ${VFB}px Arial`:`bold ${VF}px Arial`;
+                ctx.textAlign='left'; ctx.fillText(r.val||'', valX, midY);
+                ctx.restore();
 
-                // Row bottom divider
-                ctx.strokeStyle='#e2e8f0'; ctx.lineWidth=0.7;
-                ctx.beginPath();ctx.moveTo(dataX,dy+ROW_H);ctx.lineTo(dataRight,dy+ROW_H);ctx.stroke();
+                // Row bottom line
+                ctx.strokeStyle='#e2e8f0'; ctx.lineWidth=0.8;
+                ctx.beginPath();ctx.moveTo(DX,dy+ROW_H);ctx.lineTo(DR,dy+ROW_H);ctx.stroke();
                 dy+=ROW_H;
             });
             dy+=GAP;
         });
 
-        // ── Footer ──
+        // ══ Footer ══
         const fy=H-FOOTER_H;
         ctx.fillStyle='#1a2e44'; ctx.fillRect(0,fy,W,FOOTER_H);
-        // Footer left: app info
-        ctx.fillStyle='#94a3b8'; ctx.font='bold 14px Arial'; ctx.textAlign='left';
-        ctx.fillText('OptiCost LRMCE v1.2  |  Optical Engineering Cost Tool  |  Optics & Allied Engg. Pvt. Ltd.',PAD,fy+26);
+        ctx.fillStyle='#94a3b8'; ctx.font='bold 15px Arial'; ctx.textAlign='left';
+        ctx.fillText('OptiCost LRMCE v1.2  |  Optical Engineering Cost Tool  |  Optics & Allied Engg. Pvt. Ltd.',PAD,fy+27);
         ctx.fillStyle='#64748b'; ctx.font='13px Arial';
-        ctx.fillText('Developed by: Priya Gavshinde, Sr. Optical Engineer  |  '+website+'  |  '+contact+'  |  info@opticsindia.com',PAD,fy+50);
-        // Footer right: generated date
+        ctx.fillText('Developed by: Priya Gavshinde, Sr. Optical Engineer  |  '+website+'  |  '+contact+'  |  info@opticsindia.com',PAD,fy+52);
         ctx.fillStyle='#475569'; ctx.font='12px Arial'; ctx.textAlign='right';
-        ctx.fillText('Generated: '+new Date().toLocaleString(),W-PAD,fy+50);
+        ctx.fillText('Generated: '+new Date().toLocaleString(),W-PAD,fy+52);
         ctx.textAlign='left';
         callback(cv);
     }

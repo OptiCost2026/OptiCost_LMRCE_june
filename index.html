@@ -1554,13 +1554,20 @@ function _buildReportCanvas(callback){
 
     // ── Layout constants ──
     const SC=3;
-    // 1250px wide — enough for labels + values without clipping; no right gap
-    const W=1250, HDR_H=200, FOOTER_H=96;
-    const LOGO_W=110, LOGO_H=62, LOGO_PAD=20;
-    const PAD=22, IPAD=20;
+    // 1250px wide; HDR taller to fit all info comfortably
+    const W=1250, HDR_H=230, FOOTER_H=76;
+    const LOGO_W=120, LOGO_H=68, LOGO_PAD=22;
+    const PAD=24, IPAD=20;
     const ROW_H=72, SEC_H=54, GAP=4, TITLE_ROW=66;
-    // Canvas px fonts (rendered at SC=3 so a 20px font appears as 60px equivalent)
-    const LF=26, VF=26, VFB=28, SHF=22, HTF=34, HSF=20;
+    // Canvas-space px fonts (PNG output = these × SC=3)
+    // Header company name: 38px × 3 = 114px equivalent — clearly readable
+    const LF=26, VF=26, VFB=29, SHF=23;
+    const F_CO=38;   // company name
+    const F_WEB=21;  // website/contact line
+    const F_APP=17;  // app badge line
+    const F_MLBL=15; // meta field key label
+    const F_MVAL=26; // meta field value
+    const F_TITLE=29;// report title in body
 
     let dataH=TITLE_ROW+12;
     sections.forEach(s=>{dataH+=SEC_H;s.rows.forEach(()=>dataH+=ROW_H);dataH+=GAP;});
@@ -1588,34 +1595,56 @@ function _buildReportCanvas(callback){
 
     // ── HEADER ──
     function _drawHeader(logoImg){
+        // BG gradient
         const hg=ctx.createLinearGradient(0,0,0,HDR_H);
-        hg.addColorStop(0,'#eaf1fb'); hg.addColorStop(1,'#f8fafd');
+        hg.addColorStop(0,'#eaf1fb'); hg.addColorStop(1,'#f5f8fd');
         ctx.fillStyle=hg; ctx.fillRect(0,0,W,HDR_H);
+        // Left accent bar
         ctx.fillStyle='#1e3a7e'; ctx.fillRect(0,0,6,HDR_H);
-        let tx=PAD+10;
-        if(logoImg){ctx.drawImage(logoImg,tx,Math.round((100-LOGO_H)/2)+4,LOGO_W,LOGO_H);tx+=LOGO_W+LOGO_PAD;}
-        // Company name
-        ctx.fillStyle='#0f172a'; ctx.font=`bold ${HTF}px Arial`; ctx.fillText(mfr.substring(0,52),tx,46);
-        // Website + contact
-        ctx.fillStyle='#334155'; ctx.font=`${HSF}px Arial`; ctx.fillText((website+(contact?' | '+contact:'')).substring(0,80),tx,76);
+
+        let tx=PAD+12;
+        if(logoImg){
+            ctx.drawImage(logoImg, tx, 16, LOGO_W, LOGO_H);
+            tx += LOGO_W + LOGO_PAD;
+        }
+        // Company name — large and bold
+        ctx.fillStyle='#0f172a'; ctx.font=`bold ${F_CO}px Arial`;
+        ctx.fillText(mfr.substring(0,52), tx, 52);
+        // Website | contact
+        ctx.fillStyle='#334155'; ctx.font=`${F_WEB}px Arial`;
+        ctx.fillText((website+(contact?' | '+contact:'')).substring(0,90), tx, 84);
         // App badge
-        ctx.fillStyle='#1e3a7e'; ctx.font='bold 16px Arial'; ctx.fillText('OptiCost LRMCE v1.2 — Lens Raw Material Cost Estimator',tx,102);
-        // Separator
+        ctx.fillStyle='#1e3a7e'; ctx.font=`bold ${F_APP}px Arial`;
+        ctx.fillText('OptiCost LRMCE v1.2 — Lens Raw Material Cost Estimator', tx, 112);
+
+        // Horizontal rule
         ctx.strokeStyle='#b0c4d8'; ctx.lineWidth=1.5;
-        ctx.beginPath();ctx.moveTo(PAD,114);ctx.lineTo(W-PAD,114);ctx.stroke();
-        // Meta fields row — 4 columns, proper readable fonts
+        ctx.beginPath(); ctx.moveTo(PAD,124); ctx.lineTo(W-PAD,124); ctx.stroke();
+
+        // Meta fields — 4 equal columns
         const fW=Math.floor((W-PAD*2)/4);
-        [['TO / VENDOR',vendor,'#0f172a'],['TITLE',titleTxt,'#0f172a'],['PART NO.',partno,'#b45309'],['DATE',dateVal,'#0f172a']].forEach(([lbl,val,vc],i)=>{
+        const META=[['TO / VENDOR',vendor,'#0f172a'],['TITLE',titleTxt,'#0f172a'],['PART NO.',partno,'#b45309'],['DATE',dateVal,'#0f172a']];
+        META.forEach(([lbl,val,vc],i)=>{
             const fx=PAD+i*fW;
-            if(i>0){ctx.strokeStyle='#d0dbe8';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(fx,118);ctx.lineTo(fx,HDR_H-6);ctx.stroke();}
-            ctx.font='bold 15px Arial'; ctx.fillStyle='#64748b'; ctx.fillText(lbl,fx+8,136);
-            ctx.font=`bold 24px Arial`; ctx.fillStyle=vc;
-            // truncate to fit in column (approx 14px per char at 24px bold)
-            const maxChars=Math.floor((fW-16)/15);
-            ctx.fillText((val||'—').substring(0,maxChars),fx+8,170);
+            // Column divider
+            if(i>0){
+                ctx.strokeStyle='#d0dbe8'; ctx.lineWidth=1;
+                ctx.beginPath(); ctx.moveTo(fx,128); ctx.lineTo(fx,HDR_H-6); ctx.stroke();
+            }
+            // Key label
+            ctx.font=`bold ${F_MLBL}px Arial`; ctx.fillStyle='#64748b';
+            ctx.fillText(lbl, fx+10, 148);
+            // Value — measure and truncate to column
+            ctx.font=`bold ${F_MVAL}px Arial`; ctx.fillStyle=vc;
+            const maxW=fW-20;
+            let txt=val||'—';
+            while(txt.length>1 && ctx.measureText(txt).width>maxW) txt=txt.slice(0,-1);
+            ctx.fillText(txt, fx+10, 186);
         });
-        ctx.strokeStyle='#c8d8e8'; ctx.lineWidth=1.5;
-        ctx.beginPath();ctx.moveTo(0,HDR_H);ctx.lineTo(W,HDR_H);ctx.stroke();
+
+        // Bottom border
+        ctx.strokeStyle='#b8c8e0'; ctx.lineWidth=2;
+        ctx.beginPath(); ctx.moveTo(0,HDR_H); ctx.lineTo(W,HDR_H); ctx.stroke();
     }
 
     // ── BODY ──
@@ -1690,9 +1719,9 @@ function _buildReportCanvas(callback){
         const valX=splitX+14;
         let dy=bodyY+PAD;
 
-        // Report title row
-        ctx.fillStyle='#0f172a'; ctx.font=`bold 28px Arial`;
-        ctx.fillText(titleTxt.substring(0,60), DX+IPAD, dy+32); dy+=TITLE_ROW;
+        // Report title
+        ctx.fillStyle='#0f172a'; ctx.font=`bold ${F_TITLE}px Arial`;
+        ctx.fillText(titleTxt.substring(0,60), DX+IPAD, dy+34); dy+=TITLE_ROW;
 
         sections.forEach(sec=>{
             // Section header — from DX to DR, full flush
@@ -1737,12 +1766,14 @@ function _buildReportCanvas(callback){
         // ══ Footer ══
         const fy=H-FOOTER_H;
         ctx.fillStyle='#1a2e44'; ctx.fillRect(0,fy,W,FOOTER_H);
-        ctx.fillStyle='#cbd5e1'; ctx.font='bold 18px Arial'; ctx.textAlign='left';
-        ctx.fillText('OptiCost LRMCE v1.2  |  Optical Engineering Cost Tool  |  Optics & Allied Engg. Pvt. Ltd.',PAD,fy+34);
-        ctx.fillStyle='#94a3b8'; ctx.font='16px Arial';
-        ctx.fillText('Developed by: Priya Gavshinde, Sr. Optical Engineer  |  '+website+'  |  '+contact+'  |  info@opticsindia.com',PAD,fy+66);
-        ctx.fillStyle='#64748b'; ctx.font='15px Arial'; ctx.textAlign='right';
-        ctx.fillText('Generated: '+new Date().toLocaleString(),W-PAD,fy+66);
+        // Left: app name + company
+        ctx.fillStyle='#e2e8f0'; ctx.font=`bold 22px Arial`; ctx.textAlign='left';
+        ctx.fillText('OptiCost LRMCE v1.2', PAD, fy+30);
+        ctx.fillStyle='#94a3b8'; ctx.font=`19px Arial`;
+        ctx.fillText(mfr+'  |  '+website+'  |  '+contact, PAD, fy+58);
+        // Right: generated date
+        ctx.fillStyle='#64748b'; ctx.font=`17px Arial`; ctx.textAlign='right';
+        ctx.fillText('Generated: '+new Date().toLocaleString(), W-PAD, fy+58);
         ctx.textAlign='left';
         callback(cv);
     }

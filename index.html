@@ -175,6 +175,12 @@
         #file-viewer-content{flex:1;overflow:auto;display:flex;align-items:flex-start;justify-content:center;padding:12px;touch-action:pan-y}
         #file-viewer-content iframe{width:100%;height:100%;border:none;background:#fff;border-radius:8px}
         #file-viewer-content pre{color:#e8f4ff;font-family:'Share Tech Mono',monospace;font-size:.78rem;white-space:pre-wrap;word-break:break-word;background:#091624;padding:14px;border-radius:8px;width:100%}
+        /* Blank basis toggle styling */
+        .basis-toggle-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
+        .basis-option{display:flex;align-items:center;gap:7px;cursor:pointer;padding:9px 13px;border-radius:8px;border:1.5px solid var(--border);background:var(--inp);flex:1;min-width:120px;transition:border-color .18s,background .18s}
+        .basis-option.selected-od{border-color:var(--inp-brd);background:rgba(26,138,212,0.08)}
+        .basis-option.selected-ca{border-color:var(--accent2);background:rgba(192,132,252,0.08)}
+        .basis-option input[type="radio"]{width:16px;height:16px;flex-shrink:0}
         @media(min-width:480px){body{max-width:480px;margin:0 auto}.theme-fab{right:calc(50% - 240px)}.theme-panel{right:calc(50% - 240px + 20px)}}
         @media(max-width:414px){.tab{font-size:.76rem;padding:5px 10px}main{padding:9px 9px 120px}.card{padding:11px}.actbar button{font-size:.79rem;padding:10px 3px}.meta-grid{grid-template-columns:1fr}#res-split-wrap{flex-direction:row}#res-canvas-col{flex:0 0 38%;max-width:38%}.export-grid{grid-template-columns:1fr}.file-actions{grid-template-columns:1fr 1fr}.res-row{flex-wrap:wrap}.res-lbl{flex:1 1 60px;min-width:60px}.res-val-inp{flex:1 1 80px;min-width:60px}}
         @media(max-width:320px){#res-split-wrap{flex-direction:column}#res-canvas-col{flex:0 0 auto;max-width:100%;border-right:none;border-bottom:1px solid #c8d8e8}}
@@ -381,6 +387,33 @@
                     </label>
                 </div>
             </div>
+
+            <!-- ══ BLANK WEIGHT BASIS TOGGLE ══ -->
+            <div class="card">
+                <div class="sec-hdr">⚖ BLANK WEIGHT BASIS</div>
+                <div class="basis-toggle-row" id="basis-toggle-row">
+                    <label class="basis-option selected-od" id="basis-od-lbl">
+                        <input type="radio" name="blank-basis" id="basis-od" value="od" checked onchange="blankBasisChanged()" style="accent-color:var(--accent)" />
+                        <div>
+                            <div style="font-size:.82rem;font-weight:700;color:var(--text)">OD-based Sag <span style="font-size:.68rem;color:var(--amber);font-weight:600;margin-left:4px">● DEFAULT</span></div>
+                            <div style="font-size:.67rem;color:var(--muted);margin-top:2px">Sag at full outer diameter — conservative blank</div>
+                        </div>
+                    </label>
+                    <label class="basis-option" id="basis-ca-lbl">
+                        <input type="radio" name="blank-basis" id="basis-ca" value="ca" onchange="blankBasisChanged()" style="accent-color:var(--accent2)" />
+                        <div>
+                            <div style="font-size:.82rem;font-weight:700;color:var(--text)">CA-based Sag</div>
+                            <div style="font-size:.67rem;color:var(--muted);margin-top:2px">Sag at clear aperture only — tighter blank</div>
+                        </div>
+                    </label>
+                </div>
+                <div id="blank-basis-hint" style="font-size:.67rem;color:var(--muted);margin-top:8px;padding:7px 10px;background:var(--surf2);border-radius:7px;line-height:1.6;border:1px solid var(--border)">
+                    <span id="basis-hint-text">
+                        <b style="color:var(--amber)">OD-based (active):</b> Blank thickness = CT + sag₁(OD) + sag₂(OD). Ensures adequate material across full outer diameter. Use when OD &gt; CA significantly.
+                    </span>
+                </div>
+            </div>
+
             <div class="card">
                 <div class="sec-hdr">👁 CROSS-SECTION PREVIEW</div>
                 <div id="live-summary" style="display:none;margin-bottom:10px;border-radius:8px;overflow:hidden;border:1px solid var(--border)">
@@ -394,6 +427,10 @@
                             <div style="font-size:.63rem;color:var(--muted);font-weight:600;margin-bottom:2px">RAW BLANK WEIGHT</div>
                             <div id="lw-blank-wt" style="font-family:var(--font-mono);font-size:.93rem;color:var(--amber);font-weight:700">—</div>
                         </div>
+                    </div>
+                    <div style="padding:3px 11px 7px;border-top:1px solid var(--border)">
+                        <div style="font-size:.63rem;color:var(--muted);font-weight:600;margin-bottom:1px">BLANK BASIS</div>
+                        <div id="lw-blank-basis" style="font-family:var(--font-mono);font-size:.76rem;color:var(--accent);font-weight:700">OD-based sag</div>
                     </div>
                 </div>
                 <canvas id="c-canvas" style="width:100%;display:block;min-height:260px"></canvas>
@@ -670,6 +707,28 @@ function getDens(name){const m=MATERIALS.find(x=>x.name===name);return m?m.dens:
 function getPPG(name){const m=MATERIALS.find(x=>x.name===name);return m?(m.ppg||0):0;}
 function fmtPPG(val){return parseFloat((Math.round(val*10000)/10000).toFixed(4)).toString();}
 
+// ═══ BLANK BASIS HELPERS ═══
+function getBlankBasis(){
+    const el=document.getElementById('basis-ca');
+    return (el&&el.checked)?'ca':'od';
+}
+function blankBasisChanged(){
+    const b=getBlankBasis();
+    const odLbl=document.getElementById('basis-od-lbl');
+    const caLbl=document.getElementById('basis-ca-lbl');
+    const hintEl=document.getElementById('basis-hint-text');
+    if(odLbl){odLbl.classList.toggle('selected-od',b==='od');odLbl.classList.toggle('selected-ca',false);}
+    if(caLbl){caLbl.classList.toggle('selected-ca',b==='ca');caLbl.classList.toggle('selected-od',false);}
+    if(hintEl){
+        if(b==='ca'){
+            hintEl.innerHTML='<b style="color:var(--accent2)">CA-based (active):</b> Blank thickness = CT + sag₁(CA1) + sag₂(CA2). Tighter estimate — use when CA ≈ OD or material cost is critical.';
+        } else {
+            hintEl.innerHTML='<b style="color:var(--amber)">OD-based (active):</b> Blank thickness = CT + sag₁(OD) + sag₂(OD). Ensures adequate material across full outer diameter. Use when OD &gt; CA significantly.';
+        }
+    }
+    liveDrawLens();
+}
+
 function calcSag(surfType,roc,dia){
     const st=surfType.toLowerCase();
     if(st==='plano') return 0;
@@ -690,11 +749,11 @@ function edgeThicknessAt(s1,s2,CT,sag1,sag2){
     if(s2==='convex') ET-=sag2; else if(s2==='concave') ET+=sag2;
     return ET;
 }
-function blankThickness(s1,s2,CT,sag1od,sag2od){
+function blankThickness(s1,s2,CT,sag1,sag2){
     let bTh=CT;
-    if(s1==='convex') bTh+=sag1od;
-    if(s2==='convex') bTh+=sag2od;
-    const etOD=edgeThicknessAt(s1,s2,CT,sag1od,sag2od);
+    if(s1==='convex') bTh+=sag1;
+    if(s2==='convex') bTh+=sag2;
+    const etOD=edgeThicknessAt(s1,s2,CT,sag1,sag2);
     return Math.max(bTh,etOD);
 }
 function lensVolumeCA(OD,CA1,CA2,s1,s2,CT,sag1ca,sag2ca){
@@ -879,7 +938,16 @@ function calcCirc(){
     if(ETca<0) throw new Error(`Edge thickness at CA = ${ETca.toFixed(4)}mm is negative — sags exceed CT.`);
     const ETod=edgeThicknessAt(s1,s2,CT,sag1od,sag2od);
     if(ETod<0) throw new Error(`Edge thickness at OD = ${ETod.toFixed(4)}mm is negative.`);
-    const blkTh=blankThickness(s1,s2,CT,sag1od,sag2od);
+
+    // ── Blank basis selection ──
+    const _blankBasis=getBlankBasis();
+    const blkTh=_blankBasis==='ca'
+        ? blankThickness(s1,s2,CT,sag1ca,sag2ca)
+        : blankThickness(s1,s2,CT,sag1od,sag2od);
+    const blkSag1=_blankBasis==='ca'?sag1ca:sag1od;
+    const blkSag2=_blankBasis==='ca'?sag2ca:sag2od;
+    const blkDia=_blankBasis==='ca'?((CA1+CA2)/2):OD;  // for display context
+
     const Vt=lensVolumeCA(OD,CA1,CA2,s1,s2,CT,sag1ca,sag2ca);
     const Vb=Math.PI*(OD/2)*(OD/2)*blkTh;
     const Vtcm3=Vt/1000, Vbcm3=Vb/1000;
@@ -889,7 +957,7 @@ function calcCirc(){
     const signedSag2ca=s2==="convex"?sag2ca:(s2==="concave"?-sag2ca:0);
     const signedSag1od=s1==="convex"?sag1od:(s1==="concave"?-sag1od:0);
     const signedSag2od=s2==="convex"?sag2od:(s2==="concave"?-sag2od:0);
-    window._lastLensParams={type:'circ',id:"c-canvas",p:{OD,CT,CA1,CA2,s1,s2,g1:Math.abs(sag1ca),g2:Math.abs(sag2ca),roc1,roc2}};
+    window._lastLensParams={type:'circ',id:"c-canvas",p:{OD,CT,CA1,CA2,s1,s2,g1:Math.abs(sag1ca),g2:Math.abs(sag2ca),roc1,roc2,blankBasis:_blankBasis,sag1od,sag2od}};
     drawLensCanvas("c-canvas",window._lastLensParams.p,true);
     document.getElementById("result-text").innerHTML=
         resTitle("📐 Optic Cost Summary — Circular Lens")+
@@ -898,8 +966,8 @@ function calcCirc(){
         `<div class="res-section">`+secHdr("Surface S1")+row("Type",v("s1t"))+(s1!=="plano"?row("ROC (R1)",roc1.toFixed(3)+" mm"):"")+row("Clear Aperture (CA1)",CA1.toFixed(3)+" mm")+row("Sag @ CA1",(signedSag1ca>=0?"+":" ")+signedSag1ca.toFixed(4)+" mm")+row("Sag @ OD1",(signedSag1od>=0?"+":" ")+signedSag1od.toFixed(4)+" mm")+`</div><div class="res-divider"></div>`+
         `<div class="res-section">`+secHdr("Surface S2")+row("Type",v("s2t"))+(s2!=="plano"?row("ROC (R2)",roc2.toFixed(3)+" mm"):"")+row("Clear Aperture (CA2)",CA2.toFixed(3)+" mm")+row("Sag @ CA2",(signedSag2ca>=0?"+":" ")+signedSag2ca.toFixed(4)+" mm")+row("Sag @ OD2",(signedSag2od>=0?"+":" ")+signedSag2od.toFixed(4)+" mm")+`</div><div class="res-divider"></div>`+
         `<div class="res-section">`+secHdr("Finished Lens")+row("Volume",Vtcm3.toFixed(6)+" cm³")+row("Weight",lensWt.toFixed(4)+" g")+row("COST",cur+" "+lensCost.toFixed(2),"green")+`</div><div class="res-divider"></div>`+
-        `<div class="res-section">`+secHdr("Raw Blank")+row("Blank Thickness",blkTh.toFixed(4)+" mm")+row("Blank Volume",Vbcm3.toFixed(6)+" cm³")+row("Blank Weight",blankWt.toFixed(4)+" g")+row("Blank COST",cur+" "+blankCost.toFixed(2),"amber")+`</div>`;
-    recs.push({"Aperture":"Circular","Lens No":recs.length+1,"Material":mat,"Density(g/cm3)":dens.toFixed(3),"Price/gram":cur+" "+fmtPPG(ppg),"OD(mm)":OD,"CT(mm)":CT.toFixed(4),"ET@CA(mm)":ETca.toFixed(4),"ET@OD(mm)":ETod.toFixed(4),"BlankThk(mm)":blkTh.toFixed(4),"S1":v("s1t"),"ROC1(mm)":s1==="plano"?"Inf":roc1,"CA1(mm)":CA1,"S2":v("s2t"),"ROC2(mm)":s2==="plano"?"Inf":roc2,"CA2(mm)":CA2,"Sag1_CA(mm)":signedSag1ca.toFixed(4),"Sag2_CA(mm)":signedSag2ca.toFixed(4),"Sag1_OD(mm)":signedSag1od.toFixed(4),"Sag2_OD(mm)":signedSag2od.toFixed(4),"LensVol(cm3)":Vtcm3.toFixed(6),"LensWt(g)":lensWt.toFixed(4),"LensCost":cur+" "+lensCost.toFixed(2),"BlankVol(cm3)":Vbcm3.toFixed(6),"BlankWt(g)":blankWt.toFixed(4),"BlankCost":cur+" "+blankCost.toFixed(2)});
+        `<div class="res-section">`+secHdr("Raw Blank")+row("Sag Basis",_blankBasis==="ca"?"CA-based sag":"OD-based sag (default)")+row("Blank Thickness",blkTh.toFixed(4)+" mm")+row("Blank Volume",Vbcm3.toFixed(6)+" cm³")+row("Blank Weight",blankWt.toFixed(4)+" g")+row("Blank COST",cur+" "+blankCost.toFixed(2),"amber")+`</div>`;
+    recs.push({"Aperture":"Circular","Lens No":recs.length+1,"Material":mat,"Density(g/cm3)":dens.toFixed(3),"Price/gram":cur+" "+fmtPPG(ppg),"OD(mm)":OD,"CT(mm)":CT.toFixed(4),"ET@CA(mm)":ETca.toFixed(4),"ET@OD(mm)":ETod.toFixed(4),"BlankThk(mm)":blkTh.toFixed(4),"BlankBasis":_blankBasis==="ca"?"CA-based":"OD-based","S1":v("s1t"),"ROC1(mm)":s1==="plano"?"Inf":roc1,"CA1(mm)":CA1,"S2":v("s2t"),"ROC2(mm)":s2==="plano"?"Inf":roc2,"CA2(mm)":CA2,"Sag1_CA(mm)":signedSag1ca.toFixed(4),"Sag2_CA(mm)":signedSag2ca.toFixed(4),"Sag1_OD(mm)":signedSag1od.toFixed(4),"Sag2_OD(mm)":signedSag2od.toFixed(4),"LensVol(cm3)":Vtcm3.toFixed(6),"LensWt(g)":lensWt.toFixed(4),"LensCost":cur+" "+lensCost.toFixed(2),"BlankVol(cm3)":Vbcm3.toFixed(6),"BlankWt(g)":blankWt.toFixed(4),"BlankCost":cur+" "+blankCost.toFixed(2)});
 }
 
 function calcRect(){
@@ -999,11 +1067,9 @@ function showToast(msg,type){const el=document.getElementById('toast');if(!el)re
 
 function _saveBlob(blob, defaultFname){
     _storeFile(defaultFname, blob).catch(()=>{});
-    // Android WebView bridge
     if(window.Android && typeof window.Android.saveFile === 'function'){
         try{const reader = new FileReader();reader.onload=e=>{window.Android.saveFile(defaultFname, blob.type||'application/octet-stream', e.target.result.split(',')[1]);showToast('✅ Saved: '+defaultFname,'success');};reader.onerror=()=>_fallbackDownload(blob,defaultFname);reader.readAsDataURL(blob);return;}catch(e){}
     }
-    // Always try direct download first — works on desktop and most mobile browsers
     if(typeof URL.createObjectURL === 'function'){
         try{
             const url=URL.createObjectURL(blob);
@@ -1015,7 +1081,6 @@ function _saveBlob(blob, defaultFname){
             return;
         }catch(e){}
     }
-    // Web Share API as last resort (mobile Safari, etc.)
     if(navigator.share){
         try{const file=new File([blob],defaultFname,{type:blob.type});if(!navigator.canShare||navigator.canShare({files:[file]})){navigator.share({files:[file],title:defaultFname}).then(()=>showToast('✅ Shared: '+defaultFname,'success')).catch(err=>{if(err.name!=='AbortError')showToast('❌ Share failed','error');else showToast('⏹ Cancelled','');});return;}}catch(e){}
     }
@@ -1161,6 +1226,9 @@ function doReset(){
         document.getElementById("s1t").value="Plano";document.getElementById("s2t").value="Plano";
         document.getElementById("c-curr").value="INR";document.getElementById("r-curr").value="INR";
         document.getElementById("c-ct-result").textContent="";
+        // Reset blank basis to OD
+        const bOD=document.getElementById('basis-od');if(bOD)bOD.checked=true;
+        blankBasisChanged();
         ["c-mat","r-mat"].forEach(id=>{const s=document.getElementById(id);s.selectedIndex=0;matChanged(id==="c-mat"?"c":"r");});
         surfChanged();recs=[];
         document.getElementById("batch-count").textContent="0";
@@ -1239,7 +1307,6 @@ function drawLensCanvas(id, p, preview=false, dpr=0){
     const cAmb=preview?'#b45309':'#7c5c00';
     const cAxis=preview?'rgba(239,68,68,0.85)':'rgba(220,38,38,0.80)';
 
-    // Lens fill + shimmer
     ctx.beginPath();LP.forEach((pt,i)=>i?ctx.lineTo(...pt):ctx.moveTo(...pt));[...RP].reverse().forEach(pt=>ctx.lineTo(...pt));ctx.closePath();
     const grd=ctx.createLinearGradient(px(xs1v),0,px(xs2v),0);
     grd.addColorStop(0,cBody);grd.addColorStop(0.5,cBodyMid);grd.addColorStop(1,cBody);
@@ -1250,14 +1317,12 @@ function drawLensCanvas(id, p, preview=false, dpr=0){
     shim.addColorStop(0.65,"rgba(220,235,255,0.44)");shim.addColorStop(1,"rgba(180,200,255,0.06)");
     ctx.fillStyle=shim;ctx.fill();ctx.restore();
 
-    // Lens outlines
     ctx.lineJoin="round";ctx.lineCap="round";
     ctx.beginPath();LP.forEach((pt,i)=>i?ctx.lineTo(...pt):ctx.moveTo(...pt));ctx.strokeStyle=cStroke;ctx.lineWidth=2.4;ctx.stroke();
     ctx.beginPath();RP.forEach((pt,i)=>i?ctx.lineTo(...pt):ctx.moveTo(...pt));ctx.strokeStyle=cStroke;ctx.lineWidth=2.4;ctx.stroke();
     ctx.beginPath();ctx.moveTo(...LP[0]);ctx.lineTo(...RP[0]);ctx.strokeStyle=cStroke;ctx.lineWidth=1.8;ctx.stroke();
     ctx.beginPath();ctx.moveTo(...LP[N]);ctx.lineTo(...RP[N]);ctx.strokeStyle=cStroke;ctx.lineWidth=1.8;ctx.stroke();
 
-    // ── OPTICAL AXIS — dashed, spans only max(CT, ET) width, no label ──
     const _lcAxX1=px(xS1(0)), _lcAxX2=px(xS2(0));
     const _lcEtL=px(xS1(hCA1>0?hCA1:hOD)), _lcEtR=px(xS2(hCA2>0?hCA2:hOD));
     const _lcAxL=Math.min(_lcAxX1,_lcEtL)-8, _lcAxR=Math.max(_lcAxX2,_lcEtR)+8;
@@ -1268,10 +1333,8 @@ function drawLensCanvas(id, p, preview=false, dpr=0){
     ctx.setLineDash([]);
     ctx.restore();
 
-    // ── Vertical arrow helper with dashed leader lines ──
     function drawVArrow(arrowX, topY, botY, labelText, color, side, leaderFromY_top, leaderFromY_bot){
         const span=Math.abs(botY-topY);
-        // Dashed leader lines from lens edge to arrow start/end
         if(leaderFromY_top!==undefined){
             ctx.save(); ctx.strokeStyle=color; ctx.lineWidth=1; ctx.setLineDash([4,4]);
             ctx.beginPath();ctx.moveTo(arrowX,leaderFromY_top);ctx.lineTo(arrowX,topY);ctx.stroke();
@@ -1290,7 +1353,6 @@ function drawLensCanvas(id, p, preview=false, dpr=0){
         ctx.textAlign="center"; ctx.fillText(labelText,0,0); ctx.restore();
     }
 
-    // ── CT dimension — dashed leaders from faces down, arrow below lens ──
     const ctX1=px(xS1(0)), ctX2=px(xS2(0));
     const ctArrY=cy+Math.min(26,CH/2-18);
     ctx.strokeStyle=cStroke; ctx.lineWidth=1.2;
@@ -1305,7 +1367,6 @@ function drawLensCanvas(id, p, preview=false, dpr=0){
     ctx.font="bold 11px 'Nunito',sans-serif"; ctx.fillStyle=cStroke; ctx.textAlign="center";
     ctx.fillText("CT="+CT.toFixed(2)+"mm",(ctX1+ctX2)/2,ctArrY+13); ctx.textAlign="left";
 
-    // ── ET@CA — dashed horizontal span above lens ──
     const etCA=edgeThicknessAt(s1,s2,CT,g1,g2);
     if(!isNaN(etCA)&&etCA>0){
         const etYline=Math.min(py(hCA1>0?hCA1:hOD),py(hCA2>0?hCA2:hOD))-20;
@@ -1323,7 +1384,6 @@ function drawLensCanvas(id, p, preview=false, dpr=0){
         }
     }
 
-    // Surface labels
     ctx.font="bold 13px 'Nunito',sans-serif"; ctx.fillStyle=cStroke;
     ctx.textAlign="right"; ctx.fillText("S1",LP[Math.round(N*0.12)][0]-5,LP[Math.round(N*0.12)][1]-7);
     ctx.textAlign="left";  ctx.fillText("S2",RP[Math.round(N*0.12)][0]+5,RP[Math.round(N*0.12)][1]-7);
@@ -1332,12 +1392,9 @@ function drawLensCanvas(id, p, preview=false, dpr=0){
     if(s2!=="plano"&&roc2>0){ctx.fillStyle=cAmb;ctx.textAlign="left"; ctx.fillText("R2="+roc2.toFixed(1),RP[Math.round(N*0.3)][0]+4,RP[Math.round(N*0.3)][1]+4);}
     ctx.textAlign="left";
 
-    // ØCA1 arrow (left pad) — with dashed leaders from lens edge to arrow
     const ca1ArrowX=PAD_L-18;
     if(hCA1>0){
-        const topLensEdgeCA1=px(xS1(hCA1)); // x of S1 at CA1 height (not used for leader y)
         drawVArrow(ca1ArrowX, py(hCA1), py(-hCA1), "\u00d8CA1="+CA1.toFixed(2)+"mm", '#4f46e5','left');
-        // Dashed horizontal tick marks from arrow to lens surface
         ctx.save(); ctx.strokeStyle='#4f46e5'; ctx.lineWidth=0.9; ctx.setLineDash([3,3]);
         ctx.beginPath();ctx.moveTo(ca1ArrowX,py(hCA1));ctx.lineTo(LP[0][0],py(hCA1));ctx.stroke();
         ctx.beginPath();ctx.moveTo(ca1ArrowX,py(-hCA1));ctx.lineTo(LP[N][0],py(-hCA1));ctx.stroke();
@@ -1359,8 +1416,18 @@ function drawLensCanvas(id, p, preview=false, dpr=0){
     ctx.beginPath();ctx.moveTo(odX,py(hOD));ctx.lineTo(lensRightEdge,py(hOD));ctx.stroke();
     ctx.beginPath();ctx.moveTo(odX,py(-hOD));ctx.lineTo(lensRightEdge,py(-hOD));ctx.stroke();
     ctx.setLineDash([]); ctx.restore();
+
+    // ── Blank basis badge in live canvas ──
+    const _bb=p.blankBasis||'od';
+    const _bbColor=_bb==='ca'?'rgba(192,132,252,0.92)':'rgba(251,191,36,0.92)';
+    const _bbTxt='Blank: '+(_bb==='ca'?'CA sag':'OD sag (default)');
+    ctx.save();
+    ctx.fillStyle=_bbColor;ctx.font="bold 9px 'Nunito',sans-serif";ctx.textAlign="left";
+    ctx.fillText(_bbTxt,6,CH-6);
+    ctx.restore();
 }
 
+// ═══════════════════════════════════════════════════════════════
 // PNG REPORT — _renderLensToCanvas
 // ═══════════════════════════════════════════════════════════════
 function _renderLensToCanvas(targetCanvas, p, targetW, targetH){
@@ -1368,6 +1435,7 @@ function _renderLensToCanvas(targetCanvas, p, targetW, targetH){
     targetCanvas.width=targetW; targetCanvas.height=targetH;
     const {OD,CT,CA1,CA2,s1,s2,g1,g2}=p;
     const roc1=p.roc1||0, roc2=p.roc2||0;
+    const blankBasis=p.blankBasis||'od';
     const CW=targetW, CH=targetH;
 
     function getSag(roc,hCA,gMax,absY){const aY=Math.min(absY,hCA);if(gMax<=0)return 0;if(roc>0&&roc>=aY)return roc-Math.sqrt(Math.max(0,roc*roc-aY*aY));return gMax*(aY/hCA)**2;}
@@ -1401,7 +1469,6 @@ function _renderLensToCanvas(targetCanvas, p, targetW, targetH){
     const LP=ys.map(y=>[ppx(xS1(y)),ppy(y)]);
     const RP=ys.map(y=>[ppx(xS2(y)),ppy(y)]);
 
-    // Lens fill + shimmer
     ctx.beginPath();LP.forEach((pt,i)=>i?ctx.lineTo(...pt):ctx.moveTo(...pt));
     [...RP].reverse().forEach(pt=>ctx.lineTo(...pt));ctx.closePath();
     const grd=ctx.createLinearGradient(ppx(xs1v),0,ppx(xs2v),0);
@@ -1414,7 +1481,6 @@ function _renderLensToCanvas(targetCanvas, p, targetW, targetH){
     shim.addColorStop(0.6,"rgba(220,235,255,0.40)");shim.addColorStop(1,"rgba(180,200,255,0.05)");
     ctx.fillStyle=shim; ctx.fill(); ctx.restore();
 
-    // Outlines
     const lw=Math.max(2,CW/180);
     ctx.lineJoin="round";ctx.lineCap="round";ctx.strokeStyle='#1a2e44';ctx.lineWidth=lw;
     ctx.beginPath();LP.forEach((pt,i)=>i?ctx.lineTo(...pt):ctx.moveTo(...pt));ctx.stroke();
@@ -1423,27 +1489,22 @@ function _renderLensToCanvas(targetCanvas, p, targetW, targetH){
     ctx.beginPath();ctx.moveTo(...LP[0]);ctx.lineTo(...RP[0]);ctx.stroke();
     ctx.beginPath();ctx.moveTo(...LP[N]);ctx.lineTo(...RP[N]);ctx.stroke();
 
-    // ── OPTICAL AXIS — dashed, only spanning max(CT width, ET width) ──
     ctx.save();
     ctx.strokeStyle='rgba(220,38,38,0.80)'; ctx.lineWidth=Math.max(1.5,lw*0.55);
     ctx.setLineDash([Math.round(CW/50), Math.round(CW/80)]);
-    // CT pixel span at center
     const _axX1=ppx(xS1(0)), _axX2=ppx(xS2(0));
-    // ET pixel span at CA (or OD if no CA)
     const _etL=ppx(xS1(hCA1>0?hCA1:hOD)), _etR=ppx(xS2(hCA2>0?hCA2:hOD));
-    // Use whichever span is larger, padded by 8px each side
     const _axL=Math.min(_axX1,_etL)-8, _axR=Math.max(_axX2,_etR)+8;
     ctx.beginPath();ctx.moveTo(_axL,cy);ctx.lineTo(_axR,cy);ctx.stroke();
     ctx.setLineDash([]);
     ctx.restore();
 
-    const fs=Math.max(18,Math.round(CW/22));   // main labels — larger minimum
-    const fsS=Math.max(14,Math.round(CW/30));   // secondary
+    // ── INCREASED FONT SIZES for PNG labels ──
+    const fs=Math.max(26,Math.round(CW/16));   // main dimension labels
+    const fsS=Math.max(20,Math.round(CW/22));  // secondary labels
 
-    // ── Vertical arrow helper with dashed tick leaders ──
     function vArrow(ax,ty,by,label,color,side){
         const span=Math.abs(by-ty); if(span<8) return;
-        // Dashed horizontal ticks from axis endpoints to arrow
         ctx.save(); ctx.strokeStyle=color; ctx.lineWidth=Math.max(1,lw*0.5); ctx.setLineDash([Math.round(fs*0.4),Math.round(fs*0.3)]);
         if(side==='left'){
             ctx.beginPath();ctx.moveTo(Math.min(...LP.map(pt=>pt[0])),ty);ctx.lineTo(ax,ty);ctx.stroke();
@@ -1453,7 +1514,6 @@ function _renderLensToCanvas(targetCanvas, p, targetW, targetH){
             ctx.beginPath();ctx.moveTo(Math.max(...RP.map(pt=>pt[0])),by);ctx.lineTo(ax,by);ctx.stroke();
         }
         ctx.setLineDash([]); ctx.restore();
-        // Arrow line + heads
         ctx.strokeStyle=color; ctx.lineWidth=Math.max(1.2,lw*0.65);
         ctx.beginPath();ctx.moveTo(ax,ty);ctx.lineTo(ax,by);ctx.stroke();
         const ah=Math.max(4,Math.round(fs*0.4));
@@ -1468,7 +1528,6 @@ function _renderLensToCanvas(targetCanvas, p, targetW, targetH){
         ctx.textAlign='center'; ctx.fillText(label,0,0); ctx.restore();
     }
 
-    // ── CT — dashed leader lines from center faces down, arrow below ──
     const ctX1=ppx(xS1(0)), ctX2=ppx(xS2(0));
     const ctY=ppy(-hOD)+Math.round(fs*2.4);
     const ctY2=Math.min(ctY, CH-fs*2);
@@ -1486,7 +1545,7 @@ function _renderLensToCanvas(targetCanvas, p, targetW, targetH){
     ctx.fillText("CT="+CT.toFixed(2)+" mm",(ctX1+ctX2)/2,Math.min(ctY2+fs+3,CH-3));
     ctx.textAlign='left';
 
-    // ── ET@CA — dashed span arrow above lens ──
+    // ── ET@CA ──
     const etCA=edgeThicknessAt(s1,s2,CT,g1,g2);
     if(!isNaN(etCA)&&etCA>0){
         const etLeft=ppx(xS1(hCA1>0?hCA1:hOD)), etRight=ppx(xS2(hCA2>0?hCA2:hOD));
@@ -1510,7 +1569,6 @@ function _renderLensToCanvas(targetCanvas, p, targetW, targetH){
         }
     }
 
-    // S1/S2 + ROC labels
     ctx.font=`bold ${fs}px Arial`; ctx.fillStyle='#0f172a';
     ctx.textAlign='right'; ctx.fillText("S1",LP[Math.round(N*0.10)][0]-5,LP[Math.round(N*0.10)][1]-5);
     ctx.textAlign='left';  ctx.fillText("S2",RP[Math.round(N*0.10)][0]+5,RP[Math.round(N*0.10)][1]-5);
@@ -1518,7 +1576,6 @@ function _renderLensToCanvas(targetCanvas, p, targetW, targetH){
     if(s2!=="plano"&&roc2>0){ctx.font=`bold ${fsS}px Arial`;ctx.fillStyle='#92400e';ctx.textAlign='left'; ctx.fillText("R2="+roc2.toFixed(1),RP[Math.round(N*0.28)][0]+4,RP[Math.round(N*0.28)][1]+fsS+2);}
     ctx.textAlign='left';
 
-    // Dimension arrows with dashed tick leaders
     const leftEdge=Math.min(...LP.map(pt=>pt[0]));
     const rightEdge=Math.max(...RP.map(pt=>pt[0]));
     const ca1ArrowX=Math.round(PAD_L*0.32+leftEdge*0.5);
@@ -1529,10 +1586,29 @@ function _renderLensToCanvas(targetCanvas, p, targetW, targetH){
     if(hCA2>0&&Math.abs(hCA2-hOD)>0.4)
         vArrow(Math.min(ca2ArrowX,CW-fsS*7), ppy(hCA2), ppy(-hCA2), "\u00d8CA2="+CA2.toFixed(2)+"mm", '#6366f1','right');
     vArrow(Math.min(odArrowX,CW-5), ppy(hOD), ppy(-hOD), "\u00d8OD="+OD+"mm", '#b45309','right');
+
+    // ── Blank basis badge at bottom of canvas ──
+    const _basisTxt='Blank basis: '+(blankBasis==='ca'?'CA-based sag':'OD-based sag (default)');
+    const _badgeBg=blankBasis==='ca'?'rgba(109,40,217,0.88)':'rgba(180,83,9,0.88)';
+    const _badgeFontSize=Math.max(18,Math.round(CW/28));
+    const _badgePad=Math.round(_badgeFontSize*0.5);
+    ctx.font=`bold ${_badgeFontSize}px Arial`;
+    const _bw=ctx.measureText(_basisTxt).width+_badgePad*2;
+    const _bh=_badgeFontSize+_badgePad;
+    const _bx=Math.round((CW-_bw)/2);
+    const _by=CH-_bh-4;
+    ctx.fillStyle=_badgeBg;
+    ctx.beginPath();
+    if(ctx.roundRect) ctx.roundRect(_bx,_by,_bw,_bh,6);
+    else ctx.rect(_bx,_by,_bw,_bh);
+    ctx.fill();
+    ctx.fillStyle='#ffffff';ctx.textAlign='center';
+    ctx.fillText(_basisTxt, CW/2, _by+_badgeFontSize+Math.round(_badgePad*0.5));
+    ctx.textAlign='left';
 }
 
 // ═══════════════════════════════════════════════════════════════
-// PNG REPORT BUILDER — v4: no right gap, clipped CS panel, big fonts
+// PNG REPORT BUILDER
 // ═══════════════════════════════════════════════════════════════
 function _buildReportCanvas(callback){
     refreshSnapHeader();
@@ -1552,22 +1628,19 @@ function _buildReportCanvas(callback){
         if(srows.length) sections.push({hdr:hdr?hdr.textContent.trim():'',rows:srows});
     });
 
-    // ── Layout constants ──
     const SC=3;
-    // 1250px wide; HDR taller to fit all info comfortably
-    const W=1250, HDR_H=230, FOOTER_H=76;
+    const W=1250, HDR_H=250, FOOTER_H=76;
     const LOGO_W=120, LOGO_H=68, LOGO_PAD=22;
     const PAD=24, IPAD=20;
-    const ROW_H=72, SEC_H=54, GAP=4, TITLE_ROW=66;
-    // Canvas-space px fonts (PNG output = these × SC=3)
-    // Header company name: 38px × 3 = 114px equivalent — clearly readable
-    const LF=26, VF=26, VFB=29, SHF=23;
-    const F_CO=38;   // company name
-    const F_WEB=21;  // website/contact line
-    const F_APP=17;  // app badge line
-    const F_MLBL=15; // meta field key label
-    const F_MVAL=26; // meta field value
-    const F_TITLE=29;// report title in body
+    const ROW_H=78, SEC_H=58, GAP=4, TITLE_ROW=70;
+    // ── INCREASED font sizes throughout PNG report ──
+    const LF=33, VF=33, VFB=37, SHF=28;
+    const F_CO=46;   // company name — large and prominent
+    const F_WEB=26;  // website/contact line
+    const F_APP=22;  // app badge line
+    const F_MLBL=20; // meta field key label
+    const F_MVAL=32; // meta field value
+    const F_TITLE=36;// report title in body
 
     let dataH=TITLE_ROW+12;
     sections.forEach(s=>{dataH+=SEC_H;s.rows.forEach(()=>dataH+=ROW_H);dataH+=GAP;});
@@ -1579,7 +1652,6 @@ function _buildReportCanvas(callback){
     const CONTENT_H=dataH+PAD*2;
     const H=HDR_H+CONTENT_H+FOOTER_H;
 
-    // CS column: 36% wide; data fills rest flush
     const CS_W=hasCanvas?Math.round(W*0.36):0;
     const DX=CS_W;
     const DR=W;
@@ -1593,13 +1665,10 @@ function _buildReportCanvas(callback){
     ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,W,H);
     const bodyY=HDR_H;
 
-    // ── HEADER ──
     function _drawHeader(logoImg){
-        // BG gradient
         const hg=ctx.createLinearGradient(0,0,0,HDR_H);
         hg.addColorStop(0,'#eaf1fb'); hg.addColorStop(1,'#f5f8fd');
         ctx.fillStyle=hg; ctx.fillRect(0,0,W,HDR_H);
-        // Left accent bar
         ctx.fillStyle='#1e3a7e'; ctx.fillRect(0,0,6,HDR_H);
 
         let tx=PAD+12;
@@ -1607,81 +1676,71 @@ function _buildReportCanvas(callback){
             ctx.drawImage(logoImg, tx, 16, LOGO_W, LOGO_H);
             tx += LOGO_W + LOGO_PAD;
         }
-        // Company name — large and bold
         ctx.fillStyle='#0f172a'; ctx.font=`bold ${F_CO}px Arial`;
-        ctx.fillText(mfr.substring(0,52), tx, 52);
-        // Website | contact
+        ctx.fillText(mfr.substring(0,52), tx, 56);
         ctx.fillStyle='#334155'; ctx.font=`${F_WEB}px Arial`;
-        ctx.fillText((website+(contact?' | '+contact:'')).substring(0,90), tx, 84);
-        // App badge
+        ctx.fillText((website+(contact?' | '+contact:'')).substring(0,90), tx, 92);
         ctx.fillStyle='#1e3a7e'; ctx.font=`bold ${F_APP}px Arial`;
-        ctx.fillText('OptiCost LRMCE v1.2 — Lens Raw Material Cost Estimator', tx, 112);
+        ctx.fillText('OptiCost LRMCE v1.2 — Lens Raw Material Cost Estimator', tx, 122);
 
-        // Horizontal rule
         ctx.strokeStyle='#b0c4d8'; ctx.lineWidth=1.5;
-        ctx.beginPath(); ctx.moveTo(PAD,124); ctx.lineTo(W-PAD,124); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(PAD,136); ctx.lineTo(W-PAD,136); ctx.stroke();
 
-        // Meta fields — 4 equal columns
         const fW=Math.floor((W-PAD*2)/4);
         const META=[['TO / VENDOR',vendor,'#0f172a'],['TITLE',titleTxt,'#0f172a'],['PART NO.',partno,'#b45309'],['DATE',dateVal,'#0f172a']];
         META.forEach(([lbl,val,vc],i)=>{
             const fx=PAD+i*fW;
-            // Column divider
             if(i>0){
                 ctx.strokeStyle='#d0dbe8'; ctx.lineWidth=1;
-                ctx.beginPath(); ctx.moveTo(fx,128); ctx.lineTo(fx,HDR_H-6); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(fx,140); ctx.lineTo(fx,HDR_H-6); ctx.stroke();
             }
-            // Key label
             ctx.font=`bold ${F_MLBL}px Arial`; ctx.fillStyle='#64748b';
-            ctx.fillText(lbl, fx+10, 148);
-            // Value — measure and truncate to column
+            ctx.fillText(lbl, fx+10, 162);
             ctx.font=`bold ${F_MVAL}px Arial`; ctx.fillStyle=vc;
             const maxW=fW-20;
             let txt=val||'—';
             while(txt.length>1 && ctx.measureText(txt).width>maxW) txt=txt.slice(0,-1);
-            ctx.fillText(txt, fx+10, 186);
+            ctx.fillText(txt, fx+10, 202);
         });
 
-        // Bottom border
         ctx.strokeStyle='#b8c8e0'; ctx.lineWidth=2;
         ctx.beginPath(); ctx.moveTo(0,HDR_H); ctx.lineTo(W,HDR_H); ctx.stroke();
     }
 
-    // ── BODY ──
     function _drawBody(){
-        // ══ Cross-section panel ══
+        // ── Cross-section panel ──
         if(hasCanvas){
-            // 1. Fill BG — strictly rect(0, bodyY, CS_W, CONTENT_H)
             const csBg=ctx.createLinearGradient(0,bodyY,0,bodyY+CONTENT_H);
             csBg.addColorStop(0,'#dce8f8'); csBg.addColorStop(1,'#eef4fb');
             ctx.fillStyle=csBg;
             ctx.fillRect(0,bodyY,CS_W,CONTENT_H);
 
-            // 2. Navy header strip
-            const CSH=52;
+            const CSH=68; // taller header to fit basis label
             ctx.fillStyle='#1e3a6e';
             ctx.fillRect(0,bodyY,CS_W,CSH);
-            ctx.fillStyle='#ffffff'; ctx.font='bold 18px Arial'; ctx.textAlign='center';
-            ctx.fillText('\u2715\u29C6  CROSS-SECTION PREVIEW',CS_W/2,bodyY+26);
-            ctx.fillStyle='rgba(255,255,255,0.72)'; ctx.font='13px Arial';
-            ctx.fillText('Not to scale',CS_W/2,bodyY+44);
+            ctx.fillStyle='#ffffff'; ctx.font='bold 20px Arial'; ctx.textAlign='center';
+            ctx.fillText('\u2715\u29C6  CROSS-SECTION PREVIEW',CS_W/2,bodyY+30);
+
+            // Blank basis label in CS header
+            const _bbLbl=(window._lastLensParams&&window._lastLensParams.p&&window._lastLensParams.p.blankBasis)?window._lastLensParams.p.blankBasis:'od';
+            ctx.fillStyle='rgba(251,191,36,0.96)'; ctx.font='bold 16px Arial';
+            ctx.fillText('Blank: '+(_bbLbl==='ca'?'CA-based sag':'OD-based sag (default)'),CS_W/2,bodyY+54);
             ctx.textAlign='left';
 
-            // 3. Lens drawing area — STRICTLY clipped inside panel
             const LAX=IPAD;
             const LAY=bodyY+CSH+IPAD;
             const LAW=CS_W-IPAD*2;
-            const LAH=CONTENT_H-CSH-IPAD*2;   // guaranteed to stay inside CONTENT_H
+            const LAH=CONTENT_H-CSH-IPAD*2;
 
             ctx.save();
-            ctx.rect(LAX, LAY, LAW, LAH);
+            ctx.beginPath();ctx.rect(LAX, LAY, LAW, LAH);
             ctx.clip();
 
             if(hasLens){
                 const lp=window._lastLensParams.p;
-                const physW=Math.max(Math.abs(lp.g1||0)+(lp.CT||0)+Math.abs(lp.g2||0), 0.1);
-                const physH=Math.max(lp.OD||1, 0.1);
-                const asp=Math.min(physH/physW, 2.2);
+                const physW2=Math.max(Math.abs(lp.g1||0)+(lp.CT||0)+Math.abs(lp.g2||0), 0.1);
+                const physH2=Math.max(lp.OD||1, 0.1);
+                const asp=Math.min(physH2/physW2, 2.2);
                 let dW=LAW, dH=Math.round(dW*asp);
                 if(dH>LAH){dH=LAH; dW=Math.round(dH/asp);}
                 dW=Math.min(dW,LAW); dH=Math.min(dH,LAH);
@@ -1706,47 +1765,39 @@ function _buildReportCanvas(callback){
             }
             ctx.restore();
 
-            // 4. Divider line
             ctx.strokeStyle='#a0b8d0'; ctx.lineWidth=2;
             ctx.beginPath();ctx.moveTo(CS_W,bodyY);ctx.lineTo(CS_W,bodyY+CONTENT_H);ctx.stroke();
         }
 
-        // ══ Data column — DX to DR (no right margin) ══
+        // ── Data column ──
         const colInnerW=DW-IPAD*2;
-        // Label 50% | separator | value fills rest — prevents param text clipping
         const LABEL_W=Math.round(colInnerW*0.50);
         const splitX=DX+IPAD+LABEL_W;
         const valX=splitX+14;
         let dy=bodyY+PAD;
 
-        // Report title
         ctx.fillStyle='#0f172a'; ctx.font=`bold ${F_TITLE}px Arial`;
-        ctx.fillText(titleTxt.substring(0,60), DX+IPAD, dy+34); dy+=TITLE_ROW;
+        ctx.fillText(titleTxt.substring(0,60), DX+IPAD, dy+40); dy+=TITLE_ROW;
 
         sections.forEach(sec=>{
-            // Section header — from DX to DR, full flush
             ctx.fillStyle='#1e3a7e'; ctx.fillRect(DX,dy,DW,SEC_H);
             ctx.fillStyle='#ffffff'; ctx.font=`bold ${SHF}px Arial`;
-            ctx.fillText((sec.hdr||'').toUpperCase(), DX+IPAD, dy+SEC_H-13); dy+=SEC_H;
+            ctx.fillText((sec.hdr||'').toUpperCase(), DX+IPAD, dy+SEC_H-14); dy+=SEC_H;
 
             sec.rows.forEach((r,ri)=>{
                 const bg=r.green?'#f0fdf4':r.amber?'#fffbeb':(ri%2===0?'#ffffff':'#f7f9fc');
-                // row bg — flush DX to DR
                 ctx.fillStyle=bg; ctx.fillRect(DX,dy,DW,ROW_H);
-                const midY=dy+Math.round(ROW_H/2)+9;
+                const midY=dy+Math.round(ROW_H/2)+10;
 
-                // Label — clipped to label zone
                 ctx.save();
                 ctx.beginPath(); ctx.rect(DX+IPAD, dy+2, LABEL_W-6, ROW_H-4); ctx.clip();
                 ctx.fillStyle='#374151'; ctx.font=`${LF}px Arial`; ctx.textAlign='left';
                 ctx.fillText(r.lbl||'', DX+IPAD, midY);
                 ctx.restore();
 
-                // Separator line
                 ctx.strokeStyle='#c8d8ea'; ctx.lineWidth=1;
                 ctx.beginPath();ctx.moveTo(splitX,dy+6);ctx.lineTo(splitX,dy+ROW_H-6);ctx.stroke();
 
-                // Value — left-aligned after separator, clipped to row right edge
                 ctx.save();
                 ctx.beginPath(); ctx.rect(valX, dy+2, DR-valX-IPAD, ROW_H-4); ctx.clip();
                 const vc=r.green?'#15803d':r.amber?'#92400e':'#0f172a';
@@ -1755,7 +1806,6 @@ function _buildReportCanvas(callback){
                 ctx.textAlign='left'; ctx.fillText(r.val||'', valX, midY);
                 ctx.restore();
 
-                // Row bottom line
                 ctx.strokeStyle='#e2e8f0'; ctx.lineWidth=0.8;
                 ctx.beginPath();ctx.moveTo(DX,dy+ROW_H);ctx.lineTo(DR,dy+ROW_H);ctx.stroke();
                 dy+=ROW_H;
@@ -1763,17 +1813,15 @@ function _buildReportCanvas(callback){
             dy+=GAP;
         });
 
-        // ══ Footer ══
+        // ── Footer ──
         const fy=H-FOOTER_H;
         ctx.fillStyle='#1a2e44'; ctx.fillRect(0,fy,W,FOOTER_H);
-        // Left: app name + company
-        ctx.fillStyle='#e2e8f0'; ctx.font=`bold 22px Arial`; ctx.textAlign='left';
-        ctx.fillText('OptiCost LRMCE v1.2', PAD, fy+30);
-        ctx.fillStyle='#94a3b8'; ctx.font=`19px Arial`;
-        ctx.fillText(mfr+'  |  '+website+'  |  '+contact, PAD, fy+58);
-        // Right: generated date
-        ctx.fillStyle='#64748b'; ctx.font=`17px Arial`; ctx.textAlign='right';
-        ctx.fillText('Generated: '+new Date().toLocaleString(), W-PAD, fy+58);
+        ctx.fillStyle='#e2e8f0'; ctx.font=`bold 24px Arial`; ctx.textAlign='left';
+        ctx.fillText('OptiCost LRMCE v1.2', PAD, fy+34);
+        ctx.fillStyle='#94a3b8'; ctx.font=`20px Arial`;
+        ctx.fillText(mfr+'  |  '+website+'  |  '+contact, PAD, fy+62);
+        ctx.fillStyle='#64748b'; ctx.font=`18px Arial`; ctx.textAlign='right';
+        ctx.fillText('Generated: '+new Date().toLocaleString(), W-PAD, fy+62);
         ctx.textAlign='left';
         callback(cv);
     }
@@ -1802,18 +1850,21 @@ function liveDrawLens(){
         const sag1od=calcSag(s1,roc1,od), sag2od=calcSag(s2,roc2,od);
         const ETca=edgeThicknessAt(s1,s2,ct,sag1ca,sag2ca);
         if(ETca<0){if(summary)summary.style.display="none";_showCanvasErr("c-canvas","ET@CA="+ETca.toFixed(2)+"mm — sags exceed CT");return;}
-        const lp={OD:od,CT:ct,CA1:ca1,CA2:ca2,s1,s2,g1:sag1ca,g2:sag2ca,roc1,roc2};
+        const _bb=getBlankBasis();
+        const lp={OD:od,CT:ct,CA1:ca1,CA2:ca2,s1,s2,g1:sag1ca,g2:sag2ca,roc1,roc2,blankBasis:_bb,sag1od,sag2od};
         window._lastLensParams={type:'circ',id:"c-canvas",p:lp};
         drawLensCanvas("c-canvas",lp,true);
         const matSel=document.getElementById("c-mat").value;
         let dens=matSel==="Custom Density"?parseFloat(document.getElementById("c-cd").value)||0:getDens(matSel)||0;
         if(dens>0&&summary){
             const Vt=lensVolumeCA(od,ca1,ca2,s1,s2,ct,sag1ca,sag2ca);
-            const blkTh=blankThickness(s1,s2,ct,sag1od,sag2od);
+            const blkTh=_bb==='ca'?blankThickness(s1,s2,ct,sag1ca,sag2ca):blankThickness(s1,s2,ct,sag1od,sag2od);
             const Vb=Math.PI*(od/2)*(od/2)*blkTh;
             const lWt=Vt/1000*dens, bWt=Vb/1000*dens;
             document.getElementById("lw-lens-wt").textContent=lWt.toFixed(3)+" g";
             document.getElementById("lw-blank-wt").textContent=bWt.toFixed(3)+" g";
+            const basisEl=document.getElementById("lw-blank-basis");
+            if(basisEl) basisEl.textContent=(_bb==='ca'?'CA-based sag':'OD-based sag (default)');
             summary.style.display="block";
         }else if(summary) summary.style.display="none";
     }catch(e){if(summary)summary.style.display="none";_showCanvasErr("c-canvas",e.message);}
@@ -1877,13 +1928,13 @@ function v(id){return(document.getElementById(id)||{value:""}).value;}
 const THEMES=['dark','light','white','warm','green','steel','purple','red'];
 function setTheme(t){document.documentElement.setAttribute('data-theme',t==='dark'?'':t);THEMES.forEach(x=>{const el=document.getElementById('sw-'+x);if(el)el.classList.toggle('active',x===t);});try{localStorage.setItem('opticost_theme',t);}catch(e){}liveDrawLens();}
 function toggleThemePanel(){document.getElementById('theme-panel').classList.toggle('open');}
-function showAbout(){showModal("About OptiCost LRMCE","OptiCost — Lens Raw Material Cost Estimator\nVersion 1.2  |  Build 2025\n\n━━━━━━━━━━━━━━━━━━━━━\nFEATURES\n• Circular & Rectangular optic cost estimation\n• Real-time cross-section canvas preview\n• Sag, ET, volume & weight calculation\n• Multi-material library with custom density\n• Batch records & Excel export\n• PNG report with cross-section diagram\n• Multi-user login with session management\n• 7 UI themes  |  Offline-capable\n\n━━━━━━━━━━━━━━━━━━━━━\nDEVELOPED BY\n  Priya Gavshinde, Sr. Optical Engineer\n  Optics & Allied Engg. Pvt. Ltd. (OPTICA)\n\n━━━━━━━━━━━━━━━━━━━━━\nCONTACT\n  www.opticsindia.com\n  +91-9886654729\n  info@opticsindia.com\n\n© 2025 Optics & Allied Engg. Pvt. Ltd.\nAll rights reserved.");}
+function showAbout(){showModal("About OptiCost LRMCE","OptiCost — Lens Raw Material Cost Estimator\nVersion 1.2  |  Build 2025\n\n━━━━━━━━━━━━━━━━━━━━━\nFEATURES\n• Circular & Rectangular optic cost estimation\n• Real-time cross-section canvas preview\n• Sag, ET, volume & weight calculation\n• Multi-material library with custom density\n• Batch records & Excel export\n• PNG report with cross-section diagram\n• Multi-user login with session management\n• 7 UI themes  |  Offline-capable\n• Blank weight basis: OD-based or CA-based sag\n\n━━━━━━━━━━━━━━━━━━━━━\nDEVELOPED BY\n  Priya Gavshinde, Sr. Optical Engineer\n  Optics & Allied Engg. Pvt. Ltd. (OPTICA)\n\n━━━━━━━━━━━━━━━━━━━━━\nCONTACT\n  www.opticsindia.com\n  +91-9886654729\n  info@opticsindia.com\n\n© 2025 Optics & Allied Engg. Pvt. Ltd.\nAll rights reserved.");}
 
 window.addEventListener('DOMContentLoaded',()=>{
     loadMaterials();
     try{const su=localStorage.getItem("opticost_saved_user"),sp=localStorage.getItem("opticost_saved_pass");if(su&&sp){document.getElementById("login-user").value=su;document.getElementById("login-pass").value=atob(sp);document.getElementById("remember-me").checked=true;const fi=document.getElementById("forget-login-row");if(fi)fi.style.display="block";}}catch(e){}
     _seedDefaultUser();populateMats();surfChanged();syncCA();
-    // ── Restore saved logo ──
+    blankBasisChanged(); // initialize toggle styles
     try{const sl=localStorage.getItem('opticost_logo');if(sl&&sl.length>10){_logoDataUrl=sl;const li=document.getElementById("logo-img"),lp=document.getElementById("logo-preview");if(li)li.src=sl;if(lp)lp.style.display="block";}}catch(e){}
     try{const sc=localStorage.getItem('opticost_currency');if(sc){const lc=document.getElementById('lib-curr');if(lc)lc.value=sc;setLibCurrency(sc);}}catch(e){}
     try{const t=localStorage.getItem('opticost_theme')||'dark';setTheme(t);}catch(e){setTheme('dark');}

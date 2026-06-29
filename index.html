@@ -495,7 +495,7 @@
                 <div style="margin-bottom:6px">
                     <div class="meta-lbl">Manufacturer (From)</div>
                     <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-                        <input class="meta-inp" id="rpt-mfr" type="text" value="Optics &amp; Allied Engg. Pvt. Ltd. (OPTICA)" style="flex:1;min-width:120px" />
+                        <input class="meta-inp" id="rpt-mfr" type="text" value="Optics &amp; Allied Engg. Pvt. Ltd. (OPTICA)" style="flex:1;min-width:120px" oninput="refreshSnapHeader()" />
                         <label style="flex-shrink:0;background:var(--surf2);border:1.5px solid var(--border);border-radius:7px;padding:6px 10px;cursor:pointer;font-size:.75rem;color:var(--accent);font-weight:700;white-space:nowrap">
                             🖼 Logo<input type="file" id="logo-file-inp" accept="image/*" style="display:none" onchange="loadLogoFile(this)" />
                         </label>
@@ -506,20 +506,20 @@
                     </div>
                 </div>
                 <div class="meta-grid" style="margin-bottom:6px">
-                    <div><div class="meta-lbl">Website</div><input class="meta-inp" id="rpt-website" type="text" value="www.opticsindia.com" /></div>
-                    <div><div class="meta-lbl">Contact / Phone</div><input class="meta-inp" id="rpt-contact" type="text" value="+91-9886654729" /></div>
+                    <div><div class="meta-lbl">Website</div><input class="meta-inp" id="rpt-website" type="text" value="www.opticsindia.com" oninput="refreshSnapHeader()" /></div>
+                    <div><div class="meta-lbl">Contact / Phone</div><input class="meta-inp" id="rpt-contact" type="text" value="+91-9886654729" oninput="refreshSnapHeader()" /></div>
                 </div>
                 <div style="margin-bottom:6px">
                     <div class="meta-lbl">Vendor / Customer (To)</div>
-                    <input class="meta-inp" id="rpt-vendor" type="text" placeholder="e.g. Customer Company Name" />
+                    <input class="meta-inp" id="rpt-vendor" type="text" placeholder="e.g. Customer Company Name" oninput="refreshSnapHeader()" />
                 </div>
                 <div style="margin-bottom:6px">
                     <div class="meta-lbl">Quotation Title</div>
-                    <input class="meta-inp" id="rpt-title" type="text" placeholder="e.g. Lens Raw Material Cost Estimation" />
+                    <input class="meta-inp" id="rpt-title" type="text" placeholder="e.g. Lens Raw Material Cost Estimation" oninput="refreshSnapHeader()" />
                 </div>
                 <div class="meta-grid">
-                    <div><div class="meta-lbl">Part / Drawing No.</div><input class="meta-inp" id="rpt-partno" type="text" placeholder="e.g. OA-2024-001" /></div>
-                    <div><div class="meta-lbl">Date</div><input class="meta-inp" id="rpt-date" type="date" style="cursor:pointer" /></div>
+                    <div><div class="meta-lbl">Part / Drawing No.</div><input class="meta-inp" id="rpt-partno" type="text" placeholder="e.g. OA-2024-001" oninput="refreshSnapHeader()" /></div>
+                    <div><div class="meta-lbl">Date</div><input class="meta-inp" id="rpt-date" type="date" style="cursor:pointer" oninput="refreshSnapHeader()" onchange="refreshSnapHeader()" /></div>
                 </div>
             </div>
             <div class="batch-info">Records this session: <span id="batch-count">0</span></div>
@@ -1069,7 +1069,8 @@ function clearLogo(){
 }
 function refreshSnapHeader(){
     const mfr=document.getElementById("rpt-mfr").value.trim(),vendor=document.getElementById("rpt-vendor").value.trim(),title=document.getElementById("rpt-title").value.trim(),partno=document.getElementById("rpt-partno").value.trim(),dateVal=document.getElementById("rpt-date").value.trim()||new Date().toLocaleDateString(),hasData=recs.length>0;
-    document.getElementById("snap-header").style.display=hasData?"block":"none";
+    const hasMeta=!!(document.getElementById("rpt-mfr").value.trim()||document.getElementById("rpt-vendor").value.trim()||document.getElementById("rpt-title").value.trim());
+    document.getElementById("snap-header").style.display=(hasData||hasMeta)?"block":"none";
     document.getElementById("snap-footer").style.display=hasData?"block":"none";
     const set=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent=val;};
     set("snap-mfr-txt",mfr||"Optics & Allied Engg. Pvt. Ltd. (OPTICA)");

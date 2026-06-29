@@ -959,15 +959,45 @@ function calcCirc(){
     const signedSag2od=s2==="convex"?sag2od:(s2==="concave"?-sag2od:0);
     window._lastLensParams={type:'circ',id:"c-canvas",p:{OD,CT,CA1,CA2,s1,s2,g1:Math.abs(sag1ca),g2:Math.abs(sag2ca),roc1,roc2,blankBasis:_blankBasis,sag1od,sag2od}};
     drawLensCanvas("c-canvas",window._lastLensParams.p,true);
+    // ── Sag values to show based on selected basis ──
+    const showSagCA=(_blankBasis==='ca');
+    const disp1=showSagCA?signedSag1ca:signedSag1od;  // sag for selected basis, S1
+    const disp2=showSagCA?signedSag2ca:signedSag2od;  // sag for selected basis, S2
+    const sagLblSuffix=showSagCA?' @ CA':' @ OD';
+    // ET to display: use the same basis
+    // ET@CA = lens edge at clear aperture (always shown — lens property)
+    // ET@OD = edge at outer diameter (always shown — OD property)
+    // Sag shown in surface sections = selected basis (CA or OD)
+    const sagBasisLbl=_blankBasis==='ca'?' @ CA':' @ OD';
+    const s1HasCurve=(s1!=='plano'), s2HasCurve=(s2!=='plano');
     document.getElementById("result-text").innerHTML=
         resTitle("📐 Optic Cost Summary — Circular Lens")+
         `<div class="res-section">`+secHdr("Material")+row("Material",mat)+row("Density",dens.toFixed(3)+" g/cm³")+`</div><div class="res-divider"></div>`+
-        `<div class="res-section">`+secHdr("Dimensions")+row("Outer Diameter (OD)",OD.toFixed(3)+" mm")+row("Center Thickness (CT)",CT.toFixed(4)+" mm")+row("Edge Thickness @ CA (ET)",ETca.toFixed(4)+" mm",ETca<0?"amber":"")+row("Edge Thickness @ OD",ETod.toFixed(4)+" mm")+row("Raw Blank Thickness",blkTh.toFixed(4)+" mm")+`</div><div class="res-divider"></div>`+
-        `<div class="res-section">`+secHdr("Surface S1")+row("Type",v("s1t"))+(s1!=="plano"?row("ROC (R1)",roc1.toFixed(3)+" mm"):"")+row("Clear Aperture (CA1)",CA1.toFixed(3)+" mm")+row("Sag @ CA1",(signedSag1ca>=0?"+":" ")+signedSag1ca.toFixed(4)+" mm")+row("Sag @ OD1",(signedSag1od>=0?"+":" ")+signedSag1od.toFixed(4)+" mm")+`</div><div class="res-divider"></div>`+
-        `<div class="res-section">`+secHdr("Surface S2")+row("Type",v("s2t"))+(s2!=="plano"?row("ROC (R2)",roc2.toFixed(3)+" mm"):"")+row("Clear Aperture (CA2)",CA2.toFixed(3)+" mm")+row("Sag @ CA2",(signedSag2ca>=0?"+":" ")+signedSag2ca.toFixed(4)+" mm")+row("Sag @ OD2",(signedSag2od>=0?"+":" ")+signedSag2od.toFixed(4)+" mm")+`</div><div class="res-divider"></div>`+
+        `<div class="res-section">`+secHdr("Dimensions")+
+            row("Outer Diameter (OD)",OD.toFixed(3)+" mm")+
+            row("Center Thickness (CT)",CT.toFixed(4)+" mm")+
+            row("Edge Thickness (ET @ CA)",ETca.toFixed(4)+" mm",ETca<0?"amber":"")+
+            row("Raw Blank Thickness",blkTh.toFixed(4)+" mm")+
+        `</div><div class="res-divider"></div>`+
+        `<div class="res-section">`+secHdr("Surface S1")+row("Type",v("s1t"))+
+            (s1HasCurve?row("ROC (R1)",roc1.toFixed(3)+" mm"):"")+
+            row("Clear Aperture (CA1)",CA1.toFixed(3)+" mm")+
+            (s1HasCurve?row("Sag S1"+sagBasisLbl,(disp1>=0?"+":" ")+disp1.toFixed(4)+" mm"):"")+
+        `</div><div class="res-divider"></div>`+
+        `<div class="res-section">`+secHdr("Surface S2")+row("Type",v("s2t"))+
+            (s2HasCurve?row("ROC (R2)",roc2.toFixed(3)+" mm"):"")+
+            row("Clear Aperture (CA2)",CA2.toFixed(3)+" mm")+
+            (s2HasCurve?row("Sag S2"+sagBasisLbl,(disp2>=0?"+":" ")+disp2.toFixed(4)+" mm"):"")+
+        `</div><div class="res-divider"></div>`+
         `<div class="res-section">`+secHdr("Finished Lens")+row("Volume",Vtcm3.toFixed(6)+" cm³")+row("Weight",lensWt.toFixed(4)+" g")+row("COST",cur+" "+lensCost.toFixed(2),"green")+`</div><div class="res-divider"></div>`+
-        `<div class="res-section">`+secHdr("Raw Blank")+row("Sag Basis",_blankBasis==="ca"?"CA-based sag":"OD-based sag (default)")+row("Blank Thickness",blkTh.toFixed(4)+" mm")+row("Blank Volume",Vbcm3.toFixed(6)+" cm³")+row("Blank Weight",blankWt.toFixed(4)+" g")+row("Blank COST",cur+" "+blankCost.toFixed(2),"amber")+`</div>`;
-    recs.push({"Aperture":"Circular","Lens No":recs.length+1,"Material":mat,"Density(g/cm3)":dens.toFixed(3),"Price/gram":cur+" "+fmtPPG(ppg),"OD(mm)":OD,"CT(mm)":CT.toFixed(4),"ET@CA(mm)":ETca.toFixed(4),"ET@OD(mm)":ETod.toFixed(4),"BlankThk(mm)":blkTh.toFixed(4),"BlankBasis":_blankBasis==="ca"?"CA-based":"OD-based","S1":v("s1t"),"ROC1(mm)":s1==="plano"?"Inf":roc1,"CA1(mm)":CA1,"S2":v("s2t"),"ROC2(mm)":s2==="plano"?"Inf":roc2,"CA2(mm)":CA2,"Sag1_CA(mm)":signedSag1ca.toFixed(4),"Sag2_CA(mm)":signedSag2ca.toFixed(4),"Sag1_OD(mm)":signedSag1od.toFixed(4),"Sag2_OD(mm)":signedSag2od.toFixed(4),"LensVol(cm3)":Vtcm3.toFixed(6),"LensWt(g)":lensWt.toFixed(4),"LensCost":cur+" "+lensCost.toFixed(2),"BlankVol(cm3)":Vbcm3.toFixed(6),"BlankWt(g)":blankWt.toFixed(4),"BlankCost":cur+" "+blankCost.toFixed(2)});
+        `<div class="res-section">`+secHdr("Raw Blank")+
+            row("Sag Basis",_blankBasis==="ca"?"CA-based sag":"OD-based sag")+
+            row("Blank Thickness",blkTh.toFixed(4)+" mm")+
+            row("Blank Volume",Vbcm3.toFixed(6)+" cm³")+
+            row("Blank Weight",blankWt.toFixed(4)+" g")+
+            row("Blank COST",cur+" "+blankCost.toFixed(2),"amber")+
+        `</div>`;
+    recs.push({"Aperture":"Circular","Lens No":recs.length+1,"Material":mat,"Density(g/cm3)":dens.toFixed(3),"Price/gram":cur+" "+fmtPPG(ppg),"OD(mm)":OD,"CT(mm)":CT.toFixed(4),"ET@CA(mm)":ETca.toFixed(4),"BlankThk(mm)":blkTh.toFixed(4),"BlankBasis":_blankBasis==="ca"?"CA-based":"OD-based","S1":v("s1t"),"ROC1(mm)":s1==="plano"?"Inf":roc1,"CA1(mm)":CA1,"S2":v("s2t"),"ROC2(mm)":s2==="plano"?"Inf":roc2,"CA2(mm)":CA2,"Sag1_CA(mm)":signedSag1ca.toFixed(4),"Sag2_CA(mm)":signedSag2ca.toFixed(4),"Sag1_OD(mm)":signedSag1od.toFixed(4),"Sag2_OD(mm)":signedSag2od.toFixed(4),"LensVol(cm3)":Vtcm3.toFixed(6),"LensWt(g)":lensWt.toFixed(4),"LensCost":cur+" "+lensCost.toFixed(2),"BlankVol(cm3)":Vbcm3.toFixed(6),"BlankWt(g)":blankWt.toFixed(4),"BlankCost":cur+" "+blankCost.toFixed(2)});
 }
 
 function calcRect(){
@@ -1367,10 +1397,15 @@ function drawLensCanvas(id, p, preview=false, dpr=0){
     ctx.font="bold 11px 'Nunito',sans-serif"; ctx.fillStyle=cStroke; ctx.textAlign="center";
     ctx.fillText("CT="+CT.toFixed(2)+"mm",(ctX1+ctX2)/2,ctArrY+13); ctx.textAlign="left";
 
-    const etCA=edgeThicknessAt(s1,s2,CT,g1,g2);
-    if(!isNaN(etCA)&&etCA>0){
-        const etYline=Math.min(py(hCA1>0?hCA1:hOD),py(hCA2>0?hCA2:hOD))-20;
-        const etLeft=px(xS1(hCA1>0?hCA1:hOD)), etRight=px(xS2(hCA2>0?hCA2:hOD));
+    // ET annotation — basis-aware
+    const _bb=p.blankBasis||'od';
+    // ET always CA-based (true lens edge at clear aperture)
+    const _etVal2=edgeThicknessAt(s1,s2,CT,g1,g2);
+    const _etLbl2='ET@CA';
+    const _etHalfAp=hCA1>0?hCA1:hOD;
+    if(!isNaN(_etVal2)){
+        const etYline=py(_etHalfAp)-20;
+        const etLeft=px(xS1(_etHalfAp)), etRight=px(xS2(_etHalfAp));
         if(Math.abs(etRight-etLeft)>12){
             const etColor=preview?"#4f46e5":"#374151";
             ctx.strokeStyle=etColor; ctx.lineWidth=1.2; ctx.setLineDash([5,4]);
@@ -1380,7 +1415,7 @@ function drawLensCanvas(id, p, preview=false, dpr=0){
             ctx.beginPath();ctx.moveTo(etLeft+arH2,etYline-3);ctx.lineTo(etLeft,etYline);ctx.lineTo(etLeft+arH2,etYline+3);ctx.stroke();
             ctx.beginPath();ctx.moveTo(etRight-arH2,etYline-3);ctx.lineTo(etRight,etYline);ctx.lineTo(etRight-arH2,etYline+3);ctx.stroke();
             ctx.font="bold 10px 'Nunito',sans-serif"; ctx.fillStyle=etColor; ctx.textAlign="center";
-            ctx.fillText("ET@CA="+etCA.toFixed(2)+"mm",(etLeft+etRight)/2,etYline-5); ctx.textAlign="left";
+            ctx.fillText(_etLbl2+"="+_etVal2.toFixed(2)+"mm",(etLeft+etRight)/2,etYline-5); ctx.textAlign="left";
         }
     }
 
@@ -1418,7 +1453,6 @@ function drawLensCanvas(id, p, preview=false, dpr=0){
     ctx.setLineDash([]); ctx.restore();
 
     // ── Blank basis badge in live canvas ──
-    const _bb=p.blankBasis||'od';
     const _bbColor=_bb==='ca'?'rgba(192,132,252,0.92)':'rgba(251,191,36,0.92)';
     const _bbTxt='Blank: '+(_bb==='ca'?'CA sag':'OD sag (default)');
     ctx.save();
@@ -1545,28 +1579,32 @@ function _renderLensToCanvas(targetCanvas, p, targetW, targetH){
     ctx.fillText("CT="+CT.toFixed(2)+" mm",(ctX1+ctX2)/2,Math.min(ctY2+fs+3,CH-3));
     ctx.textAlign='left';
 
-    // ── ET@CA ──
-    const etCA=edgeThicknessAt(s1,s2,CT,g1,g2);
-    if(!isNaN(etCA)&&etCA>0){
-        const etLeft=ppx(xS1(hCA1>0?hCA1:hOD)), etRight=ppx(xS2(hCA2>0?hCA2:hOD));
+    // ── ET annotation — basis-aware ──
+    // ET@CA = true lens edge at clear aperture (CA sag)
+    const _etVal=edgeThicknessAt(s1,s2,CT,g1,g2);
+    const _etLbl='ET@CA';
+    const _etHA=hCA1>0?hCA1:hOD;
+    // Compute x positions of lens faces at the ET half-aperture
+    function _xS1etA(hA){const sg=getSag(roc1,hCA1,g1,hA);if(s1==="convex")return -CT/2-g1+sg;if(s1==="concave")return -CT/2-sg;return -CT/2;}
+    function _xS2etA(hA){const sg=getSag(roc2,hCA2,g2,hA);if(s2==="convex")return CT/2+g2-sg;if(s2==="concave")return CT/2+sg;return CT/2;}
+    const etLeft=ppx(_xS1etA(_etHA)), etRight=ppx(_xS2etA(_etHA));
+    if(!isNaN(_etVal)&&Math.abs(etRight-etLeft)>fs){
         const etY=ppy(hOD)-Math.round(fs*2.2);
         const etY2=Math.max(etY,fs+4);
-        if(Math.abs(etRight-etLeft)>fs){
-            ctx.strokeStyle='#374151'; ctx.lineWidth=Math.max(1,lw*0.55);
-            ctx.setLineDash([Math.round(fs*0.35),Math.round(fs*0.25)]);
-            [[etLeft,ppy(hOD)],[etRight,ppy(hOD)]].forEach(([x,ey])=>{
-                ctx.beginPath();ctx.moveTo(x,ey);ctx.lineTo(x,etY2);ctx.stroke();
-            });
-            ctx.setLineDash([6,5]);
-            ctx.beginPath();ctx.moveTo(etLeft,etY2);ctx.lineTo(etRight,etY2);ctx.stroke();
-            ctx.setLineDash([]);
-            const arH2=Math.max(4,Math.round(fs*0.38));
-            ctx.beginPath();ctx.moveTo(etLeft+arH2,etY2-arH2);ctx.lineTo(etLeft,etY2);ctx.lineTo(etLeft+arH2,etY2+arH2);ctx.stroke();
-            ctx.beginPath();ctx.moveTo(etRight-arH2,etY2-arH2);ctx.lineTo(etRight,etY2);ctx.lineTo(etRight-arH2,etY2+arH2);ctx.stroke();
-            ctx.font=`bold ${fsS}px Arial`; ctx.fillStyle='#1e3a6e'; ctx.textAlign='center';
-            ctx.fillText("ET@CA="+etCA.toFixed(2)+" mm",(etLeft+etRight)/2,Math.max(etY2-5,fsS+4));
-            ctx.textAlign='left';
-        }
+        ctx.strokeStyle='#1e3a6e'; ctx.lineWidth=Math.max(1,lw*0.55);
+        ctx.setLineDash([Math.round(fs*0.35),Math.round(fs*0.25)]);
+        [[etLeft,ppy(_etHA)],[etRight,ppy(_etHA)]].forEach(([x,ey])=>{
+            ctx.beginPath();ctx.moveTo(x,ey);ctx.lineTo(x,etY2);ctx.stroke();
+        });
+        ctx.setLineDash([6,5]);
+        ctx.beginPath();ctx.moveTo(etLeft,etY2);ctx.lineTo(etRight,etY2);ctx.stroke();
+        ctx.setLineDash([]);
+        const arH2=Math.max(4,Math.round(fs*0.38));
+        ctx.beginPath();ctx.moveTo(etLeft+arH2,etY2-arH2);ctx.lineTo(etLeft,etY2);ctx.lineTo(etLeft+arH2,etY2+arH2);ctx.stroke();
+        ctx.beginPath();ctx.moveTo(etRight-arH2,etY2-arH2);ctx.lineTo(etRight,etY2);ctx.lineTo(etRight-arH2,etY2+arH2);ctx.stroke();
+        ctx.font=`bold ${fsS}px Arial`; ctx.fillStyle='#1e3a6e'; ctx.textAlign='center';
+        ctx.fillText(_etLbl+"="+_etVal.toFixed(2)+" mm",(etLeft+etRight)/2,Math.max(etY2-5,fsS+4));
+        ctx.textAlign='left';
     }
 
     ctx.font=`bold ${fs}px Arial`; ctx.fillStyle='#0f172a';

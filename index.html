@@ -1482,7 +1482,7 @@ function _renderLensToCanvas(targetCanvas, p, targetW, targetH){
     const xMin=Math.min(xs1v,xS1(hOD)), xMax=Math.max(xs2v,xS2(hOD));
     const physW=xMax-xMin||0.001, physH=OD||0.001;
 
-    const PAD_L=Math.round(CW*0.20), PAD_R=Math.round(CW*0.22);
+    const PAD_L=Math.round(CW*0.22), PAD_R=Math.round(CW*0.32);
     const PAD_Y=Math.round(CH*0.12);
     const drawableW=CW-PAD_L-PAD_R, drawableH=CH-PAD_Y*2;
     const sX=drawableW/physW, sY=drawableH/physH;
@@ -1609,10 +1609,13 @@ function _renderLensToCanvas(targetCanvas, p, targetW, targetH){
     }
 
     ctx.font=`bold ${fs}px Arial`; ctx.fillStyle='#0f172a';
-    ctx.textAlign='right'; ctx.fillText("S1",LP[Math.round(N*0.10)][0]-5,LP[Math.round(N*0.10)][1]-5);
-    ctx.textAlign='left';  ctx.fillText("S2",RP[Math.round(N*0.10)][0]+5,RP[Math.round(N*0.10)][1]-5);
-    if(s1!=="plano"&&roc1>0){ctx.font=`bold ${fsS}px Arial`;ctx.fillStyle='#92400e';ctx.textAlign='right';ctx.fillText("R1="+roc1.toFixed(1),LP[Math.round(N*0.28)][0]-4,LP[Math.round(N*0.28)][1]+fsS+2);}
-    if(s2!=="plano"&&roc2>0){ctx.font=`bold ${fsS}px Arial`;ctx.fillStyle='#92400e';ctx.textAlign='left'; ctx.fillText("R2="+roc2.toFixed(1),RP[Math.round(N*0.28)][0]+4,RP[Math.round(N*0.28)][1]+fsS+2);}
+    // S1/S2 labels: place near top of lens, inward from edge, with generous offset
+    const _s1x=LP[Math.round(N*0.06)][0], _s1y=LP[Math.round(N*0.06)][1];
+    const _s2x=RP[Math.round(N*0.06)][0], _s2y=RP[Math.round(N*0.06)][1];
+    ctx.textAlign='right'; ctx.fillText("S1",_s1x-Math.round(fs*0.5),_s1y-Math.round(fs*0.8));
+    ctx.textAlign='left';  ctx.fillText("S2",_s2x+Math.round(fs*0.5),_s2y-Math.round(fs*0.8));
+    if(s1!=="plano"&&roc1>0){ctx.font=`bold ${fsS}px Arial`;ctx.fillStyle='#92400e';ctx.textAlign='right';ctx.fillText("R1="+roc1.toFixed(1),LP[Math.round(N*0.35)][0]-Math.round(fsS*0.5),LP[Math.round(N*0.35)][1]+Math.round(fsS*1.5));}
+    if(s2!=="plano"&&roc2>0){ctx.font=`bold ${fsS}px Arial`;ctx.fillStyle='#92400e';ctx.textAlign='left'; ctx.fillText("R2="+roc2.toFixed(1),RP[Math.round(N*0.35)][0]+Math.round(fsS*0.5),RP[Math.round(N*0.35)][1]+Math.round(fsS*1.5));}
     ctx.textAlign='left';
 
     const leftEdge=Math.min(...LP.map(pt=>pt[0]));
@@ -1620,10 +1623,10 @@ function _renderLensToCanvas(targetCanvas, p, targetW, targetH){
     const ca1ArrowX=Math.round(PAD_L*0.32+leftEdge*0.5);
     vArrow(Math.min(ca1ArrowX,leftEdge-fsS), ppy(hCA1), ppy(-hCA1), "\u00d8CA1="+CA1.toFixed(2)+"mm", '#4338ca','left');
 
-    const ca2ArrowX=rightEdge+Math.round(PAD_R*0.28);
-    const odArrowX=rightEdge+Math.round(PAD_R*0.70);
+    const ca2ArrowX=rightEdge+Math.round(PAD_R*0.20);
+    const odArrowX=rightEdge+Math.round(PAD_R*0.58);
     if(hCA2>0&&Math.abs(hCA2-hOD)>0.4)
-        vArrow(Math.min(ca2ArrowX,CW-fsS*7), ppy(hCA2), ppy(-hCA2), "\u00d8CA2="+CA2.toFixed(2)+"mm", '#6366f1','right');
+        vArrow(Math.min(ca2ArrowX,CW-fsS*10), ppy(hCA2), ppy(-hCA2), "\u00d8CA2="+CA2.toFixed(2)+"mm", '#6366f1','right');
     vArrow(Math.min(odArrowX,CW-5), ppy(hOD), ppy(-hOD), "\u00d8OD="+OD+"mm", '#b45309','right');
 
     // ── Blank basis badge at bottom of canvas ──
@@ -1691,7 +1694,7 @@ function _buildReportCanvas(callback){
     const CONTENT_H=dataH+PAD*2;
     const H=HDR_H+CONTENT_H+FOOTER_H;
 
-    const CS_W=hasCanvas?Math.round(W*0.36):0;
+    const CS_W=hasCanvas?Math.round(W*0.48):0;
     const DX=CS_W;
     const DR=W;
     const DW=DR-DX;

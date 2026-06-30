@@ -1384,19 +1384,22 @@ function drawLensCanvas(id, p, preview=false, dpr=0){
         ctx.textAlign="center"; ctx.fillText(labelText,0,0); ctx.restore();
     }
 
+    // CT measured at lens center height; for concave surfaces the waist sits inside the
+    // bottom-edge silhouette, so anchor leaders to the outer silhouette extent (never crosses glass).
     const ctX1=px(xS1(0)), ctX2=px(xS2(0));
+    const _ctOuterL=Math.min(...LP.map(pt=>pt[0])), _ctOuterR=Math.max(...RP.map(pt=>pt[0]));
     const ctArrY=cy+Math.min(26,CH/2-18);
     ctx.strokeStyle=cStroke; ctx.lineWidth=1.2;
     ctx.setLineDash([4,4]);
-    ctx.beginPath();ctx.moveTo(ctX1,cy+2);ctx.lineTo(ctX1,ctArrY-4);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(ctX2,cy+2);ctx.lineTo(ctX2,ctArrY-4);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(_ctOuterL,py(-hOD));ctx.lineTo(_ctOuterL,ctArrY-4);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(_ctOuterR,py(-hOD));ctx.lineTo(_ctOuterR,ctArrY-4);ctx.stroke();
     ctx.setLineDash([]);
-    ctx.beginPath();ctx.moveTo(ctX1,ctArrY);ctx.lineTo(ctX2,ctArrY);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(_ctOuterL,ctArrY);ctx.lineTo(_ctOuterR,ctArrY);ctx.stroke();
     const ah=5;
-    ctx.beginPath();ctx.moveTo(ctX1+ah,ctArrY-3);ctx.lineTo(ctX1,ctArrY);ctx.lineTo(ctX1+ah,ctArrY+3);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(ctX2-ah,ctArrY-3);ctx.lineTo(ctX2,ctArrY);ctx.lineTo(ctX2-ah,ctArrY+3);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(_ctOuterL+ah,ctArrY-3);ctx.lineTo(_ctOuterL,ctArrY);ctx.lineTo(_ctOuterL+ah,ctArrY+3);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(_ctOuterR-ah,ctArrY-3);ctx.lineTo(_ctOuterR,ctArrY);ctx.lineTo(_ctOuterR-ah,ctArrY+3);ctx.stroke();
     ctx.font="bold 11px 'Nunito',sans-serif"; ctx.fillStyle=cStroke; ctx.textAlign="center";
-    ctx.fillText("CT="+CT.toFixed(2)+"mm",(ctX1+ctX2)/2,ctArrY+13); ctx.textAlign="left";
+    ctx.fillText("CT="+CT.toFixed(2)+"mm",(_ctOuterL+_ctOuterR)/2,ctArrY+13); ctx.textAlign="left";
 
     // ET annotation — basis-aware
     const _bb=p.blankBasis||'od';
@@ -1558,22 +1561,31 @@ function _renderLensToCanvas(targetCanvas, p, targetW, targetH){
         ctx.textAlign='center'; ctx.fillText(label,0,0); ctx.restore();
     }
 
+    // CT is measured at lens center height (y=0) — ctX1/ctX2 are the correct x-positions
+    // for the dimension line + arrows. BUT for concave surfaces, the lens waist (center) sits
+    // INSIDE the bottom-edge silhouette, so a straight vertical leader from ctX1/ctX2 down to
+    // the dimension line would cut through the glass body. Fix: route the leader from the
+    // OUTERMOST x-extent of the whole lens silhouette (left/right edge across all y), so it
+    // always runs in clear space outside the shape, regardless of convex/concave/plano mix.
     const ctX1=ppx(xS1(0)), ctX2=ppx(xS2(0));
+    const _ctOuterL=Math.min(...LP.map(pt=>pt[0]));  // leftmost point of S1 across full height
+    const _ctOuterR=Math.max(...RP.map(pt=>pt[0]));  // rightmost point of S2 across full height
     const ctY2=PAD_TOP+drawableH+Math.round(CT_STRIP*0.62);  // fixed position inside dedicated strip
     ctx.strokeStyle='#b91c1c'; ctx.lineWidth=Math.max(2,Math.round(CW/420));
     ctx.setLineDash([Math.round(CW/120),Math.round(CW/170)]);
-    [[ctX1,ppy(-hOD)],[ctX2,ppy(-hOD)]].forEach(([x,ey])=>{
-        ctx.beginPath();ctx.moveTo(x,ey);ctx.lineTo(x,ctY2);ctx.stroke();
-    });
+    // Leader for S1 side: from outer-left silhouette point straight down, clear of the shape
+    ctx.beginPath();ctx.moveTo(_ctOuterL,ppy(-hOD));ctx.lineTo(_ctOuterL,ctY2);ctx.stroke();
+    // Leader for S2 side: from outer-right silhouette point straight down, clear of the shape
+    ctx.beginPath();ctx.moveTo(_ctOuterR,ppy(-hOD));ctx.lineTo(_ctOuterR,ctY2);ctx.stroke();
     ctx.setLineDash([]);
     ctx.strokeStyle='#d00000'; ctx.lineWidth=Math.max(2.5,lw*1.3);
-    ctx.beginPath();ctx.moveTo(ctX1,ctY2);ctx.lineTo(ctX2,ctY2);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(_ctOuterL,ctY2);ctx.lineTo(_ctOuterR,ctY2);ctx.stroke();
     const arH=Math.max(6,Math.round(fs*0.5));
     ctx.fillStyle='#d00000';
-    ctx.beginPath();ctx.moveTo(ctX1+arH,ctY2-arH);ctx.lineTo(ctX1,ctY2);ctx.lineTo(ctX1+arH,ctY2+arH);ctx.lineTo(ctX1+arH*0.6,ctY2);ctx.closePath();ctx.fill();
-    ctx.beginPath();ctx.moveTo(ctX2-arH,ctY2-arH);ctx.lineTo(ctX2,ctY2);ctx.lineTo(ctX2-arH,ctY2+arH);ctx.lineTo(ctX2-arH*0.6,ctY2);ctx.closePath();ctx.fill();
+    ctx.beginPath();ctx.moveTo(_ctOuterL+arH,ctY2-arH);ctx.lineTo(_ctOuterL,ctY2);ctx.lineTo(_ctOuterL+arH,ctY2+arH);ctx.lineTo(_ctOuterL+arH*0.6,ctY2);ctx.closePath();ctx.fill();
+    ctx.beginPath();ctx.moveTo(_ctOuterR-arH,ctY2-arH);ctx.lineTo(_ctOuterR,ctY2);ctx.lineTo(_ctOuterR-arH,ctY2+arH);ctx.lineTo(_ctOuterR-arH*0.6,ctY2);ctx.closePath();ctx.fill();
     ctx.font=`bold ${fs}px Arial`; ctx.fillStyle='#8b0000'; ctx.textAlign='center';
-    ctx.fillText("CT="+CT.toFixed(2)+" mm",(ctX1+ctX2)/2,Math.min(ctY2+Math.round(fs*0.9),CH-6));
+    ctx.fillText("CT="+CT.toFixed(2)+" mm",(_ctOuterL+_ctOuterR)/2,Math.min(ctY2+Math.round(fs*0.9),CH-6));
     ctx.textAlign='left';
 
     // ── ET annotation — basis-aware ──

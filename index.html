@@ -1478,7 +1478,7 @@ function _renderLensToCanvas(targetCanvas, p, targetW, targetH){
 
     const PAD_L=Math.round(CW*0.22), PAD_R=Math.round(CW*0.32);
     const PAD_TOP=Math.round(CH*0.10);
-    const CT_STRIP=Math.max(Math.round(CH*0.09),46);  // dedicated bottom strip for CT dimension line
+    const CT_STRIP=Math.max(Math.round(CH*0.13),58);  // dedicated bottom strip for CT dimension line
     const drawableW=CW-PAD_L-PAD_R, drawableH=CH-PAD_TOP-CT_STRIP;
     const sX=drawableW/physW, sY=drawableH/physH;
     const s=Math.min(sX,sY);
@@ -1559,20 +1559,21 @@ function _renderLensToCanvas(targetCanvas, p, targetW, targetH){
     }
 
     const ctX1=ppx(xS1(0)), ctX2=ppx(xS2(0));
-    const ctY2=PAD_TOP+drawableH+Math.round(CT_STRIP*0.40);  // fixed position inside dedicated strip, close to lens
-    ctx.strokeStyle='#b91c1c'; ctx.lineWidth=Math.max(2,lw*1.1);
-    ctx.setLineDash([Math.max(8,Math.round(lw*5)),Math.max(6,Math.round(lw*3.5))]);
+    const ctY2=PAD_TOP+drawableH+Math.round(CT_STRIP*0.62);  // fixed position inside dedicated strip
+    ctx.strokeStyle='#b91c1c'; ctx.lineWidth=Math.max(2,Math.round(CW/420));
+    ctx.setLineDash([Math.round(CW/120),Math.round(CW/170)]);
     [[ctX1,ppy(-hOD)],[ctX2,ppy(-hOD)]].forEach(([x,ey])=>{
         ctx.beginPath();ctx.moveTo(x,ey);ctx.lineTo(x,ctY2);ctx.stroke();
     });
     ctx.setLineDash([]);
-    ctx.strokeStyle='#b91c1c';
+    ctx.strokeStyle='#d00000'; ctx.lineWidth=Math.max(2.5,lw*1.3);
     ctx.beginPath();ctx.moveTo(ctX1,ctY2);ctx.lineTo(ctX2,ctY2);ctx.stroke();
-    const arH=Math.max(4,Math.round(fs*0.42));
-    ctx.beginPath();ctx.moveTo(ctX1+arH,ctY2-arH);ctx.lineTo(ctX1,ctY2);ctx.lineTo(ctX1+arH,ctY2+arH);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(ctX2-arH,ctY2-arH);ctx.lineTo(ctX2,ctY2);ctx.lineTo(ctX2-arH,ctY2+arH);ctx.stroke();
-    ctx.font=`bold ${fs}px Arial`; ctx.fillStyle='#7c1d1d'; ctx.textAlign='center';
-    ctx.fillText("CT="+CT.toFixed(2)+" mm",(ctX1+ctX2)/2,Math.min(ctY2+Math.round(fs*0.7),CH-6));
+    const arH=Math.max(6,Math.round(fs*0.5));
+    ctx.fillStyle='#d00000';
+    ctx.beginPath();ctx.moveTo(ctX1+arH,ctY2-arH);ctx.lineTo(ctX1,ctY2);ctx.lineTo(ctX1+arH,ctY2+arH);ctx.lineTo(ctX1+arH*0.6,ctY2);ctx.closePath();ctx.fill();
+    ctx.beginPath();ctx.moveTo(ctX2-arH,ctY2-arH);ctx.lineTo(ctX2,ctY2);ctx.lineTo(ctX2-arH,ctY2+arH);ctx.lineTo(ctX2-arH*0.6,ctY2);ctx.closePath();ctx.fill();
+    ctx.font=`bold ${fs}px Arial`; ctx.fillStyle='#8b0000'; ctx.textAlign='center';
+    ctx.fillText("CT="+CT.toFixed(2)+" mm",(ctX1+ctX2)/2,Math.min(ctY2+Math.round(fs*0.9),CH-6));
     ctx.textAlign='left';
 
     // ── ET annotation — basis-aware ──

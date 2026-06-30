@@ -175,6 +175,7 @@
         #file-viewer-content{flex:1;overflow:auto;display:flex;align-items:flex-start;justify-content:center;padding:12px;touch-action:pan-y}
         #file-viewer-content iframe{width:100%;height:100%;border:none;background:#fff;border-radius:8px}
         #file-viewer-content pre{color:#e8f4ff;font-family:'Share Tech Mono',monospace;font-size:.78rem;white-space:pre-wrap;word-break:break-word;background:#091624;padding:14px;border-radius:8px;width:100%}
+        /* Blank basis toggle styling */
         .basis-toggle-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
         .basis-option{display:flex;align-items:center;gap:7px;cursor:pointer;padding:9px 13px;border-radius:8px;border:1.5px solid var(--border);background:var(--inp);flex:1;min-width:120px;transition:border-color .18s,background .18s}
         .basis-option.selected-od{border-color:var(--inp-brd);background:rgba(26,138,212,0.08)}
@@ -387,6 +388,7 @@
                 </div>
             </div>
 
+            <!-- ══ BLANK WEIGHT BASIS TOGGLE ══ -->
             <div class="card">
                 <div class="sec-hdr">⚖ BLANK WEIGHT BASIS</div>
                 <div class="basis-toggle-row" id="basis-toggle-row">
@@ -705,6 +707,7 @@ function getDens(name){const m=MATERIALS.find(x=>x.name===name);return m?m.dens:
 function getPPG(name){const m=MATERIALS.find(x=>x.name===name);return m?(m.ppg||0):0;}
 function fmtPPG(val){return parseFloat((Math.round(val*10000)/10000).toFixed(4)).toString();}
 
+// ═══ BLANK BASIS HELPERS ═══
 function getBlankBasis(){
     const el=document.getElementById('basis-ca');
     return (el&&el.checked)?'ca':'od';
@@ -935,10 +938,16 @@ function calcCirc(){
     if(ETca<0) throw new Error(`Edge thickness at CA = ${ETca.toFixed(4)}mm is negative — sags exceed CT.`);
     const ETod=edgeThicknessAt(s1,s2,CT,sag1od,sag2od);
     if(ETod<0) throw new Error(`Edge thickness at OD = ${ETod.toFixed(4)}mm is negative.`);
+
+    // ── Blank basis selection ──
     const _blankBasis=getBlankBasis();
     const blkTh=_blankBasis==='ca'
         ? blankThickness(s1,s2,CT,sag1ca,sag2ca)
         : blankThickness(s1,s2,CT,sag1od,sag2od);
+    const blkSag1=_blankBasis==='ca'?sag1ca:sag1od;
+    const blkSag2=_blankBasis==='ca'?sag2ca:sag2od;
+    const blkDia=_blankBasis==='ca'?((CA1+CA2)/2):OD;  // for display context
+
     const Vt=lensVolumeCA(OD,CA1,CA2,s1,s2,CT,sag1ca,sag2ca);
     const Vb=Math.PI*(OD/2)*(OD/2)*blkTh;
     const Vtcm3=Vt/1000, Vbcm3=Vb/1000;
@@ -950,9 +959,16 @@ function calcCirc(){
     const signedSag2od=s2==="convex"?sag2od:(s2==="concave"?-sag2od:0);
     window._lastLensParams={type:'circ',id:"c-canvas",p:{OD,CT,CA1,CA2,s1,s2,g1:Math.abs(sag1ca),g2:Math.abs(sag2ca),roc1,roc2,blankBasis:_blankBasis,sag1od,sag2od}};
     drawLensCanvas("c-canvas",window._lastLensParams.p,true);
+    // ── Sag values to show based on selected basis ──
+    const showSagCA=(_blankBasis==='ca');
+    const disp1=showSagCA?signedSag1ca:signedSag1od;  // sag for selected basis, S1
+    const disp2=showSagCA?signedSag2ca:signedSag2od;  // sag for selected basis, S2
+    const sagLblSuffix=showSagCA?' @ CA':' @ OD';
+    // ET to display: use the same basis
+    // ET@CA = lens edge at clear aperture (always shown — lens property)
+    // ET@OD = edge at outer diameter (always shown — OD property)
+    // Sag shown in surface sections = selected basis (CA or OD)
     const sagBasisLbl=_blankBasis==='ca'?' @ CA':' @ OD';
-    const disp1=_blankBasis==='ca'?signedSag1ca:signedSag1od;
-    const disp2=_blankBasis==='ca'?signedSag2ca:signedSag2od;
     const s1HasCurve=(s1!=='plano'), s2HasCurve=(s2!=='plano');
     document.getElementById("result-text").innerHTML=
         resTitle("📐 Optic Cost Summary — Circular Lens")+
@@ -1032,6 +1048,7 @@ function mirrorCanvasToResults(srcId){
     });});
 }
 
+// ═══ LOGO — persist to localStorage ═══
 let _logoDataUrl="";
 function loadLogoFile(inp){
     const file=inp.files[0];if(!file)return;
@@ -1067,6 +1084,7 @@ function refreshSnapHeader(){
     if(_logoDataUrl){snapLogoBox.style.display="block";snapLogoImg.src=_logoDataUrl;}else snapLogoBox.style.display="none";
 }
 
+// ═══ IndexedDB file store ═══
 let _fileDB=null;
 function _openFileDB(){return new Promise((res,rej)=>{if(_fileDB){res(_fileDB);return;}const req=indexedDB.open('opticost_files',1);req.onupgradeneeded=e=>{e.target.result.createObjectStore('files',{keyPath:'fname'});};req.onsuccess=e=>{_fileDB=e.target.result;res(_fileDB);};req.onerror=e=>rej(e.target.error);});}
 function _storeFile(fname,blob){return new Promise((res,rej)=>{const reader=new FileReader();reader.onerror=()=>rej(new Error('FileReader failed'));reader.onload=()=>{const dataUri=reader.result;_openFileDB().then(db=>{const tx=db.transaction('files','readwrite');tx.objectStore('files').put({fname,data:dataUri,mime:blob.type||'application/octet-stream',ts:Date.now()});tx.oncomplete=()=>res(dataUri);tx.onerror=e=>rej(e.target.error);}).catch(rej);};reader.readAsDataURL(blob);});}
@@ -1239,6 +1257,7 @@ function doReset(){
         document.getElementById("s1t").value="Plano";document.getElementById("s2t").value="Plano";
         document.getElementById("c-curr").value="INR";document.getElementById("r-curr").value="INR";
         document.getElementById("c-ct-result").textContent="";
+        // Reset blank basis to OD
         const bOD=document.getElementById('basis-od');if(bOD)bOD.checked=true;
         blankBasisChanged();
         ["c-mat","r-mat"].forEach(id=>{const s=document.getElementById(id);s.selectedIndex=0;matChanged(id==="c-mat"?"c":"r");});
@@ -1379,7 +1398,9 @@ function drawLensCanvas(id, p, preview=false, dpr=0){
     ctx.font="bold 11px 'Nunito',sans-serif"; ctx.fillStyle=cStroke; ctx.textAlign="center";
     ctx.fillText("CT="+CT.toFixed(2)+"mm",(ctX1+ctX2)/2,ctArrY+13); ctx.textAlign="left";
 
+    // ET annotation — basis-aware
     const _bb=p.blankBasis||'od';
+    // ET always CA-based (true lens edge at clear aperture)
     const _etVal2=edgeThicknessAt(s1,s2,CT,g1,g2);
     const _etLbl2='ET';
     const _etHalfAp=hCA1>0?hCA1:hOD;
@@ -1507,8 +1528,9 @@ function _renderLensToCanvas(targetCanvas, p, targetW, targetH){
     ctx.setLineDash([]);
     ctx.restore();
 
-    const fs=Math.max(26,Math.round(CW/16));
-    const fsS=Math.max(20,Math.round(CW/22));
+    // ── INCREASED FONT SIZES for PNG labels ──
+    const fs=Math.max(26,Math.round(CW/16));   // main dimension labels
+    const fsS=Math.max(20,Math.round(CW/22));  // secondary labels
 
     function vArrow(ax,ty,by,label,color,side){
         const span=Math.abs(by-ty); if(span<8) return;
@@ -1535,30 +1557,30 @@ function _renderLensToCanvas(targetCanvas, p, targetW, targetH){
         ctx.textAlign='center'; ctx.fillText(label,0,0); ctx.restore();
     }
 
-    // ── CT dimension: solid lines, high-contrast red-brown ──
     const ctX1=ppx(xS1(0)), ctX2=ppx(xS2(0));
-    const ctY=ppy(-hOD)+Math.round(fs*3.2);
-    const ctY2=Math.min(ctY, CH-Math.round(fs*1.5));
-
-    // FIX: solid lines (no dash), thicker, brighter color for CT leader verticals
-    ctx.strokeStyle='#c0392b'; ctx.lineWidth=Math.max(2.5,lw*1.1);
-    ctx.setLineDash([]);
+    const ctY=ppy(-hOD)+Math.round(fs*2.4);
+    const ctY2=Math.min(ctY, CH-fs*2);
+    ctx.strokeStyle='#b91c1c'; ctx.lineWidth=Math.max(1.5,lw*0.85);
+    ctx.setLineDash([Math.max(6,Math.round(fs*0.22)),Math.max(5,Math.round(fs*0.16))]);
     [[ctX1,ppy(-hOD)],[ctX2,ppy(-hOD)]].forEach(([x,ey])=>{
         ctx.beginPath();ctx.moveTo(x,ey);ctx.lineTo(x,ctY2);ctx.stroke();
     });
-
+    ctx.setLineDash([]);
+    ctx.strokeStyle='#b91c1c';
     ctx.beginPath();ctx.moveTo(ctX1,ctY2);ctx.lineTo(ctX2,ctY2);ctx.stroke();
     const arH=Math.max(4,Math.round(fs*0.42));
     ctx.beginPath();ctx.moveTo(ctX1+arH,ctY2-arH);ctx.lineTo(ctX1,ctY2);ctx.lineTo(ctX1+arH,ctY2+arH);ctx.stroke();
     ctx.beginPath();ctx.moveTo(ctX2-arH,ctY2-arH);ctx.lineTo(ctX2,ctY2);ctx.lineTo(ctX2-arH,ctY2+arH);ctx.stroke();
-    ctx.font=`bold ${fs}px Arial`; ctx.fillStyle='#c0392b'; ctx.textAlign='center';
+    ctx.font=`bold ${fs}px Arial`; ctx.fillStyle='#7c1d1d'; ctx.textAlign='center';
     ctx.fillText("CT="+CT.toFixed(2)+" mm",(ctX1+ctX2)/2,Math.min(ctY2+fs+3,CH-3));
     ctx.textAlign='left';
 
-    // ── ET annotation ──
+    // ── ET annotation — basis-aware ──
+    // ET@CA = true lens edge at clear aperture (CA sag)
     const _etVal=edgeThicknessAt(s1,s2,CT,g1,g2);
     const _etLbl='ET';
     const _etHA=hCA1>0?hCA1:hOD;
+    // Compute x positions of lens faces at the ET half-aperture
     function _xS1etA(hA){const sg=getSag(roc1,hCA1,g1,hA);if(s1==="convex")return -CT/2-g1+sg;if(s1==="concave")return -CT/2-sg;return -CT/2;}
     function _xS2etA(hA){const sg=getSag(roc2,hCA2,g2,hA);if(s2==="convex")return CT/2+g2-sg;if(s2==="concave")return CT/2+sg;return CT/2;}
     const etLeft=ppx(_xS1etA(_etHA)), etRight=ppx(_xS2etA(_etHA));
@@ -1582,6 +1604,7 @@ function _renderLensToCanvas(targetCanvas, p, targetW, targetH){
     }
 
     ctx.font=`bold ${fs}px Arial`; ctx.fillStyle='#3b0f0f';
+    // S1/S2 labels: place near top of lens, inward from edge, with generous offset
     const _s1x=LP[Math.round(N*0.06)][0], _s1y=LP[Math.round(N*0.06)][1];
     const _s2x=RP[Math.round(N*0.06)][0], _s2y=RP[Math.round(N*0.06)][1];
     ctx.textAlign='right'; ctx.fillText("S1",_s1x-Math.round(fs*0.5),_s1y-Math.round(fs*0.8));
@@ -1595,22 +1618,22 @@ function _renderLensToCanvas(targetCanvas, p, targetW, targetH){
     const ca1ArrowX=Math.round(PAD_L*0.32+leftEdge*0.5);
     vArrow(Math.min(ca1ArrowX,leftEdge-fsS), ppy(hCA1), ppy(-hCA1), "\u00d8CA1="+CA1.toFixed(2)+"mm", '#7c1d1d','left');
 
-    // ── FIX: CA2 arrow — positioned to the right of lens body, leader lines from S2 surface at CA2 height ──
-    const ca2SurfX=ppx(xS2(hCA2>0?hCA2:hOD));  // S2 x-pos at CA2 half-height (not OD height)
-    const odArrowX=rightEdge+Math.round(PAD_R*0.62);
-    const ca2ArrowX=Math.max(ca2SurfX+Math.round(fsS*0.8), rightEdge+Math.round(PAD_R*0.30));
-    // Ensure CA2 arrow never overlaps OD arrow
-    const ca2ArrowXClamped=Math.min(ca2ArrowX, odArrowX-Math.round(fsS*8));
-
+    // CA2: leader lines must come from RP surface at CA2 height (not max rightEdge which is at OD)
+    const ca2RightAtCA2=ppx(xS2(hCA2>0?hCA2:hOD));  // S2 x-position at CA2 half-height
+    const odArrowX=rightEdge+Math.round(PAD_R*0.52);
+    // CA2 arrow must always sit to the right of BOTH the CA2 surface point AND the lens' overall rightEdge,
+    // with a guaranteed minimum gap — never clamp it back inside the shape.
+    const _ca2MinX=Math.max(ca2RightAtCA2,rightEdge)+Math.max(18,Math.round(fs*0.6));
+    const ca2ArrowX=Math.min(_ca2MinX+Math.round(PAD_R*0.12), odArrowX-Math.max(24,Math.round(fsS*1.4)));
     if(hCA2>0&&Math.abs(hCA2-hOD)>0.4){
-        const _ca2ax=ca2ArrowXClamped;
+        // Custom CA2 leader: from S2 surface at CA2 height outward
+        const _ca2ax=Math.max(ca2ArrowX,_ca2MinX);
         const _ca2ty=ppy(hCA2), _ca2by=ppy(-hCA2);
-        // Leader lines from S2 surface at CA2 height (not rightEdge at OD)
         ctx.save(); ctx.strokeStyle='#9b2c2c'; ctx.lineWidth=Math.max(1,lw*0.5); ctx.setLineDash([Math.round(fs*0.4),Math.round(fs*0.3)]);
-        ctx.beginPath();ctx.moveTo(ca2SurfX,_ca2ty);ctx.lineTo(_ca2ax,_ca2ty);ctx.stroke();
-        ctx.beginPath();ctx.moveTo(ca2SurfX,_ca2by);ctx.lineTo(_ca2ax,_ca2by);ctx.stroke();
+        ctx.beginPath();ctx.moveTo(ca2RightAtCA2,_ca2ty);ctx.lineTo(_ca2ax,_ca2ty);ctx.stroke();
+        ctx.beginPath();ctx.moveTo(ca2RightAtCA2,_ca2by);ctx.lineTo(_ca2ax,_ca2by);ctx.stroke();
         ctx.setLineDash([]); ctx.restore();
-        // Arrow shaft + arrowheads
+        // Arrow line + heads
         ctx.strokeStyle='#9b2c2c'; ctx.lineWidth=Math.max(1.2,lw*0.65);
         ctx.beginPath();ctx.moveTo(_ca2ax,_ca2ty);ctx.lineTo(_ca2ax,_ca2by);ctx.stroke();
         const _ah=Math.max(4,Math.round(fs*0.4));
@@ -1619,12 +1642,15 @@ function _renderLensToCanvas(targetCanvas, p, targetW, targetH){
         if(Math.abs(_ca2by-_ca2ty)>=fsS*2){
             ctx.save();
             ctx.font=`bold ${fsS}px Arial`; ctx.fillStyle='#9b2c2c';
-            ctx.translate(_ca2ax+fsS+2,(_ca2ty+_ca2by)/2);
+            const _ca2LabelX=Math.min(_ca2ax+fsS+2, CW-fsS*0.6);
+            ctx.translate(_ca2LabelX,(_ca2ty+_ca2by)/2);
             ctx.rotate(Math.PI/2); ctx.textAlign='center';
             ctx.fillText("\u00d8CA2="+CA2.toFixed(2)+"mm",0,0); ctx.restore();
         }
     }
     vArrow(Math.min(odArrowX,CW-5), ppy(hOD), ppy(-hOD), "\u00d8OD="+OD+"mm", '#6b1212','right');
+
+
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1653,13 +1679,14 @@ function _buildReportCanvas(callback){
     const LOGO_W=120, LOGO_H=68, LOGO_PAD=22;
     const PAD=24, IPAD=20;
     const ROW_H=78, SEC_H=58, GAP=4, TITLE_ROW=70;
+    // ── INCREASED font sizes throughout PNG report ──
     const LF=33, VF=33, VFB=37, SHF=28;
-    const F_CO=46;
-    const F_WEB=26;
-    const F_APP=22;
-    const F_MLBL=20;
-    const F_MVAL=32;
-    const F_TITLE=36;
+    const F_CO=46;   // company name — large and prominent
+    const F_WEB=26;  // website/contact line
+    const F_APP=22;  // app badge line
+    const F_MLBL=20; // meta field key label
+    const F_MVAL=32; // meta field value
+    const F_TITLE=36;// report title in body
 
     let dataH=TITLE_ROW+12;
     sections.forEach(s=>{dataH+=SEC_H;s.rows.forEach(()=>dataH+=ROW_H);dataH+=GAP;});
@@ -1727,6 +1754,7 @@ function _buildReportCanvas(callback){
     }
 
     function _drawBody(){
+        // ── Cross-section panel ──
         if(hasCanvas){
             const csBg=ctx.createLinearGradient(0,bodyY,0,bodyY+CONTENT_H);
             csBg.addColorStop(0,'#dce8f8'); csBg.addColorStop(1,'#eef4fb');
@@ -1783,6 +1811,7 @@ function _buildReportCanvas(callback){
             ctx.beginPath();ctx.moveTo(CS_W,bodyY);ctx.lineTo(CS_W,bodyY+CONTENT_H);ctx.stroke();
         }
 
+        // ── Data column ──
         const colInnerW=DW-IPAD*2;
         const LABEL_W=Math.round(colInnerW*0.55);
         const splitX=DX+IPAD+LABEL_W;
@@ -1826,6 +1855,7 @@ function _buildReportCanvas(callback){
             dy+=GAP;
         });
 
+        // ── Footer ──
         const fy=H-FOOTER_H;
         ctx.fillStyle='#1a2e44'; ctx.fillRect(0,fy,W,FOOTER_H);
         ctx.fillStyle='#e2e8f0'; ctx.font=`bold 30px Arial`; ctx.textAlign='left';
@@ -1946,7 +1976,7 @@ window.addEventListener('DOMContentLoaded',()=>{
     loadMaterials();
     try{const su=localStorage.getItem("opticost_saved_user"),sp=localStorage.getItem("opticost_saved_pass");if(su&&sp){document.getElementById("login-user").value=su;document.getElementById("login-pass").value=atob(sp);document.getElementById("remember-me").checked=true;const fi=document.getElementById("forget-login-row");if(fi)fi.style.display="block";}}catch(e){}
     _seedDefaultUser();populateMats();surfChanged();syncCA();
-    blankBasisChanged();
+    blankBasisChanged(); // initialize toggle styles
     try{const sl=localStorage.getItem('opticost_logo');if(sl&&sl.length>10){_logoDataUrl=sl;const li=document.getElementById("logo-img"),lp=document.getElementById("logo-preview");if(li)li.src=sl;if(lp)lp.style.display="block";}}catch(e){}
     try{const sc=localStorage.getItem('opticost_currency');if(sc){const lc=document.getElementById('lib-curr');if(lc)lc.value=sc;setLibCurrency(sc);}}catch(e){}
     try{const t=localStorage.getItem('opticost_theme')||'dark';setTheme(t);}catch(e){setTheme('dark');}

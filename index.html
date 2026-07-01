@@ -1386,20 +1386,64 @@ function drawLensCanvas(id, p, preview=false, dpr=0){
 
     // CT measured at lens center height; for concave surfaces the waist sits inside the
     // bottom-edge silhouette, so anchor leaders to the outer silhouette extent (never crosses glass).
-    const ctX1=px(xS1(0)), ctX2=px(xS2(0));
-    const _ctOuterL=Math.min(...LP.map(pt=>pt[0])), _ctOuterR=Math.max(...RP.map(pt=>pt[0]));
-    const ctArrY=cy+Math.min(26,CH/2-18);
-    ctx.strokeStyle=cStroke; ctx.lineWidth=1.2;
-    ctx.setLineDash([4,4]);
-    ctx.beginPath();ctx.moveTo(_ctOuterL,py(-hOD));ctx.lineTo(_ctOuterL,ctArrY-4);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(_ctOuterR,py(-hOD));ctx.lineTo(_ctOuterR,ctArrY-4);ctx.stroke();
+    // CT Dimension - measured at center
+    const ctX1 = px(xS1(0));
+    const ctX2 = px(xS2(0));
+    const ctArrY = cy + Math.min(26, CH / 2 - 18);
+
+    // Draw leaders from center positions
+    ctx.save();
+    ctx.strokeStyle = '#b91c1c';
+    ctx.lineWidth = 1.2;
+    ctx.setLineDash([4, 4]);
+
+    // Leaders from center points
+    ctx.beginPath();
+    ctx.moveTo(ctX1, cy);
+    ctx.lineTo(ctX1, ctArrY - 4);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(ctX2, cy);
+    ctx.lineTo(ctX2, ctArrY - 4);
+    ctx.stroke();
+
     ctx.setLineDash([]);
-    ctx.beginPath();ctx.moveTo(_ctOuterL,ctArrY);ctx.lineTo(_ctOuterR,ctArrY);ctx.stroke();
-    const ah=5;
-    ctx.beginPath();ctx.moveTo(_ctOuterL+ah,ctArrY-3);ctx.lineTo(_ctOuterL,ctArrY);ctx.lineTo(_ctOuterL+ah,ctArrY+3);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(_ctOuterR-ah,ctArrY-3);ctx.lineTo(_ctOuterR,ctArrY);ctx.lineTo(_ctOuterR-ah,ctArrY+3);ctx.stroke();
-    ctx.font="bold 11px 'Nunito',sans-serif"; ctx.fillStyle=cStroke; ctx.textAlign="center";
-    ctx.fillText("CT="+CT.toFixed(2)+"mm",(_ctOuterL+_ctOuterR)/2,ctArrY+13); ctx.textAlign="left";
+
+    // Horizontal dimension line between center points
+    ctx.strokeStyle = '#d00000';
+    ctx.lineWidth = 1.8;
+    ctx.beginPath();
+    ctx.moveTo(ctX1, ctArrY);
+    ctx.lineTo(ctX2, ctArrY);
+    ctx.stroke();
+
+    // Arrowheads
+    const ah = 5;
+    ctx.fillStyle = '#d00000';
+    ctx.beginPath();
+    ctx.moveTo(ctX1 + ah, ctArrY - 3);
+    ctx.lineTo(ctX1, ctArrY);
+    ctx.lineTo(ctX1 + ah, ctArrY + 3);
+    ctx.lineTo(ctX1 + ah * 0.6, ctArrY);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.moveTo(ctX2 - ah, ctArrY - 3);
+    ctx.lineTo(ctX2, ctArrY);
+    ctx.lineTo(ctX2 - ah, ctArrY + 3);
+    ctx.lineTo(ctX2 - ah * 0.6, ctArrY);
+    ctx.closePath();
+    ctx.fill();
+
+    // Label
+    ctx.font = "bold 11px 'Nunito',sans-serif";
+    ctx.fillStyle = '#8b0000';
+    ctx.textAlign = 'center';
+    ctx.fillText("CT=" + CT.toFixed(2) + "mm", (ctX1 + ctX2) / 2, ctArrY + 13);
+    ctx.textAlign = 'left';
+    ctx.restore();
 
     // ET annotation — basis-aware
     const _bb=p.blankBasis||'od';

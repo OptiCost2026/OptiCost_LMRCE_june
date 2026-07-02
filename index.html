@@ -1771,211 +1771,340 @@ function _buildReportCanvas(callback){
         if(srows.length) sections.push({hdr:hdr?hdr.textContent.trim():'',rows:srows});
     });
 
-    const SC=4;
-    const W=1450, HDR_H=250, FOOTER_H=96;
-    const LOGO_W=120, LOGO_H=68, LOGO_PAD=22;
-    const PAD=24, IPAD=20;
-    const ROW_H=78, SEC_H=58, GAP=4, TITLE_ROW=70;
-    // ── INCREASED font sizes throughout PNG report ──
-    const LF=33, VF=33, VFB=37, SHF=28;
-    const F_CO=46;   // company name — large and prominent
-    const F_WEB=26;  // website/contact line
-    const F_APP=22;  // app badge line
-    const F_MLBL=20; // meta field key label
-    const F_MVAL=32; // meta field value
-    const F_TITLE=36;// report title in body
+    // ═══ INCREASED SIZE WITH BETTER LAYOUT ═══
+    const SC = 4;
+    const W = 1600;  // Slightly wider for more space
+    
+    // ── Height settings ──
+    const HDR_H = 280;
+    const FOOTER_H = 100;
+    const PAD = 30;
+    const IPAD = 25;
+    const ROW_H = 82;
+    const SEC_H = 62;
+    const GAP = 6;
+    const TITLE_ROW = 75;
+    
+    // ── CROSS-SECTION WIDTH (REDUCED) ──
+    const CROSS_SECTION_RATIO = 0.32;  // 32% for cross-section, 68% for data
+    // ═══════════════════════════════════
 
-    let dataH=TITLE_ROW+12;
-    sections.forEach(s=>{dataH+=SEC_H;s.rows.forEach(()=>dataH+=ROW_H);dataH+=GAP;});
+    const LOGO_W = 130;
+    const LOGO_H = 74;
+    const LOGO_PAD = 24;
 
-    const hasLens=!!(window._lastLensParams&&window._lastLensParams.type==='circ'&&window._lastLensParams.p);
-    const hasRect=!!(window._lastLensParams&&window._lastLensParams.type==='rect'&&window._lastLensParams.p);
-    const hasCanvas=hasLens||hasRect;
+    // ── INCREASED font sizes for better readability ──
+    const LF = 36;
+    const VF = 36;
+    const VFB = 40;
+    const SHF = 30;
+    const F_CO = 48;
+    const F_WEB = 28;
+    const F_APP = 24;
+    const F_MLBL = 22;
+    const F_MVAL = 34;
+    const F_TITLE = 38;
 
-    const CONTENT_H=dataH+PAD*2;
-    const H=HDR_H+CONTENT_H+FOOTER_H;
+    let dataH = TITLE_ROW + 12;
+    sections.forEach(s=>{
+        dataH += SEC_H;
+        s.rows.forEach(()=>dataH += ROW_H);
+        dataH += GAP;
+    });
 
-    const CS_W=hasCanvas?Math.round(W*0.48):0;
-    const DX=CS_W;
-    const DR=W;
-    const DW=DR-DX;
+    const hasLens = !!(window._lastLensParams && window._lastLensParams.type === 'circ' && window._lastLensParams.p);
+    const hasRect = !!(window._lastLensParams && window._lastLensParams.type === 'rect' && window._lastLensParams.p);
+    const hasCanvas = hasLens || hasRect;
 
-    const cv=document.createElement('canvas');
-    cv.width=W*SC; cv.height=H*SC;
-    const ctx=cv.getContext('2d');
-    ctx.scale(SC,SC);
-    ctx.imageSmoothingEnabled=true; ctx.imageSmoothingQuality='high';
-    ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,W,H);
-    const bodyY=HDR_H;
+    // ── Calculate with new ratios ──
+    const CONTENT_H = dataH + PAD * 2;
+    const H = HDR_H + CONTENT_H + FOOTER_H;
+    
+    // Cross-section width - reduced
+    const CS_W = hasCanvas ? Math.round(W * CROSS_SECTION_RATIO) : 0;
+    const DX = CS_W;           // Cross-section column width
+    const DR = W;              // Total width
+    const DW = DR - DX;        // Data column width (now larger)
+    
+    // ── Data column label/value ratio ──
+    const LABEL_RATIO = 0.45;  // 45% for label, 55% for value (more space for values)
+    // ═══════════════════════════════════════════
+
+    const cv = document.createElement('canvas');
+    cv.width = W * SC;
+    cv.height = H * SC;
+    const ctx = cv.getContext('2d');
+    ctx.scale(SC, SC);
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, W, H);
+    const bodyY = HDR_H;
 
     function _drawHeader(logoImg){
-        const hg=ctx.createLinearGradient(0,0,0,HDR_H);
-        hg.addColorStop(0,'#eaf1fb'); hg.addColorStop(1,'#f5f8fd');
-        ctx.fillStyle=hg; ctx.fillRect(0,0,W,HDR_H);
-        ctx.fillStyle='#1e3a7e'; ctx.fillRect(0,0,6,HDR_H);
+        const hg = ctx.createLinearGradient(0, 0, 0, HDR_H);
+        hg.addColorStop(0, '#eaf1fb');
+        hg.addColorStop(1, '#f5f8fd');
+        ctx.fillStyle = hg;
+        ctx.fillRect(0, 0, W, HDR_H);
+        ctx.fillStyle = '#1e3a7e';
+        ctx.fillRect(0, 0, 6, HDR_H);
 
-        let tx=PAD+12;
+        let tx = PAD + 12;
         if(logoImg){
             ctx.drawImage(logoImg, tx, 16, LOGO_W, LOGO_H);
             tx += LOGO_W + LOGO_PAD;
         }
-        ctx.fillStyle='#0f172a'; ctx.font=`bold ${F_CO}px Arial`;
-        ctx.fillText(mfr.substring(0,52), tx, 56);
-        ctx.fillStyle='#334155'; ctx.font=`${F_WEB}px Arial`;
-        ctx.fillText((website+(contact?' | '+contact:'')).substring(0,90), tx, 92);
-        ctx.fillStyle='#1e3a7e'; ctx.font=`bold ${F_APP}px Arial`;
+        ctx.fillStyle = '#0f172a';
+        ctx.font = `bold ${F_CO}px Arial`;
+        ctx.fillText(mfr.substring(0, 52), tx, 56);
+        ctx.fillStyle = '#334155';
+        ctx.font = `${F_WEB}px Arial`;
+        ctx.fillText((website + (contact ? ' | ' + contact : '')).substring(0, 90), tx, 92);
+        ctx.fillStyle = '#1e3a7e';
+        ctx.font = `bold ${F_APP}px Arial`;
         ctx.fillText('OptiCost LRMCE v1.2 — Lens Raw Material Cost Estimator', tx, 122);
 
-        ctx.strokeStyle='#b0c4d8'; ctx.lineWidth=1.5;
-        ctx.beginPath(); ctx.moveTo(PAD,136); ctx.lineTo(W-PAD,136); ctx.stroke();
+        ctx.strokeStyle = '#b0c4d8';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(PAD, 136);
+        ctx.lineTo(W - PAD, 136);
+        ctx.stroke();
 
-        const fW=Math.floor((W-PAD*2)/4);
-        const META=[['TO / VENDOR',vendor,'#0f172a'],['TITLE',titleTxt,'#0f172a'],['PART NO.',partno,'#b45309'],['DATE',dateVal,'#0f172a']];
-        META.forEach(([lbl,val,vc],i)=>{
-            const fx=PAD+i*fW;
-            if(i>0){
-                ctx.strokeStyle='#d0dbe8'; ctx.lineWidth=1;
-                ctx.beginPath(); ctx.moveTo(fx,140); ctx.lineTo(fx,HDR_H-6); ctx.stroke();
+        const fW = Math.floor((W - PAD * 2) / 4);
+        const META = [
+            ['TO / VENDOR', vendor, '#0f172a'],
+            ['TITLE', titleTxt, '#0f172a'],
+            ['PART NO.', partno, '#b45309'],
+            ['DATE', dateVal, '#0f172a']
+        ];
+        META.forEach(([lbl, val, vc], i) => {
+            const fx = PAD + i * fW;
+            if(i > 0){
+                ctx.strokeStyle = '#d0dbe8';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(fx, 140);
+                ctx.lineTo(fx, HDR_H - 6);
+                ctx.stroke();
             }
-            ctx.font=`bold ${F_MLBL}px Arial`; ctx.fillStyle='#64748b';
-            ctx.fillText(lbl, fx+10, 162);
-            ctx.font=`bold ${F_MVAL}px Arial`; ctx.fillStyle=vc;
-            const maxW=fW-20;
-            let txt=val||'—';
-            while(txt.length>1 && ctx.measureText(txt).width>maxW) txt=txt.slice(0,-1);
-            ctx.fillText(txt, fx+10, 202);
+            ctx.font = `bold ${F_MLBL}px Arial`;
+            ctx.fillStyle = '#64748b';
+            ctx.fillText(lbl, fx + 10, 162);
+            ctx.font = `bold ${F_MVAL}px Arial`;
+            ctx.fillStyle = vc;
+            const maxW = fW - 20;
+            let txt = val || '—';
+            while(txt.length > 1 && ctx.measureText(txt).width > maxW) txt = txt.slice(0, -1);
+            ctx.fillText(txt, fx + 10, 202);
         });
 
-        ctx.strokeStyle='#b8c8e0'; ctx.lineWidth=2;
-        ctx.beginPath(); ctx.moveTo(0,HDR_H); ctx.lineTo(W,HDR_H); ctx.stroke();
+        ctx.strokeStyle = '#b8c8e0';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(0, HDR_H);
+        ctx.lineTo(W, HDR_H);
+        ctx.stroke();
     }
 
     function _drawBody(){
         // ── Cross-section panel ──
         if(hasCanvas){
-            const csBg=ctx.createLinearGradient(0,bodyY,0,bodyY+CONTENT_H);
-            csBg.addColorStop(0,'#dce8f8'); csBg.addColorStop(1,'#eef4fb');
-            ctx.fillStyle=csBg;
-            ctx.fillRect(0,bodyY,CS_W,CONTENT_H);
+            const csBg = ctx.createLinearGradient(0, bodyY, 0, bodyY + CONTENT_H);
+            csBg.addColorStop(0, '#dce8f8');
+            csBg.addColorStop(1, '#eef4fb');
+            ctx.fillStyle = csBg;
+            ctx.fillRect(0, bodyY, CS_W, CONTENT_H);
 
-            const CSH=52;
-            ctx.fillStyle='#1e3a6e';
-            ctx.fillRect(0,bodyY,CS_W,CSH);
-            ctx.fillStyle='#ffffff'; ctx.font='bold 20px Arial'; ctx.textAlign='center';
-            ctx.fillText('\u2715\u29C6  CROSS-SECTION PREVIEW',CS_W/2,bodyY+30);
+            const CSH = 48;  // Slightly smaller header
+            ctx.fillStyle = '#1e3a6e';
+            ctx.fillRect(0, bodyY, CS_W, CSH);
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 18px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('⚡ CROSS-SECTION', CS_W / 2, bodyY + 28);
 
-            ctx.textAlign='left';
+            ctx.textAlign = 'left';
 
-            const LAX=IPAD;
-            const LAY=bodyY+CSH+IPAD;
-            const LAW=CS_W-IPAD*2;
-            const LAH=CONTENT_H-CSH-IPAD*2;
+            const LAX = IPAD;
+            const LAY = bodyY + CSH + IPAD;
+            const LAW = CS_W - IPAD * 2;
+            const LAH = CONTENT_H - CSH - IPAD * 2;
 
             ctx.save();
-            ctx.beginPath();ctx.rect(LAX, LAY, LAW, LAH);
+            ctx.beginPath();
+            ctx.rect(LAX, LAY, LAW, LAH);
             ctx.clip();
 
             if(hasLens){
-                const lp=window._lastLensParams.p;
-                const physW2=Math.max(Math.abs(lp.g1||0)+(lp.CT||0)+Math.abs(lp.g2||0), 0.1);
-                const physH2=Math.max(lp.OD||1, 0.1);
-                const asp=Math.min(physH2/physW2, 2.2);
-                let dW=LAW, dH=Math.round(dW*asp);
-                if(dH>LAH){dH=LAH; dW=Math.round(dH/asp);}
-                dW=Math.min(dW,LAW); dH=Math.min(dH,LAH);
-                const off=document.createElement('canvas');
-                _renderLensToCanvas(off,lp,dW*SC,dH*SC);
-                ctx.drawImage(off,0,0,dW*SC,dH*SC,
-                    LAX+Math.round((LAW-dW)/2),
-                    LAY+Math.round((LAH-dH)/2),
-                    dW, dH);
+                const lp = window._lastLensParams.p;
+                const physW2 = Math.max(Math.abs(lp.g1 || 0) + (lp.CT || 0) + Math.abs(lp.g2 || 0), 0.1);
+                const physH2 = Math.max(lp.OD || 1, 0.1);
+                const asp = Math.min(physH2 / physW2, 2.2);
+                let dW = LAW;
+                let dH = Math.round(dW * asp);
+                if(dH > LAH){
+                    dH = LAH;
+                    dW = Math.round(dH / asp);
+                }
+                dW = Math.min(dW, LAW);
+                dH = Math.min(dH, LAH);
+                const off = document.createElement('canvas');
+                _renderLensToCanvas(off, lp, dW * SC, dH * SC);
+                ctx.drawImage(
+                    off, 0, 0, dW * SC, dH * SC,
+                    LAX + Math.round((LAW - dW) / 2),
+                    LAY + Math.round((LAH - dH) / 2),
+                    dW, dH
+                );
             } else if(hasRect){
-                const srcR=document.getElementById('r-canvas');
-                if(srcR&&srcR.width>0){
-                    const asp=srcR.height/srcR.width;
-                    let dW=LAW, dH=Math.round(dW*asp);
-                    if(dH>LAH){dH=LAH;dW=Math.round(dH/asp);}
-                    dW=Math.min(dW,LAW); dH=Math.min(dH,LAH);
-                    ctx.drawImage(srcR,0,0,srcR.width,srcR.height,
-                        LAX+Math.round((LAW-dW)/2),
-                        LAY+Math.round((LAH-dH)/2),
-                        dW, dH);
+                const srcR = document.getElementById('r-canvas');
+                if(srcR && srcR.width > 0){
+                    const asp = srcR.height / srcR.width;
+                    let dW = LAW;
+                    let dH = Math.round(dW * asp);
+                    if(dH > LAH){
+                        dH = LAH;
+                        dW = Math.round(dH / asp);
+                    }
+                    dW = Math.min(dW, LAW);
+                    dH = Math.min(dH, LAH);
+                    ctx.drawImage(
+                        srcR, 0, 0, srcR.width, srcR.height,
+                        LAX + Math.round((LAW - dW) / 2),
+                        LAY + Math.round((LAH - dH) / 2),
+                        dW, dH
+                    );
                 }
             }
             ctx.restore();
 
-            ctx.strokeStyle='#a0b8d0'; ctx.lineWidth=2;
-            ctx.beginPath();ctx.moveTo(CS_W,bodyY);ctx.lineTo(CS_W,bodyY+CONTENT_H);ctx.stroke();
+            ctx.strokeStyle = '#a0b8d0';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(CS_W, bodyY);
+            ctx.lineTo(CS_W, bodyY + CONTENT_H);
+            ctx.stroke();
         }
 
-        // ── Data column ──
-        const colInnerW=DW-IPAD*2;
-        const LABEL_W=Math.round(colInnerW*0.55);
-        const splitX=DX+IPAD+LABEL_W;
-        const valX=splitX+10;
-        let dy=bodyY+PAD;
+        // ── Data column (now with more space) ──
+        const colInnerW = DW - IPAD * 2;
+        const LABEL_W = Math.round(colInnerW * LABEL_RATIO);  // 45% for labels
+        const splitX = DX + IPAD + LABEL_W;
+        const valX = splitX + 12;  // More gap between label and value
+        let dy = bodyY + PAD;
 
-        ctx.fillStyle='#0f172a'; ctx.font=`bold ${F_TITLE}px Arial`;
-        ctx.fillText(titleTxt.substring(0,60), DX+IPAD, dy+40); dy+=TITLE_ROW;
+        ctx.fillStyle = '#0f172a';
+        ctx.font = `bold ${F_TITLE}px Arial`;
+        ctx.fillText(titleTxt.substring(0, 60), DX + IPAD, dy + 40);
+        dy += TITLE_ROW;
 
-        sections.forEach(sec=>{
-            ctx.fillStyle='#1e3a7e'; ctx.fillRect(DX,dy,DW,SEC_H);
-            ctx.fillStyle='#ffffff'; ctx.font=`bold ${SHF}px Arial`;
-            ctx.fillText((sec.hdr||'').toUpperCase(), DX+IPAD, dy+SEC_H-14); dy+=SEC_H;
+        sections.forEach(sec => {
+            ctx.fillStyle = '#1e3a7e';
+            ctx.fillRect(DX, dy, DW, SEC_H);
+            ctx.fillStyle = '#ffffff';
+            ctx.font = `bold ${SHF}px Arial`;
+            ctx.fillText((sec.hdr || '').toUpperCase(), DX + IPAD, dy + SEC_H - 14);
+            dy += SEC_H;
 
-            sec.rows.forEach((r,ri)=>{
-                const bg=r.green?'#f0fdf4':r.amber?'#fffbeb':(ri%2===0?'#ffffff':'#f7f9fc');
-                ctx.fillStyle=bg; ctx.fillRect(DX,dy,DW,ROW_H);
-                const midY=dy+Math.round(ROW_H/2)+10;
+            sec.rows.forEach((r, ri) => {
+                const bg = r.green ? '#f0fdf4' : r.amber ? '#fffbeb' : (ri % 2 === 0 ? '#ffffff' : '#f7f9fc');
+                ctx.fillStyle = bg;
+                ctx.fillRect(DX, dy, DW, ROW_H);
+                const midY = dy + Math.round(ROW_H / 2) + 10;
 
+                // ── Label with clipping ──
                 ctx.save();
-                ctx.beginPath(); ctx.rect(DX+IPAD, dy+2, LABEL_W-6, ROW_H-4); ctx.clip();
-                ctx.fillStyle='#374151'; ctx.font=`${LF}px Arial`; ctx.textAlign='left';
-                ctx.fillText(r.lbl||'', DX+IPAD, midY);
+                ctx.beginPath();
+                ctx.rect(DX + IPAD, dy + 2, LABEL_W - 6, ROW_H - 4);
+                ctx.clip();
+                ctx.fillStyle = '#374151';
+                ctx.font = `${LF}px Arial`;
+                ctx.textAlign = 'left';
+                let labelText = r.lbl || '';
+                const maxLabelWidth = LABEL_W - 12;
+                while(labelText.length > 1 && ctx.measureText(labelText).width > maxLabelWidth){
+                    labelText = labelText.slice(0, -1);
+                }
+                if(labelText !== (r.lbl || '')) labelText += '…';
+                ctx.fillText(labelText, DX + IPAD, midY);
                 ctx.restore();
 
-                ctx.strokeStyle='#c8d8ea'; ctx.lineWidth=1;
-                ctx.beginPath();ctx.moveTo(splitX,dy+6);ctx.lineTo(splitX,dy+ROW_H-6);ctx.stroke();
+                // ── Vertical divider ──
+                ctx.strokeStyle = '#c8d8ea';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(splitX, dy + 6);
+                ctx.lineTo(splitX, dy + ROW_H - 6);
+                ctx.stroke();
 
+                // ── Value with clipping prevention ──
                 ctx.save();
-                ctx.beginPath(); ctx.rect(valX, dy+2, DR-valX-IPAD, ROW_H-4); ctx.clip();
-                const vc=r.green?'#15803d':r.amber?'#92400e':'#0f172a';
-                ctx.fillStyle=vc;
-                ctx.font=r.green||r.amber?`bold ${VFB}px Arial`:`bold ${VF}px Arial`;
-                ctx.textAlign='left'; ctx.fillText(r.val||'', valX, midY);
+                const valMaxWidth = DW - (valX - DX) - IPAD - 8;
+                ctx.beginPath();
+                ctx.rect(valX, dy + 2, valMaxWidth, ROW_H - 4);
+                ctx.clip();
+                
+                const vc = r.green ? '#15803d' : r.amber ? '#92400e' : '#0f172a';
+                ctx.fillStyle = vc;
+                ctx.font = r.green || r.amber ? `bold ${VFB}px Arial` : `bold ${VF}px Arial`;
+                ctx.textAlign = 'left';
+                
+                let valText = r.val || '';
+                while(valText.length > 1 && ctx.measureText(valText).width > valMaxWidth - 4){
+                    valText = valText.slice(0, -1);
+                }
+                if(valText !== (r.val || '')) valText += '…';
+                ctx.fillText(valText, valX, midY);
                 ctx.restore();
 
-                ctx.strokeStyle='#e2e8f0'; ctx.lineWidth=0.8;
-                ctx.beginPath();ctx.moveTo(DX,dy+ROW_H);ctx.lineTo(DR,dy+ROW_H);ctx.stroke();
-                dy+=ROW_H;
+                ctx.strokeStyle = '#e2e8f0';
+                ctx.lineWidth = 0.8;
+                ctx.beginPath();
+                ctx.moveTo(DX, dy + ROW_H);
+                ctx.lineTo(DR, dy + ROW_H);
+                ctx.stroke();
+                dy += ROW_H;
             });
-            dy+=GAP;
+            dy += GAP;
         });
 
         // ── Footer ──
-        const fy=H-FOOTER_H;
-        ctx.fillStyle='#1a2e44'; ctx.fillRect(0,fy,W,FOOTER_H);
-        ctx.fillStyle='#e2e8f0'; ctx.font=`bold 30px Arial`; ctx.textAlign='left';
-        ctx.fillText('OptiCost LRMCE v1.2', PAD, fy+38);
-        ctx.fillStyle='#94a3b8'; ctx.font=`24px Arial`;
-        ctx.fillText(mfr+'  |  '+website+'  |  '+contact, PAD, fy+68);
-        ctx.fillStyle='#64748b'; ctx.font=`22px Arial`; ctx.textAlign='right';
-        ctx.fillText('Generated: '+new Date().toLocaleString(), W-PAD, fy+68);
-        ctx.textAlign='left';
+        const fy = H - FOOTER_H;
+        ctx.fillStyle = '#1a2e44';
+        ctx.fillRect(0, fy, W, FOOTER_H);
+        ctx.fillStyle = '#e2e8f0';
+        ctx.font = 'bold 28px Arial';
+        ctx.textAlign = 'left';
+        ctx.fillText('OptiCost LRMCE v1.2', PAD, fy + 36);
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = '22px Arial';
+        ctx.fillText(mfr + '  |  ' + website + '  |  ' + contact, PAD, fy + 64);
+        ctx.fillStyle = '#64748b';
+        ctx.font = '20px Arial';
+        ctx.textAlign = 'right';
+        ctx.fillText('Generated: ' + new Date().toLocaleString(), W - PAD, fy + 64);
+        ctx.textAlign = 'left';
         callback(cv);
     }
 
     if(_logoDataUrl){
-        const li=new Image();
-        li.onload=()=>{_drawHeader(li);_drawBody();};
-        li.onerror=()=>{_drawHeader(null);_drawBody();};
-        li.src=_logoDataUrl;
+        const li = new Image();
+        li.onload = () => {
+            _drawHeader(li);
+            _drawBody();
+        };
+        li.onerror = () => {
+            _drawHeader(null);
+            _drawBody();
+        };
+        li.src = _logoDataUrl;
     } else {
         _drawHeader(null);
         _drawBody();
     }
 }
-
 function liveDrawLens(){
     const od=parseFloat(document.getElementById("c-od").value), ct=getCTVal(), summary=document.getElementById("live-summary");
     if(!(od>0)||!(ct>0)){if(summary)summary.style.display="none";return;}
